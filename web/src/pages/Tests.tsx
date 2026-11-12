@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Flask } from "@phosphor-icons/react";
 import { api } from "../api";
-import { Empty, Failed, Loading, Section, Status, day, n0, pct, useBusy, useData } from "../lib";
+import { Empty, Failed, Loading, Section, Status, day, n0, pct, useBusy, useData, T } from "../lib";
 import { Pair } from "../parts";
 import { openSheet } from "../sheets";
 
@@ -45,7 +45,7 @@ export function Tests() {
       <div className="head"><h1>Tests</h1></div>
       {data.rows.length ? (
         <div className="ledger">
-          <div className="row head" style={{ gridTemplateColumns: cols }}><span>Segment</span><span>Started</span><span>Meeting rate, worked vs held back</span><span>Result</span></div>
+          <div className="row head" style={{ gridTemplateColumns: cols }}><T>Segment</T><T>Started</T><T>Meeting rate, worked vs held back</T><T>Result</T></div>
           {data.rows.map((t: any) => {
             const [g, w] = testState(t);
             return (

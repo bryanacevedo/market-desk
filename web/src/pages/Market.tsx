@@ -1,5 +1,5 @@
-import { Failed, Fig, Loading, Seg, Status, n0, navigate, pct, useData, usePath, withParam } from "../lib";
-import { MarketField, Nest, RangeLine, TierMix, moneyRange, moneyScale } from "../parts";
+import { Failed, Fig, Loading, Seg, Status, T, n0, navigate, pct, useData, usePath, withParam } from "../lib";
+import { MarketField, Nest, NestAxis, RangeLine, RateAxis, TierMix, moneyRange, moneyScale } from "../parts";
 import { openSheet } from "../sheets";
 
 type Row = {
@@ -34,12 +34,14 @@ export function Market() {
   const f = data.figures;
   const seg = by === "segment";
   const open = (k: string) => (seg ? openSheet("segment", k) : navigate(`/accounts?region=${encodeURIComponent(k)}`));
-  const [floor, ceil] = moneyScale(data.rows.flatMap((r) => [r.tam_high, r.som_low, r.som_high]));
+  const [rawFloor, ceil] = moneyScale(data.rows.flatMap((r) => [r.tam_high, r.som_low, r.som_high]));
+  // Four powers of ten at most, so the marks can be named; a range below the scale starts at its left edge.
+  const floor = Math.max(rawFloor, ceil / 10_000);
   const tiles = data.rows.map((r) => ({
     key: r.key, label: r.label, weight: r.sam_high || 0, value: moneyRange(r.sam_low, r.sam_high),
     aShare: r.fit_a / Math.max(1, r.universe_count), muted: r.key === "outside",
   }));
-  const cols = "minmax(150px,1.2fr) 80px 80px minmax(150px,1.2fr) minmax(280px,2.4fr)" + (seg ? " minmax(150px,1.1fr)" : "");
+  const cols = "minmax(150px,1.1fr) 64px 72px minmax(100px,0.9fr) minmax(290px,2.6fr)" + (seg ? " minmax(180px,1.3fr)" : "");
   return (
     <div className="page">
       {head}
@@ -53,10 +55,16 @@ export function Market() {
         <MarketField tiles={tiles} onPick={open} smaller={seg ? "Smaller segments" : "Smaller regions"} />
         <div className="field-key"><span>Tile size: SAM</span><span>Darker: more tier A</span></div>
       </section>
+      <section className="range-key" aria-label="How to read the ranges">
+        <span><i className="key-band" />Band: from the low estimate to the high one</span>
+        <span><i className="key-tick" />Tick: the win rate measured</span>
+        <span><i className="key-decade" />Marks: each one is ten times the last</span>
+      </section>
       <div className="ledger market" role="table" aria-label={seg ? "Segments" : "Regions"}>
         <div className="row head" role="row" style={{ gridTemplateColumns: cols }}>
-          <span>{seg ? "Segment" : "Region"}</span><span className="num">Companies</span><span className="num">Reachable</span>
-          <span>Tiers</span><span>TAM, SAM, SOM</span>{seg ? <span>Win rate</span> : null}
+          <span>{seg ? "Segment" : "Region"}</span><T num>Companies</T><T num>Reachable</T>
+          <T>Tiers</T><span className="axis-head"><T>TAM, SAM, SOM</T><NestAxis floor={floor} ceil={ceil} /></span>
+          {seg ? <span className="axis-head"><T>Win rate</T><RateAxis /></span> : null}
         </div>
         {data.rows.map((r) => (
           <button key={r.key} className="row" role="row" style={{ gridTemplateColumns: cols }} onClick={() => open(r.key)}>
@@ -66,7 +74,7 @@ export function Market() {
             <span className="num" data-label="Reachable">{n0(r.sam_count)}</span>
             <TierMix a={r.fit_a} b={r.fit_b} c={r.fit_c} x={r.fit_x} nj={r.not_judged} />
             <Nest floor={floor} ceil={ceil} rows={[["TAM", r.tam_low, r.tam_high], ["SAM", r.sam_low, r.sam_high], ["SOM", r.som_low, r.som_high]]} />
-            {seg ? <span data-label="Win rate">{r.win_rate ? <RangeLine rate={r.win_rate.rate} low={r.win_rate.low} high={r.win_rate.high} /> : <span className="faint">No deals</span>}</span> : null}
+            {seg ? <span data-label="Win rate">{r.win_rate ? <RangeLine rate={r.win_rate.rate} low={r.win_rate.low} high={r.win_rate.high} spell /> : <span className="faint">No deals</span>}</span> : null}
           </button>
         ))}
       </div>

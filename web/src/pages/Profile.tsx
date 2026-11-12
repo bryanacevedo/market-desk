@@ -1,6 +1,6 @@
 import { ClockCounterClockwise, ListChecks, PencilSimpleLine, Scales } from "@phosphor-icons/react";
 import { api } from "../api";
-import { Bar, Empty, Failed, Fig, Loading, Section, Status, day, n0, useBusy, useData } from "../lib";
+import { Bar, Empty, Failed, Fig, Loading, Section, Status, day, n0, useBusy, useData, T } from "../lib";
 import { Verdict } from "../parts";
 import { openSheet } from "../sheets";
 
@@ -13,7 +13,7 @@ export function RuleRows({ rules }: { rules: any[] }) {
         if (!rs.length) return null;
         return (
           <div key={k} style={{ display: "contents" }}>
-            <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) 56px 170px" }}><span>{label}</span><span className="num">Weight</span><span>Evidence</span></div>
+            <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) 56px 170px" }}><span>{label}</span><T num>Weight</T><T>Evidence</T></div>
             {rs.map((r) => (
               <button key={r.key} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) 56px 170px" }}
                 onClick={() => r.finding && openSheet("finding", r.finding.id)} disabled={!r.finding}>
@@ -49,7 +49,7 @@ export function Moves({ id }: { id: number }) {
       </Section>
       <Section title="Tier mix by group">
         <div className="ledger">
-          <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) 64px repeat(3, 52px)" }}><span>Group</span><span className="num">A now</span><span className="num">A</span><span className="num">B</span><span className="num">C or X</span></div>
+          <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) 64px repeat(3, 52px)" }}><T>Group</T><T num>A now</T><T num>A</T><T num>B</T><T num>C or X</T></div>
           {data.backtest.map((g: any) => {
             const t = Math.max(1, g.n);
             const s = (k: number) => `${Math.round((100 * k) / t)}%`;

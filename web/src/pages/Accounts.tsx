@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Books, MagnifyingGlass } from "@phosphor-icons/react";
 import { Logo } from "../marks";
-import { Empty, Failed, Fig, Loading, Section, Status, n0, navigate, pct, useData, usePath, withParam } from "../lib";
+import { Empty, Failed, Fig, Loading, Section, Status, n0, navigate, pct, useData, usePath, withParam, T } from "../lib";
 import { FitBand, Hours, Tier } from "../parts";
 import { openSheet } from "../sheets";
 
@@ -49,7 +49,7 @@ export function Accounts() {
         <>
           <div className="ledger wrap-names accounts">
             <div className="row head" style={{ gridTemplateColumns: cols }}>
-              <span /><span>Company</span><span>Segment</span><span className="num">Tier</span><span className="num">Data known</span><span>Owner</span><span className="num">Last result</span>
+              <span /><span>Company</span><span>Segment</span><T num>Tier</T><T num>Data known</T><span>Owner</span><span className="num">Last result</span>
             </div>
             {data.rows.map((r: any) => (
               <button key={r.id} className="row" style={{ gridTemplateColumns: cols }} onClick={() => openSheet("company", r.id)}>
@@ -93,7 +93,7 @@ export function MyBook() {
       {data.rows.length ? ["A", "B", "C", "X"].map((t) => by(t).length ? (
         <Section key={t} title={t === "X" ? "Customers and open deals" : `Tier ${t}`} count={by(t).length} icon={Books}>
           <div className="ledger wrap-names">
-            <div className="row head" style={{ gridTemplateColumns: "28px minmax(0,1.4fr) minmax(120px,0.9fr) minmax(0,1fr) minmax(0,1fr)" }}><span /><span>Company</span><span>Score</span><span>Segment</span><span>Note</span></div>
+            <div className="row head" style={{ gridTemplateColumns: "28px minmax(0,1.4fr) minmax(120px,0.9fr) minmax(0,1fr) minmax(0,1fr)" }}><span /><T>Company</T><T>Score</T><T>Segment</T><T>Note</T></div>
             {by(t).slice(0, 120).map((r: any) => (
               <button key={r.id} className="row" style={{ gridTemplateColumns: "28px minmax(0,1.4fr) minmax(120px,0.9fr) minmax(0,1fr) minmax(0,1fr)" }} onClick={() => openSheet("company", r.id)}>
                 <Logo domain={r.primary_domain} name={r.name} />

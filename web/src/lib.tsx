@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode, useLayoutEffect } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode, useLayoutEffect } from "react";
 import { api } from "./api";
 import { STATUS_ICONS } from "./statusIcons";
 import { STATUS_MEANING } from "./statusMeaning";
+import { TIPS } from "./tips";
 import { CheckCircle, Clock, PauseCircle, WarningCircle, type Icon } from "@phosphor-icons/react";
 
 // ---------------------------------------------------------------- routing: the path is the state
@@ -169,17 +170,17 @@ const TONE: Partial<Record<Glyph, string>> = { wait: "var(--ink-2)", stop: "var(
 const LIVE = new Set<string>(["Running"]);
 export function Status({ kind, children, title }: { kind: Glyph; children: ReactNode; title?: string }) {
   const word = typeof children === "string" ? children : "";
-  const meaning = title ?? STATUS_MEANING[word];
+  const meaning = title ?? STATUS_MEANING[word] ?? TIPS[word];
   if (LIVE.has(word)) {
     const Plane = STATUS_ICONS["Running"];
     return <span className="status live" title={meaning}><Plane size={15} weight="regular" aria-hidden="true" className="breathe" />{children}</span>;
   }
   const Ic = STATUS_ICONS[word] || FALLBACK[kind];
   return (
-    <span className="status" title={meaning}>
+    <span className="status">
       {Ic ? <Ic size={15} weight={kind === "wait" || kind === "stop" ? "bold" : "regular"} aria-hidden="true"
         style={{ color: TONE[kind] || "var(--mute)", flex: "none" }} /> : null}
-      {children}
+      {meaning ? <Tip tip={meaning}>{children}</Tip> : children}
     </span>
   );
 }
@@ -213,7 +214,9 @@ export function Count({ value }: { value: ReactNode }) {
 const reduced = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 export function Fig({ value, label, unit, onClick, sm, was }: { value: ReactNode; label: string; unit?: string; onClick?: () => void; sm?: boolean; was?: string }) {
-  const inner = <><b><Count value={value} />{unit ? <small>{unit}</small> : null}</b><span>{label}</span>{was ? <span className="was">{was}</span> : null}</>;
+  const tip = TIPS[label];
+  const inner = <><b><Count value={value} />{unit ? <small>{unit}</small> : null}</b>
+    <span>{tip ? <Tip tip={tip}>{label}</Tip> : label}</span>{was ? <span className="was">{was}</span> : null}</>;
   if (onClick) {
     return <button type="button" className={`fig go${sm ? " sm" : ""}`} onClick={onClick}
       style={{ background: "none", border: 0, borderLeft: "1px solid var(--line)", textAlign: "left", font: "inherit", color: "inherit" }}>{inner}</button>;
@@ -256,7 +259,7 @@ export function Failed({ error, retry }: { error: string; retry: () => void }) {
 export function Section({ title, count, right, icon: Ic, children }: { title: string; count?: number; right?: ReactNode; icon?: Icon; children: ReactNode }) {
   return (
     <section className="section">
-      <header><h2>{Ic ? <Ic size={17} className="h-icon" aria-hidden="true" /> : null}{title}{count !== undefined ? <span className="count">{count.toLocaleString("en-US")}</span> : null}</h2>{right}</header>
+      <header><h2>{Ic ? <Ic size={17} className="h-icon" aria-hidden="true" /> : null}{TIPS[title] ? <Tip tip={TIPS[title]}>{title}</Tip> : title}{count !== undefined ? <span className="count">{count.toLocaleString("en-US")}</span> : null}</h2>{right}</header>
       {children}
     </section>
   );
@@ -281,4 +284,28 @@ export function Seg<T extends string>({ value, options, onChange, label }: { val
       {options.map(([v, l]) => <button key={v} type="button" aria-pressed={v === value} onClick={() => onChange(v)}>{l}</button>)}
     </div>
   );
+}
+
+
+/** A term with its meaning one hover or one Tab away: a dotted underline, and a short plain note under it on hover or
+ *  focus. Inside a pressable row it does not take focus of its own; the row's focus shows it instead. */
+export function Tip({ tip, children, focusable = "auto" }: { tip: string; children: ReactNode; focusable?: boolean | "auto" }) {
+  const id = useId();
+  const ref = useRef<HTMLSpanElement>(null);
+  const [inside, setInside] = useState(focusable === false);
+  useLayoutEffect(() => {
+    if (focusable === "auto" && ref.current) setInside(!!ref.current.parentElement?.closest("button, a, [role=button]"));
+  }, [focusable]);
+  return (
+    <span ref={ref} className={`tip${inside ? " in-row" : ""}`} tabIndex={inside ? undefined : 0} aria-describedby={id}>
+      {children}<span className="tip-box" role="tooltip" id={id}>{tip}</span>
+    </span>
+  );
+}
+
+/** Text that carries its tip when the dictionary has one for it, and is plain text otherwise. */
+export function T({ children, num, focusable = "auto" }: { children: string; num?: boolean; focusable?: boolean | "auto" }) {
+  const tip = TIPS[children];
+  const body = tip ? <Tip tip={tip} focusable={focusable}>{children}</Tip> : children;
+  return num ? <span className="num">{body}</span> : <span>{body}</span>;
 }

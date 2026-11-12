@@ -77,15 +77,17 @@ export const RATE_MAX = 0.6;
 
 /** A rate drawn as an interval on a 0 to `max` scale: the band from low to high, a tick at the point, a hollow ring
  *  at the comparison. The number is written beside it; the band's ends are written under it when asked. */
-export function RangeLine({ rate, low, high, other, max = RATE_MAX, label, ends }: { rate: number | null | undefined; low?: number | null;
-  high?: number | null; other?: number | null; max?: number; label?: string; ends?: boolean }) {
+export function RangeLine({ rate, low, high, other, max = RATE_MAX, label, ends, spell }: { rate: number | null | undefined; low?: number | null;
+  high?: number | null; other?: number | null; max?: number; label?: string; ends?: boolean; spell?: boolean }) {
   if (rate === null || rate === undefined) return <span className="faint">None</span>;
   const x = (v: number) => `${Math.max(0, Math.min(100, (100 * v) / max))}%`;
   const lo = low ?? rate;
   const hi = high ?? rate;
   return (
-    <span className={`range${ends ? " with-ends" : ""}`} role="img" aria-label={`${label ?? ""}${pct(rate)}, ${pct(lo)} to ${pct(hi)}${other !== null && other !== undefined ? `, the rest ${pct(other)}` : ""}`}>
-      <span className="range-val">{pct(rate)}</span>
+    <span className={`range${ends ? " with-ends" : ""}`} role="img"
+      title={`${label ?? ""}${lo !== hi ? `likely between ${pct(lo)} and ${pct(hi)}; ` : ""}${pct(rate)} measured${other !== null && other !== undefined ? `; the rest ${pct(other)}` : ""}`}
+      aria-label={`${label ?? ""}${lo !== hi ? `likely between ${pct(lo)} and ${pct(hi)}; ` : ""}${pct(rate)} measured${other !== null && other !== undefined ? `; the rest ${pct(other)}` : ""}`}>
+      <span className="range-val">{pct(rate)}{spell && lo !== hi ? <small className="spell">{Math.round(lo * 100)} to {Math.round(hi * 100)}%</small> : null}</span>
       <span className="range-line" aria-hidden="true">
         <i className="range-band" style={{ left: x(lo), width: `calc(${x(hi)} - ${x(lo)})` }} />
         {other !== null && other !== undefined ? <i className="range-other" style={{ left: x(other) }} /> : null}
@@ -115,9 +117,11 @@ export function Nest({ rows, floor, ceil }: { rows: [string, number | undefined,
   return (
     <span className="nest">
       {rows.map(([k, lo, hi]) => lo === undefined || hi === undefined ? null : (
-        <span key={k} className="nest-row">
+        <span key={k} className="nest-row" role="img" aria-label={hi > 0 ? `${k} between ${moneyRange(lo, hi)}` : `${k}: no capacity`}
+          title={hi > 0 ? `${k} between ${moneyRange(lo, hi).replace(" to ", " and ")}` : `${k}: no capacity`}>
           <b>{k}</b>
           <span className="range-line" aria-hidden="true">
+            {decades(floor, ceil).map((d) => <i key={d} className="decade" style={{ left: `${logPos(d, floor, ceil)}%` }} />)}
             {hi > 0 ? <i className="range-band" style={{ left: `${logPos(Math.max(lo, floor), floor, ceil)}%`, width: `${Math.max(1.5, logPos(hi, floor, ceil) - logPos(Math.max(lo, floor), floor, ceil))}%` }} /> : null}
           </span>
           <span className="range-val">{hi > 0 ? moneyRange(lo, hi) : k === "SOM" ? "No capacity" : "None"}</span>
@@ -237,3 +241,37 @@ export function Pair({ r, max = 0.3 }: { r: any; max?: number }) {
     </span>
   );
 }
+
+
+/** Powers of ten inside a log money scale, in cents: the marks every money range is read against. */
+export function decades(floor: number, ceil: number): number[] {
+  const out: number[] = [];
+  for (let v = 10 ** Math.ceil(Math.log10(Math.max(floor, 1))); v <= ceil; v *= 10) out.push(v);
+  return out;
+}
+
+/** The money scale named, for a column head: $100k, $1M, $10M, laid out like a Nest row so the marks line up. */
+export function NestAxis({ floor, ceil }: { floor: number; ceil: number }) {
+  return (
+    <span className="nest-row axis" aria-hidden="true">
+      <b />
+      <span className="axis-line">{decades(floor, ceil).slice(-3).map((d) => (
+        <small key={d} style={{ left: `${logPos(d, floor, ceil)}%` }}>{short(d)}</small>
+      ))}</span>
+      <span />
+    </span>
+  );
+}
+
+/** The rate scale named, for a column head, laid out like a RangeLine. */
+export function RateAxis({ max = RATE_MAX }: { max?: number }) {
+  const marks = [0, 0.2, 0.4, 0.6].filter((m) => m <= max);
+  return (
+    <span className="range axis" aria-hidden="true">
+      <span />
+      <span className="axis-line">{marks.map((m) => <small key={m} style={{ left: `${(100 * m) / max}%` }}>{Math.round(m * 100)}%</small>)}</span>
+    </span>
+  );
+}
+
+const short = (cents: number) => { const d = cents / 100; return d >= 1e9 ? `$${d / 1e9}B` : d >= 1e6 ? `$${d / 1e6}M` : d >= 1e3 ? `$${d / 1e3}k` : `$${d}`; };

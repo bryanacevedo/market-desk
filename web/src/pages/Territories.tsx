@@ -1,6 +1,6 @@
 import { MapTrifold, UsersThree } from "@phosphor-icons/react";
 import { api } from "../api";
-import { Empty, Failed, Fig, Loading, Section, Seg, Status, day, money, n0, navigate, useBusy, useData, usePath, withParam } from "../lib";
+import { Empty, Failed, Fig, Loading, Section, Seg, Status, day, money, n0, navigate, useBusy, useData, usePath, withParam, T } from "../lib";
 import { CapacityRange, PlanShift } from "../parts";
 import { openSheet } from "../sheets";
 
@@ -65,7 +65,7 @@ function PlanView({ data, active, money: showMoney }: { data: any; active: any; 
         <div className="halo"><Section title="What changes" count={data.changes.changes}>
           {data.changes.crossing ? <Status kind="stop">{`${n0(data.changes.crossing)} open deals would leave their owner`}</Status> : null}
           <div className="ledger">
-            <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) 80px 80px 80px" }}><span>Person</span><span className="num">Gains</span><span className="num">Losses</span><span className="num">Net</span></div>
+            <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) 80px 80px 80px" }}><T>Person</T><T num>Gains</T><T num>Losses</T><T num>Net</T></div>
             {data.changes.people.map((g: any) => (
               <div key={g.name} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) 80px 80px 80px" }}>
                 <span>{g.name}</span><span className="num" data-label="Gains">{n0(g.gains)}</span><span className="num" data-label="Losses">{n0(g.losses)}</span>
@@ -77,7 +77,7 @@ function PlanView({ data, active, money: showMoney }: { data: any; active: any; 
       ) : null}
       <Section title="People" icon={UsersThree}>
         <div className="ledger">
-          <div className="row head" style={{ gridTemplateColumns: cols }}><span>Person</span><span>Territory</span>{draft ? <span>A and B, ring: now</span> : <><span className="num">A</span><span className="num">B</span></>}<span>Hours needed, of held</span>{showMoney ? <><span className="num">Expected value</span><span className="num">Average</span></> : null}</div>
+          <div className="row head" style={{ gridTemplateColumns: cols }}><T>Person</T><T>Territory</T>{draft ? <T>A and B, ring: now</T> : <><T num>A</T><T num>B</T></>}<T>Hours needed, of held</T>{showMoney ? <><T num>Expected value</T><T num>Average</T></> : null}</div>
           {data.people.map((p: any) => (
             <button key={p.user_id} className="row" style={{ gridTemplateColumns: cols }} onClick={() => openSheet("person", p.user_id)}>
               <span className="cell-main"><span className="t">{p.name}</span><span className="s">{p.role === "ae" ? "AE" : "SDR"}{p.effective_fte < 1 ? `, ramping` : ""}</span></span>
@@ -92,7 +92,7 @@ function PlanView({ data, active, money: showMoney }: { data: any; active: any; 
       </Section>
       <Section title="Territories" icon={MapTrifold}>
         <div className="ledger">
-          <div className="row head" style={{ gridTemplateColumns: "minmax(0,1.2fr) minmax(0,1fr) 80px 130px" }}><span>Territory</span><span>People</span><span className="num">A and B</span><span /></div>
+          <div className="row head" style={{ gridTemplateColumns: "minmax(0,1.2fr) minmax(0,1fr) 80px 130px" }}><T>Territory</T><T>People</T><T num>A and B</T><span /></div>
           {data.territories.map((t: any) => (
             <div key={t.id} className="row" style={{ gridTemplateColumns: "minmax(0,1.2fr) minmax(0,1fr) 80px 130px" }}>
               <span className="cell-main"><span className="t">{t.label}</span><span className="s">{t.segments.join(", ")}</span></span>
@@ -133,7 +133,7 @@ function CapacityView({ data }: { data: any }) {
       </div>
       <Section title="Roster" icon={UsersThree}>
         <div className="ledger">
-          <div className="row head" style={{ gridTemplateColumns: "minmax(0,1.1fr) 110px 70px minmax(220px,1.6fr)" }}><span>Person</span><span>Started</span><span className="num">Ramped</span><span>Hours needed, of held</span></div>
+          <div className="row head" style={{ gridTemplateColumns: "minmax(0,1.1fr) 110px 70px minmax(220px,1.6fr)" }}><T>Person</T><T>Started</T><T num>Ramped</T><T>Hours needed, of held</T></div>
           {data.people.map((p: any) => (
             <button key={p.user_id} className="row" style={{ gridTemplateColumns: "minmax(0,1.1fr) 110px 70px minmax(220px,1.6fr)" }} onClick={() => openSheet("person", p.user_id)}>
               <span className="cell-main"><span className="t">{p.name}</span><span className="s">{p.role === "ae" ? "AE" : "SDR"}</span></span>

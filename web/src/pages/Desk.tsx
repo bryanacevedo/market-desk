@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { GearSix, UsersThree } from "@phosphor-icons/react";
 import { api } from "../api";
-import { Failed, Loading, Section, Status, ago, day, money, pct, useBusy, useData } from "../lib";
+import { Failed, Loading, Section, Status, ago, day, money, pct, useBusy, useData, T } from "../lib";
 import { openSheet } from "../sheets";
 
 export const KIND_WORD: Record<string, string> = {
@@ -18,7 +18,7 @@ export function Sources() {
     <div className="page">
       <div className="head"><h1>Sources</h1></div>
       <div className="ledger">
-        <div className="row head" style={{ gridTemplateColumns: cols }}><span>Source</span><span>Kind</span><span>Last run</span><span>Fields filled</span><span className="num">This month</span></div>
+        <div className="row head" style={{ gridTemplateColumns: cols }}><T>Source</T><T>Kind</T><T>Last run</T><T>Fields filled</T><T num>This month</T></div>
         {data.rows.map((s: any) => (
           <button key={s.key} className="row" style={{ gridTemplateColumns: cols }} onClick={() => openSheet("source", s.key)}>
             <span className="cell-main"><span className="t">{s.label}</span><span className="s">{s.adapter === "sim" ? "Simulated" : "Live"}{s.no_redistribution ? ", not exported" : ""}</span></span>

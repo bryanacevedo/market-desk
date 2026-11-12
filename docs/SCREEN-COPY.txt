@@ -1,14 +1,62 @@
 # eligible, # needed
 # now, # in the draft
 # to # days
+A company fact we test against win rate, such as industry, size or technology.
+A company with this score or more is tier A.
+A company with this score or more, below the A cutoff, is tier B.
+A tier A account nobody has hours for. It counts toward the hiring gap.
+A, B or C by fit score under the published ICP. X is excluded, a customer, an open deal or a competitor.
+Account Desk has no field for this rule, so its book leaves it out and lists it.
+Accounts RevOps moved outside the territory rules, each with a note.
+Accounts dropped since the version before.
+Accounts in a test deliberately not worked, so meetings can be compared.
+Accounts new since the version before.
+Accounts that change owner if this draft is activated.
+Accounts the person would gain.
+Accounts the person would lose.
 Accounts the plan can work
+Accounts whose owner changed since the version before.
+Accounts whose tier changed since the version before.
+Accounts you own because they already buy from us or have a deal open.
 Active since #, by #
+Band: from the low estimate to the high one
+Band: where the true win rate likely sits
+Closed deals with a different known value for the same trait.
+Closed new-business deals in the evidence window.
+Companies in our data, excluding competitors.
+Companies that score as a strong (A) or good (B) fit under the published ICP.
+Companies whose tier would change if this draft were published.
+Days from opening to winning, on won deals only.
 Deals before a rule is proposed for removal
+Deals closed in this many months count as evidence.
+Deals opened from the accounts worked.
+Decisions only you can make right now.
+Each band runs from the low estimate to the high one, with both written at the right. The scale grows by ten times at each mark, so small markets and large ones fit on one line.
+Each person's expected value is within 15% of the territory average and nobody is over capacity.
+Every other deal with a known value for the same trait.
+Extra people at full hours it would take to work every unassigned A and B account.
+Fewer than 30 deals or 5 wins.
 Fewer than 30 opportunities or 5 wins.
+Fit score out of 100 under the published ICP. The band shows the B and A tier lines.
+Hours a month it would take to work every unassigned A and B account.
+Hours a month one tier A account needs while it is worked. Our assumption.
+Hours a month one tier B account needs while it is worked. Our assumption.
+Hours a month one tier C account needs while it is worked. Our assumption.
 Hours a month per test account
+How many accounts the active plan's people can work in 12 months in this segment.
+How many trait values had enough deals to test. The more we compare, the higher the bar for calling one clear.
+How often each field is filled for the segment's companies.
+How the draft would tier known groups. A good ICP rates current customers A far more often than lost or churned ones.
+How the segment's companies split by tier: A strong fit, B good fit, C weak fit, X excluded, already a customer or an open deal.
+How to read the ranges
+How to read the win rates
+Less than 60% of the ICP is known for this company, so it gets no tier.
 Less than 60% of the profile is known for this company.
 Lift: # to # points
+Marks: each one is ten times the last
+Median size of won new-business deals in the last two years, with the middle half of deals as the range.
 Meeting rate, worked vs held back
+Meetings booked with the accounts worked.
 Months an account is worked
 No accounts in your book
 No evidence behind this rule yet.
@@ -16,12 +64,53 @@ No results back from Account Desk yet
 Not sent to Account Desk
 Overdue by # ##
 Page # of #
+Points the rule adds to, or removes from, a company's fit score out of 100.
+Points this rule adds to or removes from the company's score.
 Share held back in a test
+Share of accounts that booked a meeting. Ochre band and tick: accounts Account Desk worked. Steel band and ring: accounts held back on purpose.
+Share of customers who churned within 12 months of starting.
+Share of full selling hours a new hire has, rising over their first three months.
+Share of the ICP's weight known for the company. Under 60% means not judged.
+Share of won deals this role signed.
+Share of won deals this role took part in.
+Share of worked accounts that became a deal, from Account Desk's results over full quarters.
+Share rated A by the published version, for comparison.
+Someone's book needs more hours than they hold.
+Someone's expected value is more than 15% from the territory average.
 That did not go through.
+The AI's wording failed its check twice, so only the figures show.
+The ICP version every desk uses now.
+The buyers' own words from call notes, with a short summary.
 The difference could be chance.
 The difference goes away within each company size band.
+The draft rates churned customers A as often as current ones, which a good ICP should not do.
+The loss reason coded from the rep's note.
+The middle half of won-deal cycles.
+The part of TAM in our regions whose buyer a contact source can find. Same low and high ends as TAM.
+The same comparison inside each company size band. If the gap disappears here, size explains it.
+The segment's win rate pulled toward the overall rate, as if it had 20 more deals at the overall rate, so a few lucky deals do not carry the plan.
+The share of accounts that become deals, times the win rate, times deal size, times fit score, added up over the person's book for 12 months.
+The territory's average expected value per person.
+The territory's average expected value per person. Balanced means everyone is within 15% of it.
+The test was clear, so a change to give this segment weight is open on Changes.
+The work nobody has hours for, in accounts and in people.
+Tick: the win rate measured
+Tier A accounts someone owns, out of all tier A accounts in our regions.
+Tier A and B accounts in our regions nobody has hours for.
+Tier A and B accounts the plan gives to someone.
+Tier A and B companies in our regions whose buyer a contact source can find. This is the SAM count.
 Too few accounts to read a difference yet.
+Value of the deals opened.
 Waiting for a manager to activate
+What Account Desk or Events Desk reported back for this account.
+What the active plan's people can work in 12 months, times the share that becomes a deal, times the win rate, times deal size.
+What the active plan's people can work in 12 months, times the share that becomes a deal, times the win rate, times deal size. Low end uses the low rates, high end the high ones.
+What the deals say about the rule.
+What the evidence says about this trait: clearly higher, clearly lower, explained by size, not clear, or too few to tell.
+Who took part in won deals, and who signed.
+Win rate of every other deal with a known value for the same trait.
 Win rate vs the rest
 Wins less often than the rest, by more than chance.
 Wins more often than the rest, by more than chance.
+Worked accounts booked meetings at a clearly different rate from held-back ones.
+Worked and held-back accounts booked meetings at about the same rate.

@@ -1,5 +1,5 @@
-import { Empty, Failed, Fig, Loading, Section, Seg, money, n0, navigate, useData, usePath, withParam } from "../lib";
-import { RangeLine, VERDICT_WORD, Verdict } from "../parts";
+import { Empty, Failed, Fig, Loading, Section, Seg, money, n0, navigate, useData, usePath, withParam, T } from "../lib";
+import { RangeLine, VERDICT_WORD, Verdict, RateAxis } from "../parts";
 import { openSheet } from "../sheets";
 
 const monthsBetween = (a: string, b: string) => Math.round((new Date(b).getTime() - new Date(a).getTime()) / (30.44 * 86400000));
@@ -37,24 +37,29 @@ export function Evidence() {
           {data.traits.map(([k, l]: [string, string]) => <option key={k} value={k}>{l}</option>)}
         </select>
       </div>
-      {rows.length ? (
-        <div className="ledger wide-table">
+      {rows.length ? (<>
+        <div className="range-key" aria-label="How to read the win rates">
+          <span><i className="key-band" />Band: where the true win rate likely sits</span>
+          <span><i className="key-tick" />Tick: the win rate measured</span>
+          <span><i className="key-ring" />Ring: every other deal</span>
+        </div>
+        <div className="ledger wide-table evidence">
           <div className="row head" style={{ gridTemplateColumns: cols }}>
-            <span>Trait</span><span className="num">Deals</span><span>Win rate vs the rest</span>
-            <span className="num">Won-deal cycle</span><span className="num">{me?.money ? "Deal size" : ""}</span><span>Verdict</span>
+            <T>Trait</T><T num>Deals</T><span className="axis-head"><T>Win rate vs the rest</T><RateAxis /></span>
+            <T num>Won-deal cycle</T>{me?.money ? <T num>Deal size</T> : <span />}<T>Verdict</T>
           </div>
           {rows.map((r: any) => (
             <button key={r.id} className="row" style={{ gridTemplateColumns: cols }} onClick={() => openSheet("finding", r.id)}>
               <span className="cell-main"><span className="t">{r.value}</span><span className="s">{r.trait_label}</span></span>
               <span className="num" data-label="Deals">{n0(r.opps)}</span>
-              <span data-label="Win rate"><RangeLine rate={r.rate} low={r.low} high={r.high} other={r.rest_rate} /></span>
+              <span data-label="Win rate"><RangeLine rate={r.rate} low={r.low} high={r.high} other={r.rest_rate} spell /></span>
               <span className="num" data-label="Won-deal cycle">{r.cycle ? `${Math.round(r.cycle.median)} days` : <span className="faint">Too few</span>}</span>
               <span className="num" data-label={me?.money ? "Deal size" : undefined}>{me?.money ? money(r.acv_median) : ""}</span>
               <Verdict v={r.verdict} />
             </button>
           ))}
         </div>
-      ) : <Empty title="No findings match" />}
+      </>) : <Empty title="No findings match" />}
       {data.changes.length ? (
         <Section title="Since the last run" count={data.changes.length}>
           <div className="ledger">

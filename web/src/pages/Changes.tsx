@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { CheckSquare, Lightbulb } from "@phosphor-icons/react";
 import { api } from "../api";
-import { Empty, Failed, Loading, Section, Status, navigate, useBusy, useData } from "../lib";
+import { Empty, Failed, Loading, Section, Status, navigate, useBusy, useData, T } from "../lib";
 import { RangeLine } from "../parts";
 import { openSheet } from "../sheets";
 
@@ -16,8 +16,8 @@ export function ProposalWords({ p }: { p: any }) {
   const f = p.findings[0];
   return (
     <dl className="kv small">
-      <dt>Change</dt><dd>{p.change.field_label}: {p.change.value_label}</dd>
-      {f ? <><dt>Win rate</dt><dd>{f.win_rate} ({f.range})</dd><dt>The rest</dt><dd>{f.rest_win_rate}</dd><dt>Deals</dt><dd>{Number(f.opportunities).toLocaleString("en-US")}</dd></> : null}
+      <dt><T>Change</T></dt><dd>{p.change.field_label}: {p.change.value_label}</dd>
+      {f ? <><dt><T>Win rate</T></dt><dd>{f.win_rate} ({f.range})</dd><dt><T>The rest</T></dt><dd>{f.rest_win_rate}</dd><dt><T>Deals</T></dt><dd>{Number(f.opportunities).toLocaleString("en-US")}</dd></> : null}
     </dl>
   );
 }

@@ -1,6 +1,6 @@
 import { ArrowsLeftRight, DownloadSimple } from "@phosphor-icons/react";
 import { api } from "../api";
-import { Empty, Failed, Fig, Loading, Section, day, money, n0, useBusy, useData } from "../lib";
+import { Empty, Failed, Fig, Loading, Section, day, money, n0, useBusy, useData, T } from "../lib";
 import { openSheet } from "../sheets";
 
 export const DEST: Record<string, string> = { account_desk: "Account Desk", events_desk: "Events Desk" };
@@ -31,7 +31,7 @@ export function Handoffs() {
           <Section key={d} title={DEST[d]} icon={ArrowsLeftRight}>
             {books.length ? (
               <div className="ledger">
-                <div className="row head" style={{ gridTemplateColumns: cols }}><span>Version</span><span className="num">Rows</span><span className="num">Added</span><span className="num">Removed</span><span className="num">Tier moved</span><span className="num">Owner moved</span><span>Files</span></div>
+                <div className="row head" style={{ gridTemplateColumns: cols }}><T>Version</T><T num>Rows</T><T num>Added</T><T num>Removed</T><T num>Tier moved</T><T num>Owner moved</T><T>Files</T></div>
                 {books.map((b: any) => (
                   <div key={b.id} className="row" style={{ gridTemplateColumns: cols }}>
                     <button className="link-row cell-main" onClick={() => openSheet("book", b.id)}><span className="t">Version {b.version}</span><span className="s">{day(b.created_at)}, profile v{b.icp_number}</span></button>
@@ -65,7 +65,7 @@ export function Handoffs() {
         <Section key={p.id} title={`From draft v${p.version}`} right={<a className="btn quiet sm" href={`/api/handoffs/preview/${p.id}/icp.json`} download><DownloadSimple size={14} />icp.json</a>}>
           {p.dropped_rules.length ? (
             <div className="ledger">
-              <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)" }}><span>Not sent to Account Desk</span><span>Why</span></div>
+              <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)" }}><T>Not sent to Account Desk</T><T>Why</T></div>
               {p.dropped_rules.map((d: any) => (
                 <div key={d.key} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)" }}><span className="t">{d.rule}</span><span className="mute">{d.why}</span></div>
               ))}
