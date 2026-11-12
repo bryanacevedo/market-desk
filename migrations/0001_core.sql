@@ -9,7 +9,7 @@ create function app_now() returns timestamptz language sql stable as
 -- ---------------------------------------------------------------- team and settings
 create table users (
   id serial primary key, name text not null, email text not null unique,
-  role text not null check (role in ('revops', 'manager', 'sdr', 'ae')),
+  role text not null check (role in ('revops', 'manager', 'gtm', 'sdr', 'ae')),
   timezone text not null default 'America/New_York', started_on date not null,
   ramp_months int not null default 3 check (ramp_months >= 0),
   selling_hours_month numeric not null default 100 check (selling_hours_month >= 0),

@@ -75,7 +75,7 @@ function PlanView({ data, active, money: showMoney }: { data: any; active: any; 
           </div>
         </Section></div>
       ) : null}
-      <Section title="People" icon={UsersThree}>
+      <Section title="People" icon={UsersThree} right={<span className="small mute">Each rep's book goes to Account Desk</span>}>
         <div className="ledger">
           <div className="row head" style={{ gridTemplateColumns: cols }}><T>Person</T><T>Territory</T>{draft ? <T>A and B, ring: now</T> : <><T num>A</T><span className="num"><Tip tip="Tier B accounts in the person's book.">B</Tip></span></>}<T>Hours needed, of held</T>{showMoney ? <><T num>Expected value</T><T num>Average</T></> : null}</div>
           {data.people.map((p: any) => (

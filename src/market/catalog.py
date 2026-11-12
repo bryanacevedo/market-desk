@@ -62,6 +62,9 @@ USERS = [
     ("Grace Lindqvist", "grace.lindqvist@lumenledger.example", "ae", "America/New_York", "2023-05-15", 40),
     ("Omar Bello", "omar.bello@lumenledger.example", "ae", "America/Chicago", "2024-02-05", 40),
     ("Hannah Mercer", "hannah.mercer@lumenledger.example", "ae", "Europe/London", "2023-11-06", 40),
+    # The go-to-market leader: reads every page, changes nothing. SDRs and AEs above are people in the plan, whose
+    # books go to Account Desk; they do not use Market Desk.
+    ("Jordan Ellis", "jordan.ellis@lumenledger.example", "gtm", "America/New_York", "2021-06-01", 0),
 ]
 
 PERSONAS = {

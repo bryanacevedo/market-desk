@@ -49,6 +49,7 @@ Deals closed in this many months count as evidence.
 Deals opened from these accounts.
 Decisions only you can make right now.
 Each person's expected value is within 15% of the territory average and nobody is over capacity.
+Each rep's book goes to Account Desk
 Every account that changes owner if this draft is activated, customers and open deals included, so it can differ from the A and B count beside each person.
 Every other deal with a known value for the same trait.
 Extra SDRs at full hours it would take to work every unassigned A and B account in the plan's regions.
@@ -82,13 +83,11 @@ Median size of won new-business deals in the last two years, with the middle hal
 Meeting rate, worked vs held back
 Meetings booked with these accounts.
 Months an account is worked
-No accounts in your book
 No evidence behind this rule yet.
 No results back from Account Desk yet
 Not sent to Account Desk
-Opened a deal since the plan
 Our tool that plans events and who to meet there. It receives the ICP as a document from here.
-Our tool that researches and works accounts with SDRs. It receives a book of accounts and the ICP from here.
+Our tool where reps research and work their accounts. Each rep's book of accounts, and the ICP, go there from here.
 Overdue by # ##
 Page # of #
 Points the rule adds to, or removes from, a company's fit score out of 100.

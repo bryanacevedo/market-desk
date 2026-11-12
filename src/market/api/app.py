@@ -159,15 +159,22 @@ def current_user(request: Request) -> dict:
             raw = request.headers.get("X-Acting-As") or request.query_params.get("as")
             u = db.one(cur, "select * from users where id = %s and active", int(raw)) if raw and raw.isdigit() else None
             if u is None:
-                # No choice made yet: the least-privileged view, never company money.
-                u = db.one(cur, "select * from users where role = 'sdr' and active order by id limit 1")
+                # No choice made yet: the go-to-market leader, who reads every page and changes nothing.
+                u = db.one(cur, "select * from users where role = 'gtm' and active order by id limit 1")
     if u is None:
         raise HTTPException(401, "Sign in to use the desk.")
+    if u["role"] not in USER_ROLES:
+        # Reps work their books in Account Desk; Market Desk is for the people who plan.
+        raise HTTPException(403, "Market Desk is for RevOps, managers and go-to-market leaders.")
     return u
 
 
+USER_ROLES = ("revops", "manager", "gtm")
+READ = USER_ROLES
+
+
 def money(u: dict) -> bool:
-    return u["role"] in ("revops", "manager")
+    return u["role"] in USER_ROLES
 
 
 def need(u: dict, *roles: str) -> None:
@@ -177,6 +184,8 @@ def need(u: dict, *roles: str) -> None:
 
 def writer(request: Request, u: dict = Depends(current_user)) -> dict:
     rate_limit(request)
+    if u["role"] == "gtm":
+        raise HTTPException(403, "The go-to-market view reads; RevOps and managers make changes.")
     # A cross-site form cannot send a JSON content type, so every write must; the web app always does.
     if not request.headers.get("content-type", "").startswith("application/json"):
         raise HTTPException(415, "Writes take JSON.")
@@ -210,8 +219,8 @@ def health() -> dict:
 @app.get("/api/me")
 def me(u: dict = Depends(current_user)) -> dict:
     with db.tx() as cur:
-        users = db.all(cur, "select id, name, role from users where active order by case role when 'revops' then 0 "
-                            "when 'manager' then 1 when 'sdr' then 2 else 3 end, name") if CONFIG.auth_mode == "demo" else []
+        users = db.all(cur, "select id, name, role from users where active and role = any(%s) order by case role when 'revops' then 0 "
+                            "when 'manager' then 1 else 2 end, name", list(USER_ROLES)) if CONFIG.auth_mode == "demo" else []
         open_changes = db.val(cur, "select count(*) from change_proposals where status = 'open'")
         counts = {"changes": open_changes if u["role"] == "revops" else 0,
                   "icp": db.val(cur, "select count(*) from icp_versions where status = 'draft' and author <> %s", u["id"]) if u["role"] == "manager" else 0,
@@ -236,14 +245,14 @@ def me(u: dict = Depends(current_user)) -> dict:
 
 @app.get("/api/market")
 def market(by: str = "segment", u: dict = Depends(current_user)) -> dict:
-    need(u, "revops", "manager")
+    need(u, *READ)
     with db.tx() as cur:
         return views.market(cur, by if by in ("segment", "region_group") else "segment", money(u))
 
 
 @app.get("/api/segments/{key}")
 def segment(key: str, u: dict = Depends(current_user)) -> dict:
-    # SDRs and AEs read a segment's why-they-buy on My book; money is stripped for them.
+    # Every user of the desk reads a segment in full.
     with db.tx() as cur:
         out = views.segment(cur, key, money(u))
     if out is None:
@@ -253,14 +262,14 @@ def segment(key: str, u: dict = Depends(current_user)) -> dict:
 
 @app.get("/api/evidence")
 def evidence_page(u: dict = Depends(current_user)) -> dict:
-    need(u, "revops", "manager")
+    need(u, *READ)
     with db.tx() as cur:
         return views.evidence(cur, money(u))
 
 
 @app.get("/api/findings/{fid}")
 def finding(fid: int, u: dict = Depends(current_user)) -> dict:
-    need(u, "revops", "manager")
+    need(u, *READ)
     with db.tx() as cur:
         out = views.finding(cur, fid, money(u))
     if out is None:
@@ -270,14 +279,14 @@ def finding(fid: int, u: dict = Depends(current_user)) -> dict:
 
 @app.get("/api/profile")
 def profile(u: dict = Depends(current_user)) -> dict:
-    need(u, "revops", "manager")
+    need(u, *READ)
     with db.tx() as cur:
         return views.profile(cur, u)
 
 
 @app.get("/api/profile/versions/{vid}")
 def profile_version(vid: int, u: dict = Depends(current_user)) -> dict:
-    need(u, "revops", "manager")
+    need(u, *READ)
     with db.tx() as cur:
         out = views.version(cur, vid, u)
     if out is None:
@@ -287,7 +296,7 @@ def profile_version(vid: int, u: dict = Depends(current_user)) -> dict:
 
 @app.get("/api/profile/versions/{vid}/moves")
 def moves(vid: int, u: dict = Depends(current_user)) -> dict:
-    need(u, "revops", "manager")
+    need(u, *READ)
     with db.tx() as cur:
         cur.execute("set transaction read only")
         pub = db.val(cur, "select id from icp_versions where status = 'published'")
@@ -314,15 +323,13 @@ def company(cid: int, u: dict = Depends(current_user)) -> dict:
 
 @app.get("/api/territories")
 def territories_page(plan: int | None = None, u: dict = Depends(current_user)) -> dict:
-    need(u, "revops", "manager")
+    need(u, *READ)
     with db.tx() as cur:
         return views.territories(cur, plan, money(u))
 
 
 @app.get("/api/people/{uid}")
 def person(uid: int, u: dict = Depends(current_user)) -> dict:
-    if u["role"] in ("sdr", "ae") and uid != u["id"]:
-        raise HTTPException(403, "You can see your own book.")
     with db.tx() as cur:
         out = views.person(cur, uid, money(u))
     if out is None:
@@ -332,7 +339,7 @@ def person(uid: int, u: dict = Depends(current_user)) -> dict:
 
 @app.get("/api/moves/{plan}/{cid}")
 def plan_move(plan: int, cid: int, u: dict = Depends(current_user)) -> dict:
-    need(u, "revops", "manager")
+    need(u, *READ)
     with db.tx() as cur:
         out = views.plan_move(cur, plan, cid)
     if out is None:
@@ -342,14 +349,14 @@ def plan_move(plan: int, cid: int, u: dict = Depends(current_user)) -> dict:
 
 @app.get("/api/tests")
 def tests_page(u: dict = Depends(current_user)) -> dict:
-    need(u, "revops", "manager")
+    need(u, *READ)
     with db.tx() as cur:
         return views.tests(cur)
 
 
 @app.get("/api/tests/{tid}")
 def test(tid: int, u: dict = Depends(current_user)) -> dict:
-    need(u, "revops", "manager")
+    need(u, *READ)
     with db.tx() as cur:
         out = views.test(cur, tid)
     if out is None:
@@ -359,14 +366,14 @@ def test(tid: int, u: dict = Depends(current_user)) -> dict:
 
 @app.get("/api/changes")
 def changes(u: dict = Depends(current_user)) -> dict:
-    need(u, "revops", "manager")
+    need(u, *READ)
     with db.tx() as cur:
         return views.changes(cur)
 
 
 @app.get("/api/proposals/{pid}")
 def proposal(pid: int, u: dict = Depends(current_user)) -> dict:
-    need(u, "revops", "manager")
+    need(u, *READ)
     with db.tx() as cur:
         out = views.proposal(cur, pid)
     if out is None:
@@ -376,14 +383,14 @@ def proposal(pid: int, u: dict = Depends(current_user)) -> dict:
 
 @app.get("/api/handoffs")
 def handoffs(u: dict = Depends(current_user)) -> dict:
-    need(u, "revops", "manager")
+    need(u, *READ)
     with db.tx() as cur:
         return views.handoffs(cur, money(u))
 
 
 @app.get("/api/books/{bid}")
 def book(bid: int, u: dict = Depends(current_user)) -> dict:
-    need(u, "revops", "manager")
+    need(u, *READ)
     with db.tx() as cur:
         out = views.book(cur, bid, money(u))
     if out is None:
@@ -393,7 +400,7 @@ def book(bid: int, u: dict = Depends(current_user)) -> dict:
 
 @app.get("/api/books/{bid}/files/{path}")
 def book_file(bid: int, path: str, u: dict = Depends(current_user)) -> Response:
-    need(u, "revops", "manager")
+    need(u, *READ)
     with db.tx() as cur:
         f = db.one(cur, "select bytes from target_book_files where book = %s and path = %s", bid, path)
     if not f:
@@ -405,14 +412,14 @@ def book_file(bid: int, path: str, u: dict = Depends(current_user)) -> Response:
 
 @app.get("/api/handoffs/preview/{vid}")
 def preview(vid: int, u: dict = Depends(current_user)) -> dict:
-    need(u, "revops", "manager")
+    need(u, *READ)
     with db.tx() as cur:
         return handoff.preview(cur, vid)
 
 
 @app.get("/api/handoffs/preview/{vid}/icp.json")
 def preview_file(vid: int, u: dict = Depends(current_user)) -> Response:
-    need(u, "revops", "manager")
+    need(u, *READ)
     with db.tx() as cur:
         p = handoff.preview(cur, vid)
     return Response(json.dumps(p["icp"], indent=2) + "\n", media_type="application/json",
@@ -421,14 +428,14 @@ def preview_file(vid: int, u: dict = Depends(current_user)) -> Response:
 
 @app.get("/api/sources")
 def sources(u: dict = Depends(current_user)) -> dict:
-    need(u, "revops", "manager")
+    need(u, *READ)
     with db.tx() as cur:
         return views.sources(cur, money(u))
 
 
 @app.get("/api/sources/{key}")
 def source(key: str, u: dict = Depends(current_user)) -> dict:
-    need(u, "revops", "manager")
+    need(u, *READ)
     with db.tx() as cur:
         out = views.source(cur, key, money(u))
     if out is None:
@@ -436,15 +443,11 @@ def source(key: str, u: dict = Depends(current_user)) -> dict:
     return out
 
 
-@app.get("/api/mybook")
-def mybook(u: dict = Depends(current_user)) -> dict:
-    with db.tx() as cur:
-        return views.mybook(cur, u)
 
 
 @app.get("/api/settings")
 def settings_page(u: dict = Depends(current_user)) -> dict:
-    need(u, "revops", "manager")
+    need(u, *READ)
     with db.tx() as cur:
         return views.settings(cur)
 

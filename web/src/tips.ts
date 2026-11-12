@@ -117,7 +117,7 @@ export const TIPS: Record<string, string> = {
   "Lift": "How many points more often worked accounts booked meetings than held-back ones, as a likely range.",
   "eligible": "Accounts in the segment no one has worked recently, so they can join a test.",
   "Retired": "An ICP version no longer in use.",
-  "Account Desk": "Our tool that researches and works accounts with SDRs. It receives a book of accounts and the ICP from here.",
+  "Account Desk": "Our tool where reps research and work their accounts. Each rep's book of accounts, and the ICP, go there from here.",
   "Events Desk": "Our tool that plans events and who to meet there. It receives the ICP as a document from here.",
   "By segment": "How many of the companies that change tier sit in each segment.",
   "Draft A": "Share the draft rates A. Compare with A now.",
