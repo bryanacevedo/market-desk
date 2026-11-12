@@ -116,7 +116,8 @@ def decide(cur) -> list[dict]:
     min_opps = int(s.get("drop_rule_min_opps", 60))
     for kind, r in profiles.all_rules(rules):
         f = db.one(cur, "select * from findings where run = %s and trait = 'rule' and value = %s", run, J(r.get("key")))
-        if f and f["opps"] >= min_opps and f["verdict"] in ("not_clear", "explained_by_size") and kind != "excludes":
+        weak = f and (f["verdict"] == "explained_by_size" or (f["verdict"] == "not_clear" and f["diff_low"] <= 0 <= f["diff_high"]))
+        if weak and f["opps"] >= min_opps and kind != "excludes":
             out.append({"key": f"drop_rule:{r['key']}", "kind": "drop_rule", "finding": f, "rule": r, "from": kind})
     from . import tests_seg
     for t in db.all(cur, "select * from segment_tests where status = 'read' and decision = 'expand'"):

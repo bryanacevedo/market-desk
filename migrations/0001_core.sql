@@ -191,7 +191,7 @@ create table territories (
 create table assignments (
   plan int not null references territory_plans(id) on delete cascade, company int not null references companies(id),
   territory int references territories(id), owner int references users(id),
-  reason_code text not null check (reason_code in ('rule', 'existing_owner', 'open_deal', 'customer_team', 'balance_move', 'manual')),
+  reason_code text not null check (reason_code in ('rule', 'test', 'existing_owner', 'open_deal', 'customer_team', 'balance_move', 'manual')),
   note text, moved_from int references users(id), created_at timestamptz not null default app_now(), created_by int references users(id),
   check (reason_code <> 'manual' or (note is not null and length(trim(note)) >= 3)),
   primary key (plan, company));

@@ -60,3 +60,64 @@ export function Field({ k, children }: { k: string; children: ReactNode }) {
 }
 
 export const SEG_LABEL = (s: string | null | undefined, labels?: Record<string, string>) => (s && labels?.[s]) || s || "";
+
+// ---------------------------------------------------------------- the signature: ranges as intervals
+
+/** A rate drawn as an interval on a 0 to `max` scale: the band from low to high, a tick at the point, a hollow ring
+ *  at the comparison. The number is written beside it. */
+export function RangeLine({ rate, low, high, other, max = 1, label }: { rate: number | null | undefined; low?: number | null;
+  high?: number | null; other?: number | null; max?: number; label?: string }) {
+  if (rate === null || rate === undefined) return <span className="faint">None</span>;
+  const x = (v: number) => `${Math.max(0, Math.min(100, (100 * v) / max))}%`;
+  const lo = low ?? rate;
+  const hi = high ?? rate;
+  return (
+    <span className="range" role="img" aria-label={`${label ?? ""}${pct(rate)}, ${pct(lo)} to ${pct(hi)}${other !== null && other !== undefined ? `, others ${pct(other)}` : ""}`}>
+      <span className="range-val">{pct(rate)}</span>
+      <span className="range-line" aria-hidden="true">
+        <i className="range-band" style={{ left: x(lo), width: `calc(${x(hi)} - ${x(lo)})` }} />
+        {other !== null && other !== undefined ? <i className="range-other" style={{ left: x(other) }} /> : null}
+        <i className="range-point" style={{ left: x(rate) }} />
+      </span>
+    </span>
+  );
+}
+
+const logPos = (v: number, lo: number, hi: number) => {
+  const a = Math.log10(Math.max(v, lo)), b = Math.log10(lo), c = Math.log10(hi);
+  return Math.max(0, Math.min(100, (100 * (a - b)) / (c - b)));
+};
+
+/** TAM, SAM and SOM drawn on one money scale (log), each a band from its low to its high, with its range written. */
+export function Nest({ rows, floor, ceil }: { rows: [string, number | undefined, number | undefined][]; floor: number; ceil: number }) {
+  return (
+    <span className="nest">
+      {rows.map(([k, lo, hi]) => lo === undefined || hi === undefined ? null : (
+        <span key={k} className="nest-row">
+          <b>{k}</b>
+          <span className="range-line" aria-hidden="true">
+            <i className="range-band" style={{ left: `${logPos(Math.max(lo, 1), floor, ceil)}%`, width: `${Math.max(1.5, logPos(Math.max(hi, 1), floor, ceil) - logPos(Math.max(lo, 1), floor, ceil))}%` }} />
+          </span>
+          <span className="range-val">{moneyRange(lo, hi)}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+/** The market as a field: one tile per segment, as wide as its reachable market, toned by its share of tier A. */
+export function MarketField({ tiles, onPick }: { tiles: { key: string; label: string; weight: number; tone: number; value: string; muted?: boolean }[]; onPick: (k: string) => void }) {
+  const total = tiles.reduce((s, t) => s + t.weight, 0) || 1;
+  return (
+    <div className="field" role="list" aria-label="Segments by reachable market">
+      {tiles.map((t, i) => (
+        <button key={t.key} role="listitem" type="button" onClick={() => onPick(t.key)}
+          className={`tile${t.muted ? " muted" : t.tone > 55 ? " dark" : ""}`}
+          style={{ flex: `${Math.max(t.weight / total, 0.045)} 1 0`, ["--tone" as any]: t.muted ? 0 : Math.round(t.tone), animationDelay: `${i * 40}ms` }}>
+          <span className="tile-name">{t.label}</span>
+          <span className="tile-val">{t.value}</span>
+        </button>
+      ))}
+    </div>
+  );
+}

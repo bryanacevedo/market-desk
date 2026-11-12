@@ -6,6 +6,7 @@ import hashlib
 import math
 
 from . import audit, db, stats
+from . import catalog as C
 from .db import J
 
 CONF = 0.90
@@ -28,7 +29,7 @@ def eligible(cur, segment: str, *, exclude_test: int | None = None) -> list[dict
         select c.id, c.primary_domain from companies c
         join account_fit f on f.company = c.id and f.icp_version = (select id from icp_versions where status = 'published')
         where f.segment = %s and f.tier in ('A','B') and f.judged and c.lifecycle = 'prospect' and not c.sole_trader
-          and c.region in ('North America', 'Europe')
+          and c.region = any(%s)
           and not exists (select 1 from deals d where d.company = c.id and d.created_at <= app_now()
                           and (d.closed_at is null or d.closed_at > app_now()))
           and not exists (select 1 from customers k where k.company = c.id and k.started_on <= app_now()::date
@@ -37,7 +38,7 @@ def eligible(cur, segment: str, *, exclude_test: int | None = None) -> list[dict
                           where m.company = c.id and t.status in ('running','read') and t.id is distinct from %s)
           and not exists (select 1 from target_book_rows r join target_books b on b.id = r.book
                           where r.company = c.id and b.destination = 'account_desk' and b.created_at > app_now() - interval '180 days')
-        order by c.id""", segment, exclude_test)
+        order by c.id""", segment, C.SERVED_REGIONS, exclude_test)
 
 
 def create_draft(cur, segment: str, hypothesis: str, by: dict, cohort: int | None = None) -> int:
@@ -88,6 +89,8 @@ def read(cur, test_id: int) -> dict:
         where m.test = %s""", test_id, test_id)
     rep = stats.lift_report(g["wk"], g["wn"], g["hk"], g["hn"], conf=CONF)
     rep["clear"] = bool(rep["enough"] and rep["interval"] and (rep["interval"][0] > 0 or rep["interval"][1] < 0))
+    # A test whose cohort can never reach the sample it needs says so, instead of "needs more" forever.
+    rep["out_of_reach"] = (not rep["enough"]) and rep["needed"]["holdout"] > g["hn"] * 2
     return rep
 
 
@@ -99,8 +102,9 @@ def decide(cur, test_id: int, decision: str, by: dict, note: str | None = None) 
     t = db.one(cur, "select * from segment_tests where id = %s for update", test_id)
     if t["status"] not in ("running", "read"):
         raise ValueError("Only a running or read test can be decided.")
-    if decision == "expand" and not read(cur, test_id)["clear"]:
-        raise ValueError("Expand needs a clear difference.")
+    rep = read(cur, test_id)
+    if decision == "expand" and not (rep["clear"] and rep["interval"] and rep["interval"][0] > 0):
+        raise ValueError("Expand needs worked accounts to book clearly more meetings than held-back ones.")
     status = "running" if decision == "extend" else "read"
     db.run(cur, """update segment_tests set decision = %s, decided_by = %s, decision_note = %s, status = %s,
                    ends_on = case when %s = 'extend' then ends_on + 60 else ends_on end where id = %s""",

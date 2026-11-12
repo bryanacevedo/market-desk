@@ -136,11 +136,11 @@ function More({ routes }: { routes: Route[] }) {
   );
 }
 
-/** The Market Desk mark: the market, the part we can reach, the part we can win. */
+/** The Market Desk mark, in ochre: the market, the part we can reach, the part we can win, drawn as nested ranges. */
 export function Mark() {
   return (
     <svg width="24" height="24" viewBox="0 0 32 32" aria-hidden="true">
-      <rect width="32" height="32" rx="8" fill="#2B47C9" />
+      <rect width="32" height="32" rx="8" fill="#A2671F" />
       <path d="M7 25V12a5 5 0 0 1 5-5h13" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" />
       <path d="M12 25v-6a3 3 0 0 1 3-3h10" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeOpacity=".7" />
       <circle cx="21" cy="21.5" r="3" fill="#fff" />

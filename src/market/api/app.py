@@ -591,8 +591,11 @@ def erase_notes(cid: int, u: dict = Depends(writer)) -> dict:
 @app.post("/api/evidence/run")
 def run_evidence(u: dict = Depends(writer)) -> dict:
     need(u, "revops")
+    from .. import proposals, sizing
     with db.tx() as cur:
         rid = evidence.run(cur)
+        sizing.run(cur)
+        proposals.generate(cur)
     return {"run": rid}
 
 

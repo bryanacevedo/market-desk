@@ -102,7 +102,7 @@ def demo_versions() -> list[dict]:
     v4 = copy.deepcopy(v3)
     v4["factors"].append({"key": "usage_pricing", "field": "pricing_model", "op": "eq", "value": "usage", "weight": 20,
                           "why": "Usage-based pricing wins far more often."})
-    v4["penalties"].append({"key": "too_big", "field": "employees", "op": "between", "value": [2000, 4999], "weight": 20,
+    v4["penalties"].append({"key": "too_big", "field": "employees", "op": "between", "value": [2001, 4999], "weight": 20,
                             "why": "2,000 to 4,999 employees rarely close."})
     return [
         {"rules": v1, "note": "First profile, from the founders' first 40 customers.", "created": "2024-01-15",

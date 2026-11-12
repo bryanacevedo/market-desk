@@ -6,7 +6,7 @@ import { Hours, Tier } from "../parts";
 import { openSheet } from "../sheets";
 
 const REASON: Record<string, string> = {
-  rule: "Territory rule", existing_owner: "Customer", open_deal: "Open deal", customer_team: "Customer team",
+  rule: "Territory rule", test: "Segment test", existing_owner: "Customer", open_deal: "Open deal", customer_team: "Customer team",
   balance_move: "Moved to balance", manual: "Moved by hand",
 };
 export const reasonWord = (r: string | null | undefined) => (r ? REASON[r] || r : "Unassigned");

@@ -81,7 +81,7 @@ def exportable_values(cur, ids: list[int]) -> dict[int, dict]:
     for r in db.all(cur, """
         select f.company, f.field, f.value from field_values f join sources s on s.key = f.source
         where f.company = any(%s) and f.source <> 'model' and not s.no_redistribution
-          and f.field in ('industry','employees','revenue_band','tech')""", ids):
+          and f.field in ('industry','employees','revenue_band','tech','pricing_model')""", ids):
         out[r["company"]][r["field"]] = r["value"]
     return out
 
@@ -122,22 +122,26 @@ def events_desk_md(cur, version: dict) -> bytes:
              f"Last reviewed: {str(version['published_at'] or version['created_at'])[:10]}", "",
              f"(Fictional document written by Market Desk from profile version {version['number']}. {C.SELLER} and every "
              "company named below are made up.)", "", "## The short version", "",
-             f"{C.SELLER} sells usage-based billing and revenue recognition software to B2B software companies. Finance "
-             "and revenue operations leaders buy it.", "", "## Size", ""]
+             f"{C.SELLER} sells usage-based billing and revenue recognition software to B2B software companies.",
+             "", "## Size", ""]
     if size:
         lo, hi = size["value"]
         lines.append(f"A company with {lo:,} to {hi:,} employees is the right size.")
     pen = [p for p in rules.get("penalties", []) if p["field"] == "employees"]
     for p in pen:
-        lines.append(f"A company with {p['value'][0]:,} to {p['value'][1]:,} employees rarely closes.")
+        lines.append(f"A company with {p['value'][0]:,} to {p['value'][1]:,} employees scores lower.")
     lines += ["", "## Where we win", ""]
+    def verdict(rule: dict) -> str | None:
+        ev = (rule.get("evidence") or {}).get("finding_id")
+        return db.val(cur, "select verdict from findings where id = %s", ev) if ev else None
+
     if ind:
-        lines.append(f"{', '.join(ind['value'][:-1])} and {ind['value'][-1]} companies are our strongest verticals.")
+        word = "win more often than the rest" if verdict(ind) == "clear_higher" else "are the industries the profile scores"
+        lines.append(f"{', '.join(ind['value'][:-1])} and {ind['value'][-1]} {word}.")
     for f in rules["factors"]:
         if f["field"] == "pricing_model":
-            lines.append(f"Companies that charge their own customers {rule_label(f).split(': ', 1)[1].lower()} close far more often.")
-    for ex in rules.get("excludes", []):
-        lines.append(f"{rule_label(ex).split(': ', 1)[1]}: never a fit. {ex['reason']}.")
+            v = rule_label(f).split(": ", 1)[1].lower()
+            lines.append(f"Companies with {v} pricing " + ("win more often." if verdict(f) == "clear_higher" else "score higher."))
     heavy = sorted(rules["factors"], key=lambda f: -f["weight"])
     t1 = ", ".join(rule_label(f).lower() for f in heavy[:3])
     lines += ["", "## How we tier a company", "",
@@ -154,6 +158,8 @@ def events_desk_md(cur, version: dict) -> bytes:
     if others:
         lines.append(f"{', '.join(others)} take part in the decision.")
     lines += ["", "## Kinds of company we see", "", ", ".join(C.INDUSTRIES) + ".", "", "## Who we skip", ""]
+    for ex in rules.get("excludes", []):
+        lines.append(f"{rule_label(ex).split(': ', 1)[1]}: {ex['reason'].lower()}.")
     lines.append(f"{', '.join(C.COMPETITORS)} are competitors and never get contacted. Current customers belong to the "
                  "account team.")
     lines += ["", "## Companies we know", ""]

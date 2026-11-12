@@ -65,6 +65,7 @@ SETTINGS = {
     "shrink_k": (20, "Our default: a segment's win rate is pulled toward the overall rate as if it had 20 more deals at it."),
     "hours_per_tier": ({"A": 1.0, "B": 0.4, "C": 0.1, "X": 0}, "Our assumption, not an industry figure: hours a month one account needs while it is worked, with Account Desk doing research and drafting."),
     "opp_rate_default": (0.10, "Our assumption, used only before any desk has reported results: one worked account in ten becomes a deal."),
+    "hours_test_account": (0.25, "Our assumption: a test account runs Account Desk's sequence with a quarter hour a month of SDR time."),
     "account_cycle_months": (3, "Our assumption: an account is worked for one quarter, so a seat works four books of accounts a year."),
     "balance_band": (0.15, "Our default: each person's expected value within this share of the territory mean."),
     "held_back_share": (0.2, "Same as Account Desk: one in five accounts in a segment test is held back."),
@@ -91,7 +92,7 @@ SEGMENTS = [
     {"key": "small", "label": "Small", "when": [
         {"field": "industry", "op": "in", "value": PROFILE_INDUSTRIES}, {"field": "employees", "op": "between", "value": [20, 119]}]},
 ]
-OUTSIDE = {"key": "outside", "label": "Outside the profile"}
+OUTSIDE = {"key": "outside", "label": "Other companies"}
 SEGMENT_LABEL = {s["key"]: s["label"] for s in SEGMENTS} | {OUTSIDE["key"]: OUTSIDE["label"]}
 
 # Account Desk's published ICP (its src/outbound/seed/catalog.py ICP), carried here as profile v3.

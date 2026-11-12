@@ -114,7 +114,7 @@ def assign(cur, plan_id: int, *, on: date) -> dict:
         t = territory_of(r)
         if not t:
             continue
-        need = float(hours[r["tier"]])
+        need = float(s.get("hours_test_account", 0.25)) if r["test_worked"] else float(hours[r["tier"]])
         team = [p for p in t["rule"]["people"] if p in people]
         best = max(team, key=lambda p: (avail[p] - used[p], -p), default=None)
         # A running test's worked accounts stay worked, however full the book: dropping them would end the test.
@@ -124,7 +124,7 @@ def assign(cur, plan_id: int, *, on: date) -> dict:
         e = expected_value(econ, r["segment"], r["score"])
         ev[best] += e
         count[best][r["tier"]] += 1
-        placed[r["id"]] = (t["id"], best, "rule", e, r["tier"])
+        placed[r["id"]] = (t["id"], best, "test" if r["test_worked"] else "rule", e, r["tier"])
     # Balancing: move the lowest-value accounts from the richest person to the poorest in a territory, until each is
     # within the band of the territory mean and nobody is over their hours, or report that it cannot.
     report = {}
@@ -140,7 +140,7 @@ def assign(cur, plan_id: int, *, on: date) -> dict:
             lo = min(team, key=lambda p: ev[p])
             if mean == 0 or (ev[hi] - mean) <= band * mean and (mean - ev[lo]) <= band * mean:
                 break
-            mine = sorted([(cid, v) for cid, v in placed.items() if len(v) == 5 and v[1] == hi and v[0] == t["id"]],
+            mine = sorted([(cid, v) for cid, v in placed.items() if len(v) == 5 and v[1] == hi and v[0] == t["id"] and v[2] == "rule"],
                           key=lambda x: x[1][3])
             moved = False
             for cid, v in mine:
@@ -186,15 +186,16 @@ def snapshot(cur, plan_id: int) -> None:
     owners = {r["owner"] for r in db.all(cur, "select distinct owner from assignments where plan = %s and owner is not null", plan_id)}
     people = {u["id"]: u for u in _people(cur, sorted({p for t in terrs for p in t["rule"]["people"]} | owners))}
     econ = segment_economics(cur)
-    rows = db.all(cur, """select a.owner, f.tier, f.segment, f.score from assignments a
+    rows = db.all(cur, """select a.owner, a.reason_code, f.tier, f.segment, f.score from assignments a
                           join account_fit f on f.company = a.company and f.icp_version = %s where a.plan = %s""",
                   plan["based_on"], plan_id)
+    test_hours = float(s.get("hours_test_account", 0.25))
     used = {u: 0.0 for u in people}
     ev = {u: 0 for u in people}
     count = {u: {"A": 0, "B": 0, "C": 0, "X": 0} for u in people}
     for r in rows:
         if r["owner"] in people:
-            used[r["owner"]] += float(hours.get(r["tier"], 0))
+            used[r["owner"]] += test_hours if r["reason_code"] == "test" else float(hours.get(r["tier"], 0))
             ev[r["owner"]] += expected_value(econ, r["segment"], r["score"]) if r["tier"] in ("A", "B") else 0
             count[r["owner"]][r["tier"]] += 1
     db.run(cur, "delete from capacity_snapshots where plan = %s", plan_id)
@@ -231,7 +232,7 @@ def place_test_members(cur, test_id: int) -> int:
         if not t:
             continue
         db.run(cur, """insert into assignments (plan, company, territory, owner, reason_code, created_by)
-                       values (%s,%s,%s,%s,'rule',%s)""", plan["id"], r["id"], t["id"], t["owner"], plan["author"])
+                       values (%s,%s,%s,%s,'test',%s)""", plan["id"], r["id"], t["id"], t["owner"], plan["author"])
         n += 1
     snapshot(cur, plan["id"])
     return n
@@ -306,13 +307,16 @@ def hiring_gap(cur, plan_id: int) -> dict:
     rows = db.all(cur, """
         select f.tier, count(*) as n from companies c join account_fit f on f.company = c.id and f.icp_version = %s
         where c.lifecycle = 'prospect' and f.tier in ('A','B') and f.judged and c.region = any(%s) and not c.sole_trader
+          and f.segment in (select jsonb_array_elements_text(t.rule->'segments') from territories t where t.plan = %s)
           and not exists (select 1 from assignments a where a.plan = %s and a.company = c.id)
           and not exists (select 1 from segment_test_members m join segment_tests t on t.id = m.test
                           where m.company = c.id and m.grp = 'held_back' and t.status = 'running')
-        group by f.tier""", plan["based_on"], C.SERVED_REGIONS, plan_id)
+        group by f.tier""", plan["based_on"], C.SERVED_REGIONS, plan_id, plan_id)
     by = {r["tier"]: r["n"] for r in rows}
     need = sum(by.get(t, 0) * float(hours[t]) for t in ("A", "B"))
-    return {"accounts": sum(by.values()), "by_tier": by, "hours": round(need), "people": math.ceil(need / 100)}
+    per = float(db.val(cur, "select avg(selling_hours_month) from users where role = 'sdr' and active") or 100)
+    return {"accounts": sum(by.values()), "by_tier": by, "hours": round(need), "people": math.ceil(need / per),
+            "hours_per_person": per}
 
 
 def capacity_accounts(cur, plan_id: int) -> float:

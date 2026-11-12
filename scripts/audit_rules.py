@@ -102,9 +102,11 @@ CHECKS: list[tuple[str, str]] = [
         (s.accounts_by_tier->>'A')::int + (s.accounts_by_tier->>'B')::int + (s.accounts_by_tier->>'C')::int + (s.accounts_by_tier->>'X')::int
         <> (select count(*) from assignments a where a.plan = s.plan and a.owner = s.user_id)"""),
     ("Hours required equal the tier hours of the accounts held",
-     """select s.plan, s.user_id from capacity_snapshots s, settings h where h.key = 'hours_per_tier' and abs(s.hours_required - (
-        (s.accounts_by_tier->>'A')::int * (h.value->>'A')::numeric + (s.accounts_by_tier->>'B')::int * (h.value->>'B')::numeric
-        + (s.accounts_by_tier->>'C')::int * (h.value->>'C')::numeric)) > 0.11"""),
+     """select s.plan, s.user_id from capacity_snapshots s, settings h, settings t where h.key = 'hours_per_tier'
+        and t.key = 'hours_test_account' and abs(s.hours_required - (select coalesce(sum(case when a.reason_code = 'test'
+        then (t.value #>> '{}')::numeric else (h.value->>f.tier)::numeric end), 0) from assignments a
+        join territory_plans p on p.id = a.plan join account_fit f on f.company = a.company and f.icp_version = p.based_on
+        where a.plan = s.plan and a.owner = s.user_id)) > 0.11"""),
     ("Every rule of the published profile has evidence or says Hypothesis (evidence key present)",
      """select v.id from icp_versions v, jsonb_array_elements((v.rules->'factors') || (v.rules->'penalties') || (v.rules->'excludes')) r
         where v.status = 'published' and not (r ? 'evidence')"""),

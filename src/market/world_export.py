@@ -91,7 +91,7 @@ def export(out_dir: str) -> dict:
         v = vals[r["id"]]
         writers["companies.csv"].writerow([wid, r["name"], r["primary_domain"], r["parent_domain"] or "", v.get("industry") or "",
                                            v.get("employees") or "", r["country"], r["region"], r["region_group"],
-                                           v.get("revenue_band") or "", r["pricing_model"] or "", ";".join(v.get("tech") or []),
+                                           v.get("revenue_band") or "", v.get("pricing_model") or "", ";".join(v.get("tech") or []),
                                            r["lifecycle"], r["hq_city"] or "", r["founded_year"] or ""])
         counts["companies.csv"] += 1
         tier = "Not judged" if r["judged"] is False else (r["tier"] or "")

@@ -271,7 +271,7 @@ function CompanySheet({ id }: { id: string }) {
           {c.owner ? (
             <Section title="Owner">
               <dl className="kv"><dt>Owner</dt><dd>{c.owner.id ? <button className="link" onClick={() => openSheet("person", c.owner.id)}>{c.owner.name}</button> : "Unassigned"}</dd>
-                <dt>Why</dt><dd>{({ rule: "Territory rule", existing_owner: "Customer", open_deal: "Open deal", balance_move: "Moved to balance", manual: "Moved by hand" } as any)[c.owner.reason] || c.owner.reason}</dd>
+                <dt>Why</dt><dd>{({ rule: "Territory rule", test: "Segment test", existing_owner: "Customer", open_deal: "Open deal", balance_move: "Moved to balance", manual: "Moved by hand" } as any)[c.owner.reason] || c.owner.reason}</dd>
                 {c.owner.note ? <><dt>Note</dt><dd>{c.owner.note}</dd></> : null}
                 {c.owner.moved_from ? <><dt>From</dt><dd>{c.owner.moved_from}</dd></> : null}</dl>
             </Section>

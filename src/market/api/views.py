@@ -480,7 +480,10 @@ def handoffs(cur, allowed: bool) -> dict:
                                       coalesce(sum(r.opportunities), 0) as opportunities, coalesce(sum(r.won), 0) as won,
                                       coalesce(sum(r.pipeline_cents), 0) as pipeline_cents
                                       from desk_results r where r.destination = %s and r.test is null and r.company in
-                                      (select company from target_book_rows where book = %s)""", b["destination"], b["id"])
+                                      (select company from target_book_rows where book = %s)
+                                      and r.period_start >= %s::date and r.period_start < coalesce((select min(n.created_at)
+                                        from target_books n where n.destination = %s and n.created_at > %s), 'infinity')::date""",
+                                   b["destination"], b["id"], b["created_at"], b["destination"], b["created_at"])
     events = db.one(cur, """select count(*) as accounts, coalesce(sum(meetings), 0) as meetings, coalesce(sum(opportunities), 0) as opportunities
                             from desk_results where destination = 'events_desk'""")
     drafts = db.all(cur, "select id, number from icp_versions where status = 'draft' order by number")

@@ -79,8 +79,16 @@ def run(cur) -> int:
         groups[("total", "all")].append(c)
     # Capacity is shared by segments in proportion to their tier A and B companies in SAM, so segment rows add up to
     # the total; region rows use the overall signer (SPEC 15.11).
-    sam_total = sum(1 for c in comps if c["tier"] in ("A", "B") and c["judged"]
-                    and _in_sam(c, reach, signer_seg.get(c["segment"], signer_all)))
+    # Capacity goes to segments and regions in proportion to the tier A and B accounts the active plan owns there: a
+    # segment no territory works gets none, and SOM there is zero.
+    owned_seg = {r["k"]: r["n"] for r in db.all(cur, """
+        select f.segment as k, count(*) as n from assignments a join account_fit f on f.company = a.company and f.icp_version = %s
+        where a.plan = %s and f.tier in ('A','B') group by 1""", vid, plan)} if plan else {}
+    owned_reg = {r["k"]: r["n"] for r in db.all(cur, """
+        select c.region_group as k, count(*) as n from assignments a join companies c on c.id = a.company
+        join account_fit f on f.company = a.company and f.icp_version = %s
+        where a.plan = %s and f.tier in ('A','B') group by 1""", vid, plan)} if plan else {}
+    owned_total = sum(owned_seg.values())
     rows = []
     for (dim, key), cs in groups.items():
         tiers = Counter(c["tier"] if c["judged"] else "NJ" for c in cs)
@@ -118,7 +126,8 @@ def run(cur) -> int:
         tam_low, tam_high = ab_known * p25, int((ab_known + nj * fit_share) * p75)
         sam_low, sam_high = sam_ab * p25, int((sam_ab + sam_nj * sam_fit) * p75)
         sam_count = sam_ab
-        share = (sam_count / sam_total) if sam_total else 0
+        owned = owned_seg if dim == "segment" else owned_reg
+        share = (owned.get(key, 0) / owned_total) if owned_total else 0
         cap = cap_accounts * share if dim != "total" else cap_accounts
         workable = min(sam_count, cap)
         o_rate, o_lo, o_hi, o_from = opp_basis(key if dim == "segment" else None)
@@ -133,6 +142,10 @@ def run(cur) -> int:
                         "raw_low": raw_lo, "raw_high": raw_hi, "k": k}),
                      J({"capacity_accounts": round(cap, 1), "opp_rate": o_rate, "opp_low": o_lo, "opp_high": o_hi, "opp_from": o_from,
                         "signer": signer_seg.get(key, signer_all) if dim == "segment" else signer_all})))
+    # The whole market's SOM is the sum of its segments', so the two always agree.
+    seg_rows = [r for r in rows if r[1] == "segment"]
+    rows = [r[:18] + (sum(x[18] for x in seg_rows), min(sum(x[19] for x in seg_rows), r[17])) + r[20:] if r[1] == "total" else r
+            for r in rows]
     with cur.copy("""copy segment_sizing (run, dimension, key, universe_count, fit_a, fit_b, fit_c, fit_x, not_judged,
                      public_count, coverage_share, reachable_count, sam_count, capacity_accounts, tam_low, tam_high,
                      sam_low, sam_high, som_low, som_high, acv_basis, win_rate_basis, capacity_basis) from stdin""") as cp:
