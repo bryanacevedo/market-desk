@@ -7,7 +7,6 @@ from market import ai, db, fit
 from market.privacy import redact
 from market.sim import names as N
 
-
 # Names from outside the generator's own lists, so the redaction cannot pass by agreeing with itself.
 OUTSIDE = ["Kevin Smith", "Siobhan O'Brien", "Hugo van der Berg", "Marta-Louise Klein", "José Núñez", "Dmitri Volkov",
            "Priyanka Desai", "Chen Wei", "Fatima Zahra", "Liam Gallagher", "Ingrid Solberg", "Tomasz Nowak", "Aisha Bello",
