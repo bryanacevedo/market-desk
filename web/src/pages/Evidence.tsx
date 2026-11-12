@@ -1,5 +1,5 @@
-import { Empty, Failed, Fig, Loading, Section, Seg, money, n0, navigate, pct, useData, usePath, withParam } from "../lib";
-import { Rate, Verdict } from "../parts";
+import { Empty, Failed, Fig, Loading, Section, Seg, money, n0, navigate, useData, usePath, withParam } from "../lib";
+import { RangeLine, Verdict } from "../parts";
 import { openSheet } from "../sheets";
 
 const monthsBetween = (a: string, b: string) => Math.round((new Date(b).getTime() - new Date(a).getTime()) / (30.44 * 86400000));
@@ -17,7 +17,7 @@ export function Evidence() {
   const rows = (data.rows as any[]).filter((r) =>
     (verdict === "all" || (verdict === "clear" ? r.verdict.startsWith("clear") : r.verdict === verdict)) && (!trait || r.trait === trait));
   const clear = data.rows.filter((r: any) => r.verdict.startsWith("clear")).length;
-  const cols = "minmax(160px,1.3fr) 64px 132px 64px 120px 84px 150px";
+  const cols = "minmax(170px,1.3fr) 64px minmax(200px,1.6fr) 110px 84px 150px";
   return (
     <div className="page">
       <div className="head">
@@ -51,15 +51,14 @@ export function Evidence() {
       {rows.length ? (
         <div className="ledger wide-table">
           <div className="row head" style={{ gridTemplateColumns: cols }}>
-            <span>Trait</span><span className="num">Deals</span><span className="num">Win rate</span><span className="num">Others</span>
+            <span>Trait</span><span className="num">Deals</span><span>Win rate, ring: others</span>
             <span className="num">Won-deal cycle</span><span className="num">{me?.money ? "Deal size" : ""}</span><span>Verdict</span>
           </div>
           {rows.map((r: any) => (
             <button key={r.id} className="row" style={{ gridTemplateColumns: cols }} onClick={() => openSheet("finding", r.id)}>
               <span className="cell-main"><span className="t">{r.value}</span><span className="s">{r.trait_label}</span></span>
               <span className="num" data-label="Deals">{n0(r.opps)}</span>
-              <span className="num" data-label="Win rate"><Rate rate={r.rate} low={r.low} high={r.high} /></span>
-              <span className="num" data-label="Others">{pct(r.rest_rate)}</span>
+              <span data-label="Win rate"><RangeLine rate={r.rate} low={r.low} high={r.high} other={r.rest_rate} max={0.7} /></span>
               <span className="num" data-label="Won-deal cycle">{r.cycle ? `${Math.round(r.cycle.median)} days` : <span className="faint">Too few</span>}</span>
               <span className="num" data-label={me?.money ? "Deal size" : undefined}>{me?.money ? money(r.acv_median) : ""}</span>
               <Verdict v={r.verdict} />

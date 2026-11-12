@@ -43,8 +43,8 @@ export function Changes() {
       <Section title="Open" count={data.open.length} icon={Lightbulb}>
         {data.open.length ? (
           <div className="props">
-            {data.open.map((p: any) => (
-              <div key={p.id} className="prop">
+            {data.open.map((p: any, i: number) => (
+              <div key={p.id} className={`prop${i === 0 ? " halo" : ""}`}>
                 <div className="prop-top">
                   {revops ? <input type="checkbox" aria-label="Choose for a draft" checked={picked.includes(p.id)} onChange={() => toggle(p.id)} /> : null}
                   <button className="link-row" onClick={() => openSheet("proposal", p.id)}>

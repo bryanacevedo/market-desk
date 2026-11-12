@@ -112,7 +112,8 @@ export function MarketField({ tiles, onPick }: { tiles: { key: string; label: st
     <div className="field" role="list" aria-label="Segments by reachable market">
       {tiles.map((t, i) => (
         <button key={t.key} role="listitem" type="button" onClick={() => onPick(t.key)}
-          className={`tile${t.muted ? " muted" : t.tone > 55 ? " dark" : ""}`}
+          title={`${t.label}, ${t.value}`}
+          className={`tile${t.muted ? " muted" : t.tone > 55 ? " dark" : ""}${t.weight / total < 0.08 ? " narrow" : ""}`}
           style={{ flex: `${Math.max(t.weight / total, 0.045)} 1 0`, ["--tone" as any]: t.muted ? 0 : Math.round(t.tone), animationDelay: `${i * 40}ms` }}>
           <span className="tile-name">{t.label}</span>
           <span className="tile-val">{t.value}</span>

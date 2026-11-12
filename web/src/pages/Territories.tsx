@@ -76,7 +76,7 @@ function PlanView({ data, money: showMoney }: { data: any; money: boolean }) {
         </div>
       </Section>
       {plan.status === "draft" && data.changes ? (
-        <Section title="What changes" count={data.changes.changes}>
+        <div className="halo"><Section title="What changes" count={data.changes.changes}>
           {data.changes.crossing ? <Status kind="stop">{`${n0(data.changes.crossing)} open deals would leave their owner`}</Status> : null}
           <div className="ledger">
             <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) 80px 80px 80px" }}><span>Person</span><span className="num">Gains</span><span className="num">Losses</span><span className="num">Net</span></div>
@@ -87,7 +87,7 @@ function PlanView({ data, money: showMoney }: { data: any; money: boolean }) {
               </div>
             ))}
           </div>
-        </Section>
+        </Section></div>
       ) : null}
       {data.manual.length ? (
         <Section title="Moved by hand" count={data.manual.length}>

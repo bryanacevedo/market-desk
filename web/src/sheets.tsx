@@ -5,7 +5,7 @@ import {
 import { api } from "./api";
 import { Logo } from "./marks";
 import { Bar, Empty, Failed, Fig, Loading, Section, Status, day, money, n0, navigate, pct, useBusy, useData } from "./lib";
-import { Hours, Rate, Tier, TierMix, Verdict, moneyRange } from "./parts";
+import { Hours, Nest, RangeLine, Tier, TierMix, Verdict } from "./parts";
 
 // ---------------------------------------------------------------- the sheet frame (Account Desk's, with this desk's kinds)
 
@@ -140,9 +140,10 @@ function SegmentSheet({ id }: { id: string }) {
           {z && z.tam_low !== undefined ? (
             <Section title="Sizing">
               <dl className="kv">
-                <dt>TAM</dt><dd>{moneyRange(z.tam_low, z.tam_high)}</dd>
-                <dt>SAM</dt><dd>{moneyRange(z.sam_low, z.sam_high)}</dd>
-                <dt>SOM, 12 months</dt><dd>{moneyRange(z.som_low, z.som_high)}</dd>
+              </dl>
+              <Nest floor={Math.max(z.tam_high / 100_000, 100_000)} ceil={Math.max(z.tam_high, 1)}
+                rows={[["TAM", z.tam_low, z.tam_high], ["SAM", z.sam_low, z.sam_high], ["SOM", z.som_low, z.som_high]]} />
+              <dl className="kv">
                 <dt>Deal size</dt><dd>{money(z.acv_basis.p25)} to {money(z.acv_basis.p75)}{z.acv_basis.from === "overall" ? <span className="mute">, all segments</span> : null}</dd>
                 <dt>Win rate range for sizing</dt><dd>{pct(z.win_rate_basis.low)} to {pct(z.win_rate_basis.high)}</dd>
                 <dt>Worked accounts that became deals</dt><dd>{pct(z.capacity_basis.opp_low)} to {pct(z.capacity_basis.opp_high)}</dd>
@@ -190,7 +191,7 @@ function FindingSheet({ id }: { id: string }) {
           {f.cycle ? <Fig sm value={`${Math.round(f.cycle.median)}`} unit=" days" label="Won-deal cycle" /> : null}
         </div>
         <dl className="kv">
-          <dt>Win rate range</dt><dd><Rate rate={f.rate} low={f.low} high={f.high} /></dd>
+          <dt>Win rate range</dt><dd><RangeLine rate={f.rate} low={f.low} high={f.high} other={f.rest_rate} max={0.7} /></dd>
           <dt>Others</dt><dd>{n0(f.rest_opps)} deals</dd>
           {f.cycle ? <><dt>Cycle range</dt><dd>{Math.round(f.cycle.low)} to {Math.round(f.cycle.high)} days</dd></> : null}
           {f.acv_median !== undefined && f.acv_median !== null ? <><dt>Deal size</dt><dd>{money(f.acv_median)} ({money(f.acv_p25)} to {money(f.acv_p75)})</dd></> : null}

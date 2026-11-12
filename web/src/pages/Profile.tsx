@@ -84,7 +84,7 @@ export function Profile() {
       {data.job ? <div className="notice"><Status kind="wait">Waiting</Status>Rescoring every company</div> : null}
       <Section title="Published" icon={ListChecks}><RuleRows rules={p.rules} /></Section>
       {data.drafts.map((d: any) => (
-        <Section key={d.id} title={`Draft, version ${d.number}`} icon={PencilSimpleLine}
+        <div key={d.id} className="halo"><Section title={`Draft, version ${d.number}`} icon={PencilSimpleLine}
           right={<div className="actions">
             <button className="btn line sm" onClick={() => openSheet("version", d.id)}>Open</button>
             <button className="btn sm" disabled={busy || !d.can_publish}
@@ -93,7 +93,7 @@ export function Profile() {
           </div>}>
           <div className="small mute">{d.author}, {day(d.created_at)}. {d.note}</div>
           <Moves id={d.id} />
-        </Section>
+        </Section></div>
       ))}
       {!data.drafts.length ? <Empty title="No draft" icon={Scales} /> : null}
       <Section title="Versions" icon={ClockCounterClockwise}>
