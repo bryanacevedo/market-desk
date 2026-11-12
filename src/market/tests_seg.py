@@ -22,7 +22,8 @@ def _h(*parts) -> str:
 
 def eligible(cur, segment: str, *, exclude_test: int | None = None) -> list[dict]:
     """Prospects at tier A or B under the published profile, in the segment and a served region, not a sole trader, and
-    not a member of another running or read test."""
+    not a member of another running or read test, and not in an Account Desk book of the last 180 days (an account
+    already being worked can be neither a clean worked account nor a clean comparison)."""
     return db.all(cur, """
         select c.id, c.primary_domain from companies c
         join account_fit f on f.company = c.id and f.icp_version = (select id from icp_versions where status = 'published')
@@ -30,6 +31,8 @@ def eligible(cur, segment: str, *, exclude_test: int | None = None) -> list[dict
           and c.region in ('North America', 'Europe')
           and not exists (select 1 from segment_test_members m join segment_tests t on t.id = m.test
                           where m.company = c.id and t.status in ('running','read') and t.id is distinct from %s)
+          and not exists (select 1 from target_book_rows r join target_books b on b.id = r.book
+                          where r.company = c.id and b.destination = 'account_desk' and b.created_at > app_now() - interval '180 days')
         order by c.id""", segment, exclude_test)
 
 

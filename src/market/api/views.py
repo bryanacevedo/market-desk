@@ -403,6 +403,8 @@ def tests(cur) -> dict:
         where f.icp_version = %s and f.tier in ('A','B') and f.judged and c.lifecycle = 'prospect' and not c.sole_trader
           and c.region in ('North America', 'Europe') and not exists (select 1 from segment_test_members m join segment_tests t on t.id = m.test
                           where m.company = c.id and t.status in ('running','read'))
+          and not exists (select 1 from target_book_rows r join target_books b on b.id = r.book
+                          where r.company = c.id and b.destination = 'account_desk' and b.created_at > app_now() - interval '180 days')
         group by f.segment""", pub["id"])}
     return {"rows": [_test_row(cur, t) for t in rows], "cohort": tests_seg.default_cohort(),
             "segments": [{"key": s["key"], "label": s["label"], "eligible": elig.get(s["key"], 0)} for s in C.SEGMENTS]}

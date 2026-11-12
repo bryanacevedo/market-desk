@@ -34,8 +34,8 @@ PLANTED = {
     "P8": "HQ city and founding year carry no effect on winning.",
 }
 
-INDUSTRY_SHARE = {"Software": 16, "Fintech": 12, "Data infrastructure": 7, "Developer tools": 8, "Marketplaces": 4,
-                  "Healthcare software": 6, "IT services": 11, "Agencies": 7, "E-commerce": 10, "Manufacturing": 9,
+INDUSTRY_SHARE = {"Software": 16, "Fintech": 12, "Data infrastructure": 9, "Developer tools": 8, "Marketplaces": 4,
+                  "Healthcare software": 6, "IT services": 11, "Agencies": 7, "E-commerce": 10, "Manufacturing": 7,
                   "Education": 3, "Government": 2, "Media": 3, "Logistics": 2}
 COUNTRY_SHARE = {"US": 44, "CA": 5, "MX": 1.5, "GB": 9, "IE": 1, "DE": 6.5, "AT": 1.2, "CH": 1.8, "FR": 4, "NL": 3,
                  "BE": 1, "SE": 2, "DK": 1, "NO": 1, "FI": 0.5, "ES": 2, "IT": 2, "PT": 0.5, "BR": 3, "AR": 0.5,
@@ -44,8 +44,8 @@ COUNTRY_GROUP = {c: (g, r) for g, (r, cs) in C.REGION_GROUPS.items() for c in cs
 PRICING_SHARE = {"usage": 28, "seat": 34, "transaction": 12, "mixed": 11, "unknown": 15}
 
 # Win probability parts (new business). Salesforce, HQ city and founding year have no term: P4, P8.
-BASE_BY_BAND = {"20 to 119": 0.115, "120 to 499": 0.21, "500 to 1,999": 0.21, "2,000 to 4,999": 0.072, "5,000+": 0.07}
-PRICE_MULT = {"usage": 2.3, "unknown": 1.0, "seat": 0.88, "transaction": 0.88, "mixed": 0.88}
+BASE_BY_BAND = {"20 to 119": 0.09, "120 to 499": 0.24, "500 to 1,999": 0.24, "2,000 to 4,999": 0.065, "5,000+": 0.06}
+PRICE_MULT = {"usage": 2.15, "unknown": 1.0, "seat": 0.92, "transaction": 0.92, "mixed": 0.92}
 INDUSTRY_MULT = {"Fintech": 1.15, "Software": 1.0, "Data infrastructure": 1.05, "Developer tools": 0.95,
                  "Marketplaces": 0.95, "Healthcare software": 0.33, "Education": 0.4, "Government": 0.4}
 SOURCE_SHARE = {"outbound": 50, "inbound": 25, "event": 15, "partner": 10}
@@ -121,8 +121,8 @@ def _tech(emp: int, rng: random.Random) -> list[str]:
     band = _band(emp)
     sweet = band in ("120 to 499", "500 to 1,999")
     big = band in ("2,000 to 4,999", "5,000+")
-    p = {"Salesforce": 0.85 if sweet else (0.12 if big else 0.03),
-         "Snowflake": 0.35 if sweet else (0.45 if big else 0.08), "NetSuite": 0.35 if sweet else (0.1 if big else 0.15),
+    p = {"Salesforce": 0.9 if sweet else (0.04 if big else 0.03),
+         "Snowflake": 0.35 if sweet else (0.45 if big else 0.08), "NetSuite": 0.3,
          "Stripe": 0.4 if not big else 0.25, "HubSpot": 0.45 if band == "20 to 119" else 0.15,
          "BigQuery": 0.15, "QuickBooks": 0.5 if band == "20 to 119" else 0.03, "Zuora": 0.05 if not big else 0.15,
          "Chargebee": 0.08, "Databricks": 0.1 if not big else 0.2, "SAP": 0.4 if big else 0.03,

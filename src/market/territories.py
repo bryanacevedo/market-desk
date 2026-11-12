@@ -237,6 +237,7 @@ def manual_move(cur, plan_id: int, company: int, to_user: int, note: str, by: di
            cur_row["owner"] if cur_row else None, by["id"])
     audit.log(cur, by["name"], "manual_move", "company", company, {"plan": plan_id, "to": to_user, "note": note.strip()},
               actor_id=by["id"])
+    snapshot(cur, plan_id)
 
 
 def what_changes(cur, plan_id: int) -> dict:
