@@ -30,7 +30,7 @@ def violations(repo: str | Path, allowed: list[str]) -> list[str]:
         if not p.is_file() or p.suffix not in SOURCE:
             continue
         rel = p.relative_to(repo).as_posix()
-        if any(part in SKIP for part in p.relative_to(repo).parts[:-1]):
+        if any(part in SKIP or part.startswith(".") for part in p.relative_to(repo).parts[:-1]):  # hidden: worktrees, tools
             continue
         if not MENTION.search(p.read_text(encoding="utf-8", errors="ignore")):
             continue

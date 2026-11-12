@@ -26,8 +26,8 @@
   "seed": 7,
   "seller": "Lumen Ledger",
   "sha256": {
-    "guard.mjs": "a5174ea858138becfa2f66421cb399091f2cfa5753c8094a1302bd2fa4769745",
-    "guard.py": "00e516bafe2abcd99941cff78fea4de165b888914d3a90e0022eab96a05c4157",
+    "guard.mjs": "dc434a9c00964522e54566f80b70961a6a7d8fc43941cbd868b7f96ec3a662ef",
+    "guard.py": "820d79f23820cee9072c128e24e0f5e34d0cb6d809befef2c6524e95228f7c97",
     "public/clock.json": "4d480c7654856043b6d03743c90c27ff8c1594729bb1b06442c5b253702ee17b",
     "public/companies.csv": "ac8994f79d4e6f6efb72660cd747a998b83ce0498e5684e9caf6b8e4e6ab7387",
     "public/events.csv": "ec979a835a609090dd76479ee8913317db2e7085a0ba6a41c9f298dbd581eaa5",

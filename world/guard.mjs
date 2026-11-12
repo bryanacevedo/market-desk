@@ -14,7 +14,7 @@ export function violations(repo, allowed) {
   const walk = (dir) => {
     for (const name of readdirSync(dir).sort()) {
       const p = join(dir, name);
-      if (statSync(p).isDirectory()) { if (!SKIP.has(name)) walk(p); continue; }
+      if (statSync(p).isDirectory()) { if (!SKIP.has(name) && !name.startsWith(".")) walk(p); continue; }  // hidden: worktrees, tools
       if (!SOURCE.has(extname(name))) continue;
       const rel = relative(repo, p).split(sep).join("/");
       if (!MENTION.test(readFileSync(p, "utf8"))) continue;
