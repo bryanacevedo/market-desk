@@ -34,8 +34,8 @@ PLANTED = {
     "P8": "HQ city and founding year carry no effect on winning.",
 }
 
-INDUSTRY_SHARE = {"Software": 22, "Fintech": 12, "Data infrastructure": 7, "Developer tools": 8, "Marketplaces": 5,
-                  "Healthcare software": 6, "IT services": 9, "Agencies": 6, "E-commerce": 8, "Manufacturing": 7,
+INDUSTRY_SHARE = {"Software": 16, "Fintech": 12, "Data infrastructure": 7, "Developer tools": 8, "Marketplaces": 4,
+                  "Healthcare software": 6, "IT services": 11, "Agencies": 7, "E-commerce": 10, "Manufacturing": 9,
                   "Education": 3, "Government": 2, "Media": 3, "Logistics": 2}
 COUNTRY_SHARE = {"US": 44, "CA": 5, "MX": 1.5, "GB": 9, "IE": 1, "DE": 6.5, "AT": 1.2, "CH": 1.8, "FR": 4, "NL": 3,
                  "BE": 1, "SE": 2, "DK": 1, "NO": 1, "FI": 0.5, "ES": 2, "IT": 2, "PT": 0.5, "BR": 3, "AR": 0.5,

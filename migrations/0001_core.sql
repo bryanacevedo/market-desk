@@ -164,6 +164,7 @@ create table territory_plans (
   id serial primary key, name text not null, status text not null check (status in ('draft', 'active', 'retired')),
   based_on int not null references icp_versions(id), author int not null references users(id),
   activated_by int references users(id), activated_at timestamptz, balance_report jsonb not null default '{}',
+  effective_on date not null default current_date,
   created_at timestamptz not null default now());
 create unique index one_active_plan on territory_plans ((true)) where status = 'active';
 

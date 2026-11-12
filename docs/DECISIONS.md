@@ -21,7 +21,7 @@ Numbered. Each says what was decided, why, and what it costs.
 **What:** sizing and expected value use (wins + 20 x overall) / (opps + 20). The constant is a setting. **Why:** a segment with 9 deals and 5 wins would otherwise carry a 56% win rate into SOM. **Cost:** a small segment that really is better looks closer to average until it has deals.
 
 ## 7. Capacity in hours per account per month
-**What:** A 4.0, B 1.5, C 0.25, X 0 hours a month per account; 100 selling hours a month per person; ramp linear over 3 months (Bridge Group 2025 average). These are our assumptions, labelled as such on the Capacity tab and in Settings. **Why:** L-016: size by throughput times window times seats. **Cost:** the hours per tier are invented; a real team sets them.
+**What:** A 1.0, B 0.4, C 0.1, X 0 hours a month per account (decision 17); 100 selling hours a month per person; ramp linear over 3 months (Bridge Group 2025 average). These are our assumptions, labelled as such on the Capacity tab and in Settings. **Why:** L-016: size by throughput times window times seats. **Cost:** the hours per tier are invented; a real team sets them.
 
 ## 8. Statistics copied from Account Desk, then extended
 **What:** `stats.py` copies Account Desk's `wilson`, `newcombe`, `n_per_arm` and `fisher_greater` (intervals default to 90%), then adds a two-sided Fisher exact test, Holm, Mantel-Haenszel and a median interval. Every evidence call passes `conf=0.95` explicitly; segment tests use 90%, as Account Desk's play tests do. **Why:** one method across the desks; evidence about the profile is held to a stricter level than a test of a play. **Cost:** two levels in one product, stated in README.
@@ -49,3 +49,6 @@ Numbered. Each says what was decided, why, and what it costs.
 
 ## 16. Only values with 30 opportunities are tested
 **What:** the Holm family counts trait values with at least 30 opportunities; HQ city is tested for its 12 largest cities. **Why:** values that can never be clear only cost power; filtering by count does not look at outcomes. **Cost:** a value under 30 opportunities is never a rule, however lopsided.
+
+## 17. Hours per account cut to a quarter of the plan's defaults
+**What:** A 1.0, B 0.4, C 0.1 hours a month per worked account, and an account is worked for one quarter (four turns a year), instead of the plan's A 4.0, B 1.5, C 0.25 held all year. **Why:** at the plan's figures four SDRs hold 25 A accounts each, which contradicts the plan's own demo (about 1,100 accounts in Account Desk's last two books) and made the hiring gap read as hundreds of people and SOM as about $100,000 a year. Account Desk does the research and the drafting, so an SDR's hours per account are closer to an hour a month. Plan section 13 Q10 already marks these as invented assumptions for RevOps to edit. **Cost:** still invented; a real team measures its own hours per account.

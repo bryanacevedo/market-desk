@@ -52,8 +52,8 @@ def _people(cur, ids: list[int]) -> list[dict]:
 def build_plan(cur, *, name: str, author: int, territories: list[dict], on: date, created_at=None) -> int:
     """Creates a draft plan and assigns accounts. territories: [{key, label, region_groups, segments, people, ae}]."""
     vid = db.val(cur, "select id from icp_versions where status = 'published'")
-    pid = db.val(cur, """insert into territory_plans (name, status, based_on, author, created_at)
-                         values (%s, 'draft', %s, %s, coalesce(%s, app_now())) returning id""", name, vid, author, created_at)
+    pid = db.val(cur, """insert into territory_plans (name, status, based_on, author, created_at, effective_on)
+                         values (%s, 'draft', %s, %s, coalesce(%s, app_now()), %s) returning id""", name, vid, author, created_at, on)
     for t in territories:
         t["id"] = db.val(cur, """insert into territories (plan, key, label, rule, owner, paired_ae)
                                  values (%s,%s,%s,%s,%s,%s) returning id""", pid, t["key"], t["label"],
@@ -117,7 +117,8 @@ def assign(cur, plan_id: int, *, on: date) -> dict:
         need = float(hours[r["tier"]])
         team = [p for p in t["rule"]["people"] if p in people]
         best = max(team, key=lambda p: (avail[p] - used[p], -p), default=None)
-        if best is None or avail[best] - used[best] < need:
+        # A running test's worked accounts stay worked, however full the book: dropping them would end the test.
+        if best is None or (avail[best] - used[best] < need and not r["test_worked"]):
             continue
         used[best] += need
         e = expected_value(econ, r["segment"], r["score"])
@@ -163,13 +164,60 @@ def assign(cur, plan_id: int, *, on: date) -> dict:
     with cur.copy("copy assignments (plan, company, territory, owner, reason_code, moved_from, created_by) from stdin") as cp:
         for cid, v in placed.items():
             cp.write_row((plan_id, cid, v[0], v[1], v[2], v[5] if len(v) > 5 else None, plan["author"]))
+    db.run(cur, "update territory_plans set balance_report = %s where id = %s", J(report), plan_id)
+    snapshot(cur, plan_id)
+    return report
+
+
+def snapshot(cur, plan_id: int) -> None:
+    """Hours and accounts per person, read back from the plan's assignments."""
+    s = settings(cur)
+    hours = s["hours_per_tier"]
+    plan = db.one(cur, "select * from territory_plans where id = %s", plan_id)
+    terrs = db.all(cur, "select rule from territories where plan = %s", plan_id)
+    people = {u["id"]: u for u in _people(cur, sorted({p for t in terrs for p in t["rule"]["people"]}))}
+    econ = segment_economics(cur)
+    rows = db.all(cur, """select a.owner, f.tier, f.segment, f.score from assignments a
+                          join account_fit f on f.company = a.company and f.icp_version = %s where a.plan = %s""",
+                  plan["based_on"], plan_id)
+    used = {u: 0.0 for u in people}
+    ev = {u: 0 for u in people}
+    count = {u: {"A": 0, "B": 0, "C": 0, "X": 0} for u in people}
+    for r in rows:
+        if r["owner"] in people:
+            used[r["owner"]] += float(hours.get(r["tier"], 0))
+            ev[r["owner"]] += expected_value(econ, r["segment"], r["score"]) if r["tier"] in ("A", "B") else 0
+            count[r["owner"]][r["tier"]] += 1
     db.run(cur, "delete from capacity_snapshots where plan = %s", plan_id)
-    for u in people:
+    for u, user in people.items():
+        fte = effective_fte(user, plan["effective_on"])
         db.run(cur, """insert into capacity_snapshots (plan, user_id, effective_fte, hours_available, hours_required,
                        accounts_by_tier, expected_value_cents) values (%s,%s,%s,%s,%s,%s,%s)""",
-               plan_id, u, effective_fte(people[u], on), round(avail[u], 1), round(used[u], 1), J(count[u]), ev[u])
-    db.run(cur, "update territory_plans set balance_report = %s where id = %s", J(report), plan_id)
-    return report
+               plan_id, u, fte, round(float(user["selling_hours_month"]) * fte, 1), round(used[u], 1), J(count[u]), ev[u])
+
+
+def place_test_members(cur, test_id: int) -> int:
+    """A started test's worked accounts join the active plan with their territory's lead, however full that book is:
+    the test is a deliberate spend, and the Capacity tab shows what it costs."""
+    plan = db.one(cur, "select * from territory_plans where status = 'active'")
+    if not plan:
+        return 0
+    terrs = db.all(cur, "select * from territories where plan = %s order by id", plan["id"])
+    rows = db.all(cur, """select c.id, c.region_group, f.segment from segment_test_members m join companies c on c.id = m.company
+                          join account_fit f on f.company = c.id and f.icp_version = %s
+                          where m.test = %s and m.grp = 'worked'
+                            and not exists (select 1 from assignments a where a.plan = %s and a.company = c.id)""",
+                  plan["based_on"], test_id, plan["id"])
+    n = 0
+    for r in rows:
+        t = next((t for t in terrs if r["region_group"] in t["rule"]["region_groups"] and r["segment"] in t["rule"]["segments"]), None)
+        if not t:
+            continue
+        db.run(cur, """insert into assignments (plan, company, territory, owner, reason_code, created_by)
+                       values (%s,%s,%s,%s,'rule',%s)""", plan["id"], r["id"], t["id"], t["owner"], plan["author"])
+        n += 1
+    snapshot(cur, plan["id"])
+    return n
 
 
 def manual_move(cur, plan_id: int, company: int, to_user: int, note: str, by: dict) -> None:
@@ -248,11 +296,13 @@ def hiring_gap(cur, plan_id: int) -> dict:
 
 
 def capacity_accounts(cur, plan_id: int) -> float:
-    """Accounts the plan's people can hold at once at the hours their current book uses per account."""
+    """Accounts the plan's people can work in 12 months: accounts they can hold at once at the hours their current book
+    uses per account, times the turns a year (12 / account_cycle_months)."""
     r = db.one(cur, """select sum(hours_available) as avail, sum(hours_required) as used,
                        sum((accounts_by_tier->>'A')::int + (accounts_by_tier->>'B')::int) as n
                        from capacity_snapshots where plan = %s""", plan_id)
     if not r or not r["n"]:
         return 0.0
     per = float(r["used"]) / r["n"]
-    return float(r["avail"]) / per if per else 0.0
+    turns = 12 / float(settings(cur).get("account_cycle_months", 3))
+    return float(r["avail"]) / per * turns if per else 0.0

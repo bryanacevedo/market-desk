@@ -21,12 +21,13 @@ def _h(*parts) -> str:
 
 
 def eligible(cur, segment: str, *, exclude_test: int | None = None) -> list[dict]:
-    """Prospects at tier A or B under the published profile, in the segment, not a sole trader, and not a member of
-    another running or read test."""
+    """Prospects at tier A or B under the published profile, in the segment and a served region, not a sole trader, and
+    not a member of another running or read test."""
     return db.all(cur, """
         select c.id, c.primary_domain from companies c
         join account_fit f on f.company = c.id and f.icp_version = (select id from icp_versions where status = 'published')
         where f.segment = %s and f.tier in ('A','B') and f.judged and c.lifecycle = 'prospect' and not c.sole_trader
+          and c.region in ('North America', 'Europe')
           and not exists (select 1 from segment_test_members m join segment_tests t on t.id = m.test
                           where m.company = c.id and t.status in ('running','read') and t.id is distinct from %s)
         order by c.id""", segment, exclude_test)
@@ -60,8 +61,10 @@ def start(cur, test_id: int, by: dict, *, started_on=None, ends_on=None) -> dict
                "held_back" if i < held else "worked")
     db.run(cur, """update segment_tests set status = 'running', started_on = coalesce(%s, app_now()::date),
                    ends_on = coalesce(%s, app_now()::date + 120) where id = %s""", started_on, ends_on, test_id)
-    audit.log(cur, by["name"], "test_started", "segment_test", test_id, {"worked": len(cohort) - held, "held_back": held},
-              actor_id=by["id"])
+    from . import territories
+    placed = territories.place_test_members(cur, test_id)
+    audit.log(cur, by["name"], "test_started", "segment_test", test_id, {"worked": len(cohort) - held, "held_back": held,
+              "placed": placed}, actor_id=by["id"])
     return {"worked": len(cohort) - held, "held_back": held}
 
 
