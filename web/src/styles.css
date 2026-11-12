@@ -172,15 +172,6 @@ textarea.input { height: auto; padding: 10px 12px; line-height: 21px; resize: ve
 /* A long status (a pause reason) wraps inside its own cell instead of running into the next one. */
 .row > .status { white-space: normal; align-items: flex-start; line-height: 1.35; }
 .row > .status svg { margin-top: 2px; }
-.glyph { width: 9px; height: 9px; flex: none; display: inline-block; }
-.glyph.ok { border-radius: 50%; background: var(--ok); }
-.glyph.go { border-radius: 50%; background: var(--accent); }
-.glyph.wait { border-radius: 50%; border: 2px solid var(--wait); }
-.glyph.half { border-radius: 50%; background: linear-gradient(90deg, var(--ink-2) 50%, transparent 50%); border: 1.5px solid var(--ink-2); }
-.glyph.stop { background: var(--stop); border-radius: 1.5px; }
-.glyph.off { background: var(--faint); border-radius: 1.5px; }
-.glyph.hold { width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent; border-bottom: 9px solid var(--wait); }
-.glyph.none { border-radius: 50%; border: 1.5px solid var(--faint); }
 
 /* ------------------------------------------------------------------ bars: what they measure is written beside them */
 
@@ -276,12 +267,7 @@ textarea.input { height: auto; padding: 10px 12px; line-height: 21px; resize: ve
 
 /* ------------------------------------------------------------------ motion: quick, functional, never decorative */
 
-/* On air: a running state breathes once every few seconds, like a recording light. */
 .status.live { color: var(--ink); font-weight: 520; }
-.pulse { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); flex: none; margin: 0 3px 0 3px; }
-.pulse::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--ok);
-  animation: onair 2.4s cubic-bezier(0.2, 0.6, 0.3, 1) infinite; }
-@keyframes onair { 0% { transform: scale(1); opacity: 0.55; } 70%, 100% { transform: scale(2.8); opacity: 0; } }
 
 /* The segmented control: one thumb that slides to the choice. */
 .seg { position: relative; }
@@ -556,20 +542,13 @@ textarea.input { height: auto; padding: 10px 12px; line-height: 21px; resize: ve
 /* The email waterfall: finders in the order they are asked, each with how often it answered. */
 .ledger.vendors .suggest { color: var(--ink-2); margin-top: 3px; }
 .waterfall { display: flex; flex-wrap: wrap; gap: 6px 4px; margin-top: 8px; }
-.wf-step { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2); padding: 3px 8px 3px 4px;
-  border-radius: 999px; background: var(--well); }
-.wf-step b { width: 16px; height: 16px; border-radius: 50%; display: inline-grid; place-items: center; font-size: 10.5px; background: var(--ground); color: var(--ink); }
-.wf-step { position: relative; }
-.wf-step + .wf-step { margin-left: 14px; }
-.wf-step + .wf-step::before { content: "→"; position: absolute; left: -15px; color: var(--faint); }
 
 /* Full names on a computer; first names on a phone, where the strip needs the width. */
 .ps-name .only-sm { display: none; }
 @media (max-width: 900px) { .ps-name .hide-sm { display: none; } .ps-name .only-sm { display: inline !important; } }
 
-/* Live: the plane breathes once every few seconds. No dot, no ring. */
-.status.live .breathe { color: var(--ok); animation: breathe 3.2s ease-in-out infinite; flex: none; }
-@keyframes breathe { 0%, 100% { opacity: 1; transform: none; } 50% { opacity: 0.45; transform: translate(1px, -1px); } }
+/* Live: the plane is still (T6, no idle motion). No dot, no ring. */
+.status.live .breathe { color: var(--ok); flex: none; }
 
 /* The step key: the four marks, said once, above the list. */
 .step-key { display: inline-flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--mute); font-weight: 400; }

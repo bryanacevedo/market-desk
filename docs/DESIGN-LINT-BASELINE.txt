@@ -1,0 +1,3 @@
+web/src/market.css	dot	.key-ring { 7px by 7px; border-radius: 50% }
+web/src/market.css	dot	.pair-held { 7px by 7px; border-radius: 50% }
+web/src/market.css	dot	.range-other { 7px by 7px; border-radius: 50% }
