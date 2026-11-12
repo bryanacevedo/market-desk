@@ -65,7 +65,7 @@ def _story(p: dict) -> dict:
                     "quote_ids": [q["id"]], "figure_ids": ["win_rate"] if f else []})
     if by_kind.get("objection"):
         q = by_kind["objection"][0]
-        out.append({"text": f"The common objection is \"{q['text']}\".", "quote_ids": [q["id"]], "figure_ids": []})
+        out.append({"text": f"One objection: \"{q['text']}\".", "quote_ids": [q["id"]], "figure_ids": []})
     if by_kind.get("competitor"):
         q = by_kind["competitor"][0]
         out.append({"text": f"Competitors come up: \"{q['text']}\".", "quote_ids": [q["id"]], "figure_ids": []})
@@ -83,18 +83,18 @@ def _proposal(p: dict) -> dict:
     ch, fs = p["change"], p["findings"]
     f = fs[0] if fs else None
     verb = {"add_rule": "Add a rule for", "drop_rule": "Drop the rule on", "penalty": "Lower the score of",
-            "add_exclude": "Exclude", "reweight": "Reweight the rule on", "segment_expand": "Add weight for"}.get(ch["kind"], "Change")
+            "add_exclude": "Exclude", "reweight": "Reweight the rule on", "segment_expand": "Expand"}.get(ch["kind"], "Change")
     first = f"{verb} {ch['field_label'].lower()}: {ch['value_label']}."
     if f and f["trait"].startswith("Segment test"):
         second = f"In the test, {f['win_rate']} of {f['opportunities']} worked accounts booked a meeting, against {f['rest_win_rate']} held back."
     else:
-        second = (f"{f['value']} won {f['win_rate']} of {f['opportunities']} opportunities, against {f['rest_win_rate']} for the rest."
+        second = (f"{f['value']} won {f['win_rate']} of {f['opportunities']} deals, against {f['rest_win_rate']} for the rest."
                   if f else "The deals behind it are in the findings.")
     if f and f.get("top_loss") and ch["kind"] == "add_exclude":
-        second = second.rstrip(".") + f"; the most common loss was {f['top_loss']}."
+        second = second.rstrip(".") + f"; most losses were {f['top_loss'].rsplit(' ', 1)[0]} ({f['top_loss'].rsplit(' ', 1)[1]})."
     return {"describes": {"kind": ch["kind"], "field": ch["field"], "value_label": ch["value_label"]},
-            "sentences": [{"text": first, "finding_ids": [f["id"]] if f else []},
-                          {"text": second, "finding_ids": [f["id"]] if f else []}]}
+            "sentences": [{"text": first, "finding_ids": [f["id"]] if f and "id" in f else []},
+                          {"text": second, "finding_ids": [f["id"]] if f and "id" in f else []}]}
 
 
 @sim("judge")

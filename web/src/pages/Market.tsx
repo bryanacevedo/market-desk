@@ -1,4 +1,4 @@
-import { Failed, Fig, Loading, Seg, n0, navigate, pct, useData, usePath, withParam } from "../lib";
+import { Failed, Fig, Loading, Seg, Status, n0, navigate, pct, useData, usePath, withParam } from "../lib";
 import { MarketField, Nest, RangeLine, TierMix, moneyRange, moneyScale } from "../parts";
 import { openSheet } from "../sheets";
 
@@ -13,12 +13,21 @@ export function Market() {
   const [, params] = usePath();
   const by = params.get("by") === "region" ? "region_group" : "segment";
   const { data, error, reload } = useData<{ by: string; rows: Row[]; figures: any }>(`/api/market?by=${by}`);
+  const me = useData<any>("/api/me").data;
+  const waiting: { what: string; path: string }[] = me?.waiting || [];
   const head = (
-    <div className="head">
-      <h1>Market</h1>
-      <Seg label="Rows" value={by === "segment" ? "segment" : "region"} options={[["segment", "Segments"], ["region", "Regions"]]}
-        onChange={(v) => navigate(withParam("by", v === "region" ? "region" : null), true)} />
-    </div>
+    <>
+      <div className="head">
+        <h1>Market</h1>
+        <Seg label="Rows" value={by === "segment" ? "segment" : "region"} options={[["segment", "Segments"], ["region", "Regions"]]}
+          onChange={(v) => navigate(withParam("by", v === "region" ? "region" : null), true)} />
+      </div>
+      {waiting.length ? (
+        <div className="notice waiting"><Status kind="wait">Waiting on you</Status>
+          {waiting.map((w, i) => <button key={i} className="link" onClick={() => navigate(w.path)}>{w.what}</button>)}
+        </div>
+      ) : null}
+    </>
   );
   if (error) return <div className="page">{head}<Failed error={error} retry={reload} /></div>;
   if (!data || data.by !== by) return <div className="page">{head}<Loading /></div>;

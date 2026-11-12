@@ -4,7 +4,7 @@ import { openSheet } from "../sheets";
 
 const monthsBetween = (a: string, b: string) => Math.round((new Date(b).getTime() - new Date(a).getTime()) / (30.44 * 86400000));
 
-const VERDICTS: [string, string][] = [["all", "All"], ["clear", "Clear"], ["explained_by_size", "Explained by size"], ["not_clear", "Not clear"], ["too_few", "Too few"]];
+const VERDICTS: [string, string][] = [["all", "All"], ["clear", "Clear"], ["explained_by_size", "Explained by size"], ["not_clear", "Not clear"], ["too_few", "Too few to tell"]];
 
 export function Evidence() {
   const [, params] = usePath();
@@ -26,7 +26,7 @@ export function Evidence() {
       <div className="figs">
         <Fig value={`${monthsBetween(data.run.window_start, data.run.window_end)}`} unit=" months" label="Window" />
         <Fig value={n0(data.run.deals)} label="Deals" />
-        <Fig value={n0(data.run.tested)} label="Values tested" />
+        <Fig value={n0(data.run.tested)} label="Traits compared" />
         <Fig value={clear} label="Clear" />
       </div>
       <div className="toolbar">
@@ -40,7 +40,7 @@ export function Evidence() {
       {rows.length ? (
         <div className="ledger wide-table">
           <div className="row head" style={{ gridTemplateColumns: cols }}>
-            <span>Trait</span><span className="num">Deals</span><span>Win rate, ring: others</span>
+            <span>Trait</span><span className="num">Deals</span><span>Win rate, ring: the rest</span>
             <span className="num">Won-deal cycle</span><span className="num">{me?.money ? "Deal size" : ""}</span><span>Verdict</span>
           </div>
           {rows.map((r: any) => (

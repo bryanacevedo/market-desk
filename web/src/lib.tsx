@@ -189,7 +189,7 @@ export function Count({ value }: { value: ReactNode }) {
   const m = text?.match(/^([^0-9-]*)(-?[0-9][0-9,]*(?:\.[0-9]+)?)(.*)$/);
   const target = m ? Number(m[2].replace(/,/g, "")) : NaN;
   const decimals = m && m[2].includes(".") ? m[2].split(".")[1].length : 0;
-  const [shown, setShown] = useState(() => (reduced() ? target : 0));
+  const [shown, setShown] = useState(() => (reduced() || (typeof document !== "undefined" && document.hidden) ? target : 0));
   const from = useRef(0);
   useEffect(() => {
     if (!m || Number.isNaN(target) || reduced() || /\b(ago|in|day|days|hour|hours|minute|minutes|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b|:\d\d/.test(m[3])) { setShown(target); return; }
@@ -201,7 +201,9 @@ export function Count({ value }: { value: ReactNode }) {
       if (k < 1) raf = requestAnimationFrame(step); else from.current = target;
     };
     raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
+    // A hidden tab never runs the frames: land on the number anyway.
+    const done = window.setTimeout(() => { setShown(target); from.current = target; }, dur + 80);
+    return () => { cancelAnimationFrame(raf); window.clearTimeout(done); };
   }, [target]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!m || Number.isNaN(target) || /\b(ago|in|day|days|hour|hours|minute|minutes|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b|:\d\d/.test(m[3])) return <>{value}</>;
   const body = shown.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });

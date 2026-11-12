@@ -59,6 +59,19 @@ app = FastAPI(title="Market Desk", docs_url="/api/docs" if _docs else None, open
 MAX_BODY = 1024 * 1024  # 1 MB for every request but the results webhook (5 MB)
 
 
+def _secure(response, rid: str):
+    response.headers["X-Request-Id"] = rid
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Referrer-Policy"] = "same-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; "
+        "script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
+    return response
+
+
 @app.middleware("http")
 async def headers_and_errors(request: Request, call_next):
     rid = uuid.uuid4().hex[:12]
@@ -66,32 +79,43 @@ async def headers_and_errors(request: Request, call_next):
     limit = 5 * MAX_BODY if request.url.path == "/api/results" else MAX_BODY
     length = request.headers.get("content-length")
     if length and (not length.isdigit() or int(length) > limit):
-        return JSONResponse({"error": "Too large."}, status_code=413)
+        return _secure(JSONResponse({"error": "Too large."}, status_code=413), rid)
     try:
         response = await call_next(request)
     except Exception:
         log.exception("request %s %s failed (%s)", request.method, request.url.path, rid)
         response = JSONResponse({"error": "Something went wrong on our side.", "request_id": rid}, status_code=500)
-    response.headers["X-Request-Id"] = rid
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["Strict-Transport-Security"] = "max-age=31536000"
-    response.headers["Referrer-Policy"] = "same-origin"
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; "
-        "script-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'")
+    _secure(response, rid)
     if request.url.path.startswith("/api/"):
         log.info('{"rid":"%s","method":"%s","path":"%s","status":%s,"ms":%.0f}', rid, request.method,
                  request.url.path, response.status_code, (time.perf_counter() - started) * 1000)
     return response
 
 
+from fastapi.exceptions import RequestValidationError  # noqa: E402
+
+
+@app.exception_handler(RequestValidationError)
+async def _invalid(request: Request, exc: RequestValidationError):
+    fields = sorted({".".join(str(x) for x in e.get("loc", [])[1:]) or "body" for e in exc.errors()})
+    return JSONResponse({"error": "Some fields are missing or wrong.", "fields": fields}, status_code=422)
+
+
 _hits: dict[str, deque] = defaultdict(deque)
 _hits_lock = threading.Lock()
 
 
-def rate_limit(request: Request, limit: int = 120, window: float = 60.0) -> None:
-    key = request.client.host if request.client else "?"
+def client_key(request: Request) -> str:
+    """The address the hosting proxy saw. Render appends it as the last X-Forwarded-For entry; anything before it was
+    written by the client and is ignored."""
+    fwd = request.headers.get("x-forwarded-for")
+    if CONFIG.public_demo and fwd:
+        return fwd.split(",")[-1].strip()
+    return request.client.host if request.client else "?"
+
+
+def rate_limit(request: Request, limit: int = 120, window: float = 60.0, key: str | None = None) -> None:
+    key = key or client_key(request)
     now = time.monotonic()
     with _hits_lock:
         if len(_hits) > 10_000:
@@ -189,9 +213,21 @@ def me(u: dict = Depends(current_user)) -> dict:
         users = db.all(cur, "select id, name, role from users where active order by case role when 'revops' then 0 "
                             "when 'manager' then 1 when 'sdr' then 2 else 3 end, name") if CONFIG.auth_mode == "demo" else []
         counts = {"changes": db.val(cur, "select count(*) from change_proposals where status = 'open'")}
+        # What is waiting on this person: a manager publishes and activates what someone else drafted.
+        waiting = []
+        if u["role"] == "manager":
+            waiting += [{"what": f"Publish profile v{r['number']}", "path": "/profile"} for r in db.all(cur,
+                        "select number from icp_versions where status = 'draft' and author <> %s order by number", u["id"])]
+            waiting += [{"what": f"Activate {r['name']}", "path": "/territories"} for r in db.all(cur,
+                        "select name from territory_plans where status = 'draft' and author <> %s order by id", u["id"])]
+        elif u["role"] == "revops":
+            n = counts["changes"]
+            if n:
+                waiting.append({"what": f"{n} open proposal{'s' if n != 1 else ''}", "path": "/changes"})
         now = db.val(cur, "select app_now()")
         sim = db.val(cur, "select enabled from sim_clock")
     return {"user": {k: u[k] for k in ("id", "name", "role")}, "users": users, "counts": counts, "money": money(u),
+            "waiting": waiting,
             "now": now, "simulated": sim, "public_demo": CONFIG.public_demo, "seller": CONFIG.seller}
 
 
@@ -589,8 +625,10 @@ def erase_notes(cid: int, u: dict = Depends(writer)) -> dict:
 
 
 @app.post("/api/evidence/run")
-def run_evidence(u: dict = Depends(writer)) -> dict:
+def run_evidence(request: Request, u: dict = Depends(writer)) -> dict:
     need(u, "revops")
+    # A full run is heavy: six an hour for the whole site, whoever asks.
+    rate_limit(request, limit=6, window=3600.0, key="evidence-run")
     from .. import proposals, sizing
     with db.tx() as cur:
         rid = evidence.run(cur)

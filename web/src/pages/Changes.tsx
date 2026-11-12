@@ -17,7 +17,7 @@ export function ProposalWords({ p }: { p: any }) {
   return (
     <dl className="kv small">
       <dt>Change</dt><dd>{p.change.field_label}: {p.change.value_label}</dd>
-      {f ? <><dt>Win rate</dt><dd>{f.win_rate} ({f.range})</dd><dt>Others</dt><dd>{f.rest_win_rate}</dd><dt>Deals</dt><dd>{Number(f.opportunities).toLocaleString("en-US")}</dd></> : null}
+      {f ? <><dt>Win rate</dt><dd>{f.win_rate} ({f.range})</dd><dt>The rest</dt><dd>{f.rest_win_rate}</dd><dt>Deals</dt><dd>{Number(f.opportunities).toLocaleString("en-US")}</dd></> : null}
     </dl>
   );
 }
@@ -31,9 +31,10 @@ function Evidence({ p }: { p: any }) {
   const test = !p.finding_ids.length;
   return (
     <dl className="kv prop-ev">
-      <dt>{test ? "Worked, met" : "Win rate"}</dt>
+      <dt>{test ? "Meeting rate, worked vs held back" : "Win rate"}</dt>
       <dd><RangeLine rate={num(f.win_rate)} low={test || !range ? null : Number(range[1]) / 100} high={test || !range ? null : Number(range[2]) / 100}
         other={num(f.rest_win_rate)} /></dd>
+      <dt>{test ? "Held back" : "The rest"}</dt><dd>{f.rest_win_rate}</dd>
       <dt>{test ? "Accounts" : "Deals"}</dt><dd>{Number(f.opportunities).toLocaleString("en-US")}</dd>
       {f.top_loss ? <><dt>Top loss</dt><dd>{f.top_loss[0].toUpperCase() + f.top_loss.slice(1)}</dd></> : null}
     </dl>
@@ -72,12 +73,11 @@ export function Changes() {
                   <span className="grow" />
                   {p.text_status === "withheld" ? <Status kind="none">Withheld</Status> : null}
                 </div>
-                <ProposalWords p={p} />
                 <Evidence p={p} />
                 <div className="prop-foot">
                   {p.findings.map((f: any) => p.finding_ids.length ? (
                     <button key={f.id} className="link small" onClick={() => openSheet("finding", f.id)}>{f.value}: {f.verdict}</button>
-                  ) : <button key={f.id} className="link small" onClick={() => openSheet("test", p.test_ids[0])}>{f.value}: segment test</button>)}
+                  ) : <button key={f.test_id} className="link small" onClick={() => openSheet("test", p.test_ids[0])}>{f.value}: segment test</button>)}
                   <span className="grow" />
                   {dismissing === p.id ? (
                     <span className="actions">

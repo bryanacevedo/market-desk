@@ -44,14 +44,14 @@ COUNTRY_GROUP = {c: (g, r) for g, (r, cs) in C.REGION_GROUPS.items() for c in cs
 PRICING_SHARE = {"usage": 28, "seat": 34, "transaction": 12, "mixed": 11, "unknown": 15}
 
 # Win probability parts (new business). Salesforce, HQ city and founding year have no term: P4, P8.
-BASE_BY_BAND = {"20 to 119": 0.09, "120 to 499": 0.24, "500 to 1,999": 0.24, "2,000 to 4,999": 0.065, "5,000+": 0.06}
+BASE_BY_BAND = {"20 to 119": 0.09, "120 to 499": 0.24, "500 to 1,999": 0.24, "2,000 to 4,999": 0.065, "5,000 or more": 0.06}
 PRICE_MULT = {"usage": 2.15, "unknown": 1.0, "seat": 0.92, "transaction": 0.92, "mixed": 0.92}
 INDUSTRY_MULT = {"Fintech": 1.15, "Software": 1.0, "Data infrastructure": 1.05, "Developer tools": 0.95,
                  "Marketplaces": 0.95, "Healthcare software": 0.33, "Education": 0.4, "Government": 0.4}
 SOURCE_SHARE = {"outbound": 50, "inbound": 25, "event": 15, "partner": 10}
 SOURCE_MULT = {"outbound": 0.85, "inbound": 1.35, "event": 1.0, "partner": 1.2}
 # Companies with deals, by size band (stratified so P2 and P3 have enough opportunities in the window).
-DEAL_COMPANIES_BY_BAND = {"20 to 119": 240, "120 to 499": 510, "500 to 1,999": 390, "2,000 to 4,999": 210, "5,000+": 70}
+DEAL_COMPANIES_BY_BAND = {"20 to 119": 240, "120 to 499": 510, "500 to 1,999": 390, "2,000 to 4,999": 210, "5,000 or more": 70}
 DEAL_INDUSTRY_WEIGHT = {**{i: 1.0 for i in C.PROFILE_INDUSTRIES}, "Healthcare software": 2.0, "IT services": 0.25,
                         "Agencies": 0.15, "E-commerce": 0.2, "Manufacturing": 0.12, "Education": 0.05,
                         "Government": 0.04, "Media": 0.12, "Logistics": 0.15}
@@ -95,7 +95,7 @@ REASONS = ["we rebuild usage invoices by hand every month", "month end takes us 
            "invoices go out late because the usage export breaks"]
 OBJECTIONS = ["we already built this in house", "the migration looks like six months of work",
               "our ERP team wants one vendor for everything", "the price per invoice is too high at our volume",
-              "we cannot send patient data to a US cloud", "procurement needs a security review first",
+              "procurement needs a security review first",
               "we only send a handful of invoices a month", "timing is wrong until after our audit"]
 COMPETITOR_LINES = ["{c} quoted lower on overages", "they are already piloting {c}", "{c} has the SAP connector"]
 
@@ -120,7 +120,7 @@ def _revenue_band(emp: int, rng: random.Random) -> str:
 def _tech(emp: int, rng: random.Random) -> list[str]:
     band = _band(emp)
     sweet = band in ("120 to 499", "500 to 1,999")
-    big = band in ("2,000 to 4,999", "5,000+")
+    big = band in ("2,000 to 4,999", "5,000 or more")
     p = {"Salesforce": 0.9 if sweet else (0.04 if big else 0.03),
          "Snowflake": 0.35 if sweet else (0.45 if big else 0.08), "NetSuite": 0.3,
          "Stripe": 0.4 if not big else 0.25, "HubSpot": 0.45 if band == "20 to 119" else 0.15,
@@ -236,6 +236,8 @@ def build(cur, *, seed: int = 7, n_companies: int = 18_000) -> dict:
             "lifecycle": "prospect", "vendor_industry": rng.random() > 0.06, "rev_source":
             "funding_db" if rng.random() < 0.05 else "firmographics",
         })
+        if comps[-1]["sole_trader"]:
+            comps[-1]["employees"] = 1  # a sole trader is one person
     # Brazil (P5): only marketplaces in the sweet spot get deals; make sure at least nine exist.
     br = [c for c in comps if c["country"] == "BR" and c["industry"] == "Marketplaces" and 120 <= c["employees"] <= 1999]
     for c in [c for c in comps if c["country"] == "BR" and c not in br][: max(0, 9 - len(br))]:
@@ -371,6 +373,7 @@ def build(cur, *, seed: int = 7, n_companies: int = 18_000) -> dict:
             d["loss"] = d["loss"] or _pick(rng, LOSS_MIX)
             if d["loss"] == "competitor":
                 comp = rng.choice(C.COMPETITORS)
+                d["competitor"] = comp
             loss_text = redact(rng.choice(LOSS_TEXT[d["loss"]]).format(c=comp or rng.choice(C.COMPETITORS)), [])
         snap = {"industry": c["industry"], "employees": c["employees"], "region": c["region"],
                 "region_group": c["region_group"], "country": c["country"], "revenue_band": c["revenue_band_vendor"],
@@ -467,13 +470,15 @@ def build(cur, *, seed: int = 7, n_companies: int = 18_000) -> dict:
             if d["outcome"] == "won":
                 said = rng.choice(REASONS)
             elif d.get("loss") == "competitor":
-                said = rng.choice(COMPETITOR_LINES).format(c=rng.choice(C.COMPETITORS))
+                said = rng.choice(COMPETITOR_LINES).format(c=d.get("competitor") or rng.choice(C.COMPETITORS))
             elif d.get("loss") == "compliance":
-                said = rng.choice(["we cannot send patient data to a US cloud", "procurement needs a security review first"])
+                health = d["c"]["industry"] == "Healthcare software"
+                said = rng.choice(["we cannot send patient data to a US cloud" if health and d["c"]["country"] != "US"
+                                   else "our auditors need SOC 2 Type II first", "procurement needs a security review first"])
             else:
                 said = rng.choice(OBJECTIONS)
-            opener = rng.choice([f"Call with {who}, {role}.", f"Spoke to {who.split()[0]} ({role}).",
-                                 f"{who} joined, {role}.", f"Follow-up with Mr. {who.split()[-1]}."])
+            opener = rng.choice([f"Call with {who}.", f"Spoke to {who.split()[0]}.",
+                                 f"{who} joined the call.", f"Follow-up with Mr. {who.split()[-1]}."])
             raw = f"{opener} Said \"{said}\". " + rng.choice(["Next step: demo for finance.", "Sent pricing.",
                                                               "Agreed to loop in procurement.", "Will follow up after their close.",
                                                               f"Email {who.split()[0].lower()}@{d['c']['domain']} the deck."])

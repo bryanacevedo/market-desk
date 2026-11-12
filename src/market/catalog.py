@@ -2,6 +2,8 @@
 profile versions the demo opens with. The seller is Lumen Ledger, the same invented company Account Desk sells for."""
 from __future__ import annotations
 
+import re
+
 SELLER = "Lumen Ledger"
 
 PROFILE_INDUSTRIES = ["Software", "Fintech", "Data infrastructure", "Developer tools", "Marketplaces"]
@@ -12,8 +14,18 @@ PRICING = ["usage", "seat", "transaction", "mixed"]
 PRICING_LABEL = {"usage": "Usage-based", "seat": "Per seat", "transaction": "Per transaction", "mixed": "Mixed",
                  "unknown": "Unknown"}
 REVENUE_BANDS = ["<$5M", "$5M-$20M", "$20M-$100M", "$100M-$500M", "$500M+"]
+def nice(v: object) -> str:
+    """A vendor's revenue band in the words the screens use: "$20M to $100M", "Under $5M", "$500M or more"."""
+    s = str(v)
+    if s.startswith("<"):
+        return "Under " + s[1:]
+    if s.endswith("+"):
+        return s[:-1] + " or more"
+    return re.sub(r"^(\$[\d.]+[KMB]?)-(\$[\d.]+[KMB]?)$", r"\1 to \2", s)
+
+
 SIZE_BANDS = [("20 to 119", 20, 119), ("120 to 499", 120, 499), ("500 to 1,999", 500, 1999),
-              ("2,000 to 4,999", 2000, 4999), ("5,000+", 5000, 10_000_000)]
+              ("2,000 to 4,999", 2000, 4999), ("5,000 or more", 5000, 10_000_000)]
 TECH = ["Salesforce", "Snowflake", "NetSuite", "Stripe", "HubSpot", "BigQuery", "QuickBooks", "Zuora", "Chargebee",
         "Databricks", "SAP", "Legacy on-prem ERP"]
 COMPETITORS = ["Meterly", "Billform", "Chargewell", "Ledgerline", "Quotient Billing"]
@@ -100,7 +112,7 @@ AD_ICP = {
     "factors": [
         {"key": "industry", "field": "industry", "op": "in",
          "value": ["Software", "Fintech", "Data infrastructure", "Developer tools", "Marketplaces"], "weight": 30},
-        {"key": "size", "field": "employees", "op": "between", "value": [120, 2000], "weight": 25},
+        {"key": "size", "field": "employees", "op": "between", "value": [120, 1999], "weight": 25},
         {"key": "region", "field": "region", "op": "in", "value": ["North America", "Europe"], "weight": 15},
         {"key": "revenue", "field": "revenue_band", "op": "in", "value": ["$20M-$100M", "$100M-$500M"], "weight": 15},
         {"key": "stack", "field": "tech", "op": "has_any", "value": ["Snowflake", "NetSuite", "Salesforce", "Stripe"],

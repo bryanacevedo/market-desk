@@ -6,7 +6,7 @@ import { openSheet } from "../sheets";
 
 export const KIND_WORD: Record<string, string> = {
   firmographic: "Company data", technographic: "Technology", registry: "Registry", public_counts: "Public counts",
-  crm: "CRM", desk_results: "Desk results", coverage: "Coverage", model: "AI",
+  crm: "CRM", desk_results: "Desk results", coverage: "Contact finder", model: "AI",
 };
 
 export function Sources() {
@@ -34,9 +34,9 @@ export function Sources() {
 }
 
 const SETTING: Record<string, string> = {
-  evidence_window_months: "Deals closed in the last, months", min_opps: "Fewest deals to judge", min_wins: "Fewest wins to judge",
-  family_alpha: "Bar for a clear result", shrink_k: "Pull toward the overall win rate, in deals",
-  hours_per_tier: "Hours a month per account", balance_band: "Balance band", held_back_share: "Share held back in a test",
+  evidence_window_months: "Window, months", min_opps: "Fewest deals to judge", min_wins: "Fewest wins to judge",
+  family_alpha: "Bar for a clear result", shrink_k: "Weight given to the overall win rate, in deals",
+  hours_per_tier: "Hours a month per account", balance_band: "Allowed gap from average", hours_test_account: "Hours a month per test account", held_back_share: "Share held back in a test",
   drop_rule_min_opps: "Deals before a rule is proposed for removal", opp_rate_default: "Share of worked accounts that become deals, before any results",
   account_cycle_months: "Months an account is worked",
 };

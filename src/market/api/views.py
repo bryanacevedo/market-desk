@@ -101,7 +101,8 @@ def segment(cur, key: str, allowed: bool) -> dict | None:
         story_out = {"status": story["status"], "sentences": body.get("sentences"),
                      "quotes": quotes_by_id, "figures": (body.get("payload") or {}).get("figures", [])}
     return strip({"key": key, "label": C.SEGMENT_LABEL[key], "definition": [rule_label(w) for w in definition],
-                  "sizing": sz and {k: v for k, v in sz.items() if k not in ("run",)}, "finding": f and finding_row(f),
+                  "sizing": (sz and {k: v for k, v in sz.items() if k not in ("run",)}) if allowed else None,
+                  "finding": f and finding_row(f),
                   "roles": [{"persona": C.PERSONAS[r["persona"]], "share": r["share_of_won_deals"],
                              "signer": r["share_as_signer"], "n": r["n_won_deals"]} for r in roles],
                   "story": story_out, "quotes": quotes, "losses": losses, "coverage": coverage, "tests": tests}, allowed)
@@ -231,7 +232,7 @@ PAGE = 50
 def accounts(cur, u: dict, *, q: str, tier: str, segment: str, owner: str, page: int, region: str = "") -> dict:
     pub = _published(cur)
     plan = _active_plan(cur)
-    where = ["c.lifecycle <> 'competitor'"]
+    where = ["c.lifecycle <> 'competitor'", "not c.sole_trader"]
     args: list = []
     if u["role"] in ("sdr", "ae"):
         where.append("a.owner = %s")
@@ -279,7 +280,8 @@ def accounts(cur, u: dict, *, q: str, tier: str, segment: str, owner: str, page:
 
 
 def company(cur, cid: int, u: dict, allowed: bool | None = None) -> dict | None:
-    c = db.one(cur, "select * from companies where id = %s", cid)
+    # A sole trader is a person, not a company: never shown (docs/SPEC.md 13).
+    c = db.one(cur, "select * from companies where id = %s and not sole_trader", cid)
     if not c:
         return None
     plan = _active_plan(cur)
@@ -298,9 +300,15 @@ def company(cur, cid: int, u: dict, allowed: bool | None = None) -> dict | None:
     labels = {r["key"]: rule_label(r) for _k, r in profiles.all_rules(pub["rules"])}
     deals = db.all(cur, """select id, kind, outcome, created_at, closed_at, amount_cents, loss_code, competitor, stage
                            from deals where company = %s order by created_at desc""", cid)
-    results = db.all(cur, "select * from desk_results where company = %s order by period_end desc", cid)
+    results = db.all(cur, """select destination, period_start, period_end, worked, meetings, opportunities, won, lost,
+                             pipeline_cents, read_at from desk_results where company = %s order by period_end desc""", cid)
     tests = db.all(cur, """select t.id, t.segment, t.status, m.grp from segment_test_members m join segment_tests t on t.id = m.test
                            where m.company = %s""", cid)
+    if not allowed:
+        results = [r for r in results if r["worked"]]
+        for t in tests:
+            if t["status"] == "running":
+                t["grp"] = None
     for t in tests:
         t["segment_label"] = C.SEGMENT_LABEL.get(t["segment"], t["segment"])
     breakdown = cur_fit["breakdown"] if cur_fit else {}

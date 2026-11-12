@@ -53,14 +53,14 @@ function PlanView({ data, money: showMoney, activate }: { data: any; money: bool
       </div>
       <Section title="People" icon={UsersThree}>
         <div className="ledger">
-          <div className="row head" style={{ gridTemplateColumns: cols }}><span>Person</span><span>Territory</span><span className="num">A</span><span className="num">B</span><span>Hours a month</span>{showMoney ? <><span className="num">Expected value</span><span className="num">Territory mean</span></> : null}</div>
+          <div className="row head" style={{ gridTemplateColumns: cols }}><span>Person</span><span>Territory</span><span className="num">A</span><span className="num">B</span><span>Hours a month</span>{showMoney ? <><span className="num">Expected value</span><span className="num">Territory average</span></> : null}</div>
           {data.people.map((p: any) => (
             <button key={p.user_id} className="row" style={{ gridTemplateColumns: cols }} onClick={() => openSheet("person", p.user_id)}>
               <span className="cell-main"><span className="t">{p.name}</span><span className="s">{p.role === "ae" ? "AE" : "SDR"}{p.effective_fte < 1 ? `, ramping` : ""}</span></span>
               <span className="clip mute">{p.territory}</span>
               <span className="num" data-label="Tier A">{n0(p.accounts_by_tier.A)}</span><span className="num" data-label="Tier B">{n0(p.accounts_by_tier.B)}</span>
               <Hours used={p.hours_required} of={p.hours_available} />
-              {showMoney ? <><span className="num" data-label="Expected value">{money(p.ev)}</span><span className="num mute" data-label="Territory mean">{p.ev_mean ? money(p.ev_mean) : ""}</span></> : null}
+              {showMoney ? <><span className="num" data-label="Expected value">{money(p.ev)}</span><span className="num mute" data-label="Territory average">{p.ev_mean ? money(p.ev_mean) : ""}</span></> : null}
             </button>
           ))}
         </div>
@@ -73,7 +73,7 @@ function PlanView({ data, money: showMoney, activate }: { data: any; money: bool
               <span className="cell-main"><span className="t">{t.label}</span><span className="s">{t.segments.join(", ")}</span></span>
               <span className="clip">{t.people.map((p: any) => p.name).join(", ")}{t.ae ? <span className="mute">, with {t.ae}</span> : null}</span>
               <span className="num" data-label="Accounts">{n0(t.accounts)}</span>
-              {t.balance ? <Status kind={t.balance.balanced ? "ok" : "hold"}>{t.balance.balanced ? "Balanced" : "Not balanced"}</Status> : <span />}
+              {t.balance ? <Status kind={t.balance.balanced ? "ok" : "hold"}>{t.balance.balanced ? "Balanced" : t.balance.over_hours ? "Over hours" : "Not balanced"}</Status> : <span />}
             </div>
           ))}
         </div>

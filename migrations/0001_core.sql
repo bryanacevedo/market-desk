@@ -102,6 +102,10 @@ begin
   if new.status = 'published' and new.published_by is not null and new.published_by = new.author then
     raise exception 'A profile version is published by someone other than its author';
   end if;
+  if new.status = 'published' and (tg_op = 'INSERT' or old.status = 'draft')
+     and (select role from users where id = new.published_by) <> 'manager' then
+    raise exception 'Only a manager publishes a profile version';
+  end if;
   return new;
 end $$;
 create trigger icp_two_people before insert or update on icp_versions for each row execute function icp_two_people();
@@ -224,7 +228,8 @@ create table segment_test_members (
 
 create table target_book_rows (
   book int not null references target_books(id) on delete cascade, company int not null references companies(id),
-  tier text not null, owner int references users(id), segment text not null, test_member boolean not null default false,
+  tier text not null check (tier in ('A', 'B', 'C', 'X')), owner int references users(id), segment text not null,
+  test_member boolean not null default false,
   primary key (book, company));
 
 -- A held-back member of a running test never reaches Account Desk: it is the comparison group.
@@ -242,12 +247,15 @@ create trigger refuse_held_back before insert or update on target_book_rows for 
 create table desk_results (
   id serial primary key, company int not null references companies(id), destination text,
   period_start date not null, period_end date not null, worked boolean not null, held_back boolean not null,
-  test int references segment_tests(id), meetings int not null default 0, opportunities int not null default 0,
-  won int not null default 0, lost int not null default 0, pipeline_cents bigint not null default 0,
+  test int references segment_tests(id), meetings int not null default 0 check (meetings >= 0),
+  opportunities int not null default 0 check (opportunities >= 0), won int not null default 0 check (won >= 0),
+  lost int not null default 0 check (lost >= 0), pipeline_cents bigint not null default 0 check (pipeline_cents >= 0),
   read_at timestamptz not null, source_run int references source_runs(id),
   check (not (worked and held_back)), check (period_end >= period_start),
   check (destination is null or destination in ('account_desk', 'events_desk')));
 create index desk_results_company on desk_results (company);
+-- One row per company, desk, period and test: a second delivery of the same results is refused, never counted twice.
+create unique index desk_results_once on desk_results (company, coalesce(destination, ''), period_start, period_end, coalesce(test, 0));
 
 create table change_proposals (
   id serial primary key, kind text not null check (kind in ('add_rule', 'drop_rule', 'reweight', 'add_exclude', 'penalty', 'segment_expand', 'segment_drop')),

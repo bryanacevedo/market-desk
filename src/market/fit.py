@@ -54,7 +54,7 @@ def fit(rules: dict, company: dict, *, model_fields: frozenset[str] = frozenset(
     out = {"segment": seg}
     if not profile_only and company.get("lifecycle") in ("customer", "open_opp", "competitor"):
         return out | {"score": 0, "tier": "X", "judged": True, "scored_out_of": 1.0, "factors": [],
-                      "excluded": f"Already a {company['lifecycle'].replace('_', ' ').replace('opp', 'deal')}",
+                      "excluded": "Already has an open deal" if company["lifecycle"] == "open_opp" else "Already a customer",
                       "not_applied": []}
     not_applied = []
     for ex in rules.get("excludes", []):

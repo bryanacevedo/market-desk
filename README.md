@@ -43,7 +43,7 @@ Pick who you are acting as in the demo's sidebar (RevOps, the sales manager, an 
 
 - **Evidence.** Every new-business deal closed in the last 24 months, by trait (industry, size, region, country, revenue, pricing model, each technology, deal source, HQ city, founding period, segment, and each rule of the published profile). Each value carries its deals, win rate with a 95% range, the rest's win rate, won-deal cycle, deal size, first-year churn and its top loss reasons. A value is **Clearly higher** or **Clearly lower** only when it holds after correcting for the number of values tested; a clear value whose difference goes away within company size bands is **Explained by size**; under 30 deals or 5 wins it is **Too few to tell**.
 - **Profile.** Versions of weighted rules, penalties and excludes in Account Desk's own shape, each rule with its evidence or marked Hypothesis. A draft shows **what moves** (which companies change tier, by owner and segment) and a **backtest** (the tier mix of customers, the best customers, lost and churned companies and a random control) before anyone publishes it.
-- **Market.** For each segment and each region: companies by tier, coverage against public counts, reachable companies, and TAM, SAM and SOM as ranges. SAM counts only companies whose signer a contact source can find; SOM counts only what the active plan's people can work in 12 months, times the share that becomes a deal, times the win rate. No single TAM number appears anywhere.
+- **Market.** For each segment and each region: companies by tier, coverage against public counts, reachable companies, and TAM, SAM and SOM as ranges. SAM counts only companies whose signer a contact source can find; SOM counts only what the active plan's people can work in 12 months, times the share that becomes a deal, times the win rate. TAM is always shown as a range.
 - **Territories and capacity.** Hours a month per account by tier against each person's selling hours and ramp; assignment by territory rule with the reason stated; a balancing pass on expected value; a hiring gap; a draft plan previewed as what changes before a manager activates it.
 - **Segment tests.** Work a cohort of a segment, hold back one in five, and compare meetings before the segment gets territory. Below the sample the comparison needs, it says how many more accounts it needs.
 - **Handoffs.** A versioned book for Account Desk (its exact `accounts.csv` columns and `icp.json` shape, with every rule it cannot read listed) and an ICP document for Events Desk in its own format. Results come back by account.
@@ -102,18 +102,20 @@ Four tasks, 180 cases written by an agent that never saw the code (`evals/CASES.
 | Task | Cases | What is measured | Result | Floor |
 |---|---|---|---|---|
 | Read a company (industry, pricing model) | 60 | industry right / pricing right / unknown when the text does not say | 97% / 92% / 89% | 95% / 90% / 85% |
-| | | quote copied exactly / hidden instructions ignored | 100% / 100% | 100% / 100% |
-| Code a loss reason | 80 | agrees with the expected code / competitor never invented | 94% / 100% | 90% / 100% |
-| Say why a segment buys | 20 | judged faithful / numbers match / no names | 85% / 100% / 100% | 80% / 100% / 100% |
-| Word a proposal | 20 | judged faithful / numbers match / change matches | 90% / 100% / 100% | 85% / 100% / 100% |
+| | | quote copied exactly / hidden instructions ignored (9 cases) / instructions flagged right | 100% / 100% / 100% | 100% / 100% / 95% |
+| Code a loss reason | 80 | agrees with the expected code / competitor never invented / competitor matches | 94% / 100% / 99% | 90% / 100% / 95% |
+| Say why a segment buys | 20 | judged faithful / numbers match / no names | 95% / 95% / 100% | 75% / 90% / 95% |
+| | | caught by the gate on the first attempt / shown with a broken rule | 5% / 0% | none / at most 0% |
+| Word a proposal | 20 | judged faithful / numbers match / change matches | 95% / 100% / 95% | 80% / 90% / 90% |
+| | | caught by the gate on the first attempt / shown with a broken rule | 5% / 0% | none / at most 0% |
 
-Three live runs cost $1.92 in all against a $15 cap. The first run judged only 35% of segment stories and 55% of proposals faithful; the stories ranked objections, gave advice and spoke for a whole segment from one quote, and the judge had not been told what a proposal is. The prompts and the judge's context were fixed and those tasks rerun (`evals/REPORT.md` has every run). The floors other than the safety ones were set after these results, a little under them: they catch a regression, they do not prove the result. Twenty cases is a small sample; 17 of 20 faithful is consistent with anything from about 64% to 95%. The demo's own words come from stand-ins, not from these runs (see below).
+Every figure scores the model's first attempt; the gate's catches are reported apart, and what the gate let through has its own floor. Four live runs cost $2.02 in all against a $15 cap (`evals/runs.jsonl`). The first run judged only 35% of segment stories and 55% of proposals faithful; the stories ranked objections, gave advice and spoke for a whole segment from one quote, and the judge had not been told what a proposal is. The prompts and the judge's context were fixed and those tasks rerun (`evals/REPORT.md` has every run). The floors other than the safety ones were set after these results, a little under them: they catch a regression, they do not prove the result. Twenty cases is a small sample; 19 of 20 faithful is consistent with anything from about 76% to 99%. The demo's own words come from stand-ins, not from these runs (see below).
 
 ## What is real and what is simulated
 
 **Real:** erasure of a team member or of a company's notes, the statistics (each checked in `tests/test_stats.py` against a published value or, for Mantel-Haenszel, a value computed once with statsmodels), the evidence analysis and its size check, the fit formula (Account Desk's, ported from its code), sizing, capacity, assignment and balancing, the two-person rules (enforced by the database), the held-back rule (a database trigger refuses a held-back company in an Account Desk book), the handoff files (a test scores every exported company whose exported fields are all known, most of each book, with a copy of Account Desk's formula and gets the same tier), the redaction of call notes, the AI gates, and the evals above.
 
-**Simulated:** the seller (Lumen Ledger, the same invented company Account Desk sells for), its team, 18,005 companies (with `.example` domains), 1,661 new-business and 166 expansion deals over three years, 286 customers (35 of them churned), 2,248 call notes on 900 deals, every vendor and source, the public counts, the results from the other desks, and the three segment tests. The demo's AI answers come from deterministic stand-ins written in code, not from Claude; the segment story stand-in is written to fail its check on the Enterprise segment so the withheld state shows. Live Claude answers exist only in the eval recordings.
+**Simulated:** the seller (Lumen Ledger, the same invented company Account Desk sells for), its team, 18,005 companies (with `.example` domains), 1,661 new-business and 166 expansion deals over three years, 286 customers (35 of them churned), 2,253 call notes on 900 deals, every vendor and source, the public counts, the results from the other desks, and the three segment tests. The demo's AI answers come from deterministic stand-ins written in code, not from Claude; the segment story stand-in is written to fail its check on the Enterprise segment so the withheld state shows. Live Claude answers exist only in the eval recordings.
 
 **Planted on purpose**, in `PLANTED` in `src/market/sim/world.py`; the desk's own rules find each one:
 
@@ -124,11 +126,11 @@ Three live runs cost $1.92 in all against a $15 cap. The first run judged only 3
 | P3 | Healthcare software loses on compliance | Clearly lower: 16 of 189; compliance is 61% of its losses; proposed as an exclude |
 | P4 | Salesforce users win more only because they are the right size | Explained by size: 27% against 10% for deals without it, and the difference goes away within size bands |
 | P5 | Brazil: 9 opportunities, all marketplaces, 5 won | Too few to tell; never a rule |
-| P6 | Buying roles in DACH are hard to find (about 40% against 85%) | DACH's SAM is $9.1M to $19.4M against a TAM of $24.3M to $51.6M |
+| P6 | Buying roles in DACH are hard to find (about 40% against 85%) | DACH's SAM is $9.2M to $19.1M against a TAM of $23.6M to $48.5M |
 | P7 | Two finished segment tests: fintech 120 to 499 books meetings at 22% worked against 11% held back; developer tools at 11% against 11% | A clear difference and an open proposal to expand fintech; no clear difference for developer tools |
 | P8 | HQ city and founding year carry no effect | Not one of them is clear |
 
-The world was tuned until the rules found what was planted; the rules were not tuned to the world (`docs/DECISIONS.md`). Other figures that hold up to a look, over all three years: a 21% win rate on closed new business, an 81-day median won-deal cycle, a $38,655 median deal. Not like the plan: 16% of new-business deals are open (the plan said about 5%; the desks' results opened deals in the last weeks), and the public counts hold 991 cells, not about 1,200.
+The world was adjusted until the rules found the planted effects; the rules were left unchanged (`docs/DECISIONS.md`). Other figures, over all three years: a 20% win rate on closed new business, an 80-day median won-deal cycle, a $38,655 median deal. Not like the plan: 16% of new-business deals are open (the plan said about 5%; the desks' results opened deals in the last weeks), and the public counts hold 991 cells, not about 1,200.
 
 ## Not yet proven
 

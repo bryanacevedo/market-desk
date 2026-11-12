@@ -145,9 +145,9 @@ def events_desk_md(cur, version: dict) -> bytes:
     heavy = sorted(rules["factors"], key=lambda f: -f["weight"])
     t1 = ", ".join(rule_label(f).lower() for f in heavy[:3])
     lines += ["", "## How we tier a company", "",
-              f"- Tier 1: a company that matches nearly every rule, starting with {t1}.",
-              f"- Tier 2: a company that matches most rules, usually {rule_label(heavy[0]).lower()} and "
-              f"{rule_label(heavy[1]).lower()}, but misses one or two others.",
+              f"- Tier 1: scores {rules['tiers']['A']} or more out of 100; the biggest weights are {t1}.",
+              f"- Tier 2: scores {rules['tiers']['B']} to {rules['tiers']['A'] - 1}, usually {rule_label(heavy[0]).lower()} "
+              f"and {rule_label(heavy[1]).lower()} without the rest.",
               "- Tier 3: everyone else, and every company we exclude or already sell to.", "",
               "## Who we talk to", ""]
     roles = db.all(cur, """select persona, sum(share_as_signer * n_won_deals) / sum(n_won_deals) as s
@@ -175,7 +175,7 @@ def events_desk_md(cur, version: dict) -> bytes:
     known = [k for k in known if k["industry"] and k["employees"]][:5]
     for k in known:
         lines.append(f"- {k['name']}: {_tier_word(k['tier'])}. {k['industry']}, about {k['employees']:,} people.")
-    lines += ["", "## Looks right, is not", ""]
+    lines += ["", "## Looks right, is not", ""]  # Events Desk's parser reads this heading by name
     look = db.all(cur, """
         select c.id, c.name, f.tier, f.excluded from companies c
         join account_fit f on f.company = c.id and f.icp_version = %s

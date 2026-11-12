@@ -57,7 +57,7 @@ def tx() -> Iterator[psycopg.Cursor]:
 
 
 def all(cur: psycopg.Cursor, sql: str, *args: Any) -> list[dict]:
-    cur.execute(sql, args or None)
+    cur.execute(sql, args[0] if len(args) == 1 and isinstance(args[0], dict) else (args or None))
     return cur.fetchall() if cur.description else []
 
 

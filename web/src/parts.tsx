@@ -5,8 +5,14 @@ import { Status, money, pct, type Glyph } from "./lib";
 // the tier mix of a group. Listed for Bryan in PROJECT-STATUS as new kinds of element.
 
 /** A range of money, written once: "$1.2M to $3.4M". */
-export const moneyRange = (lo: number | null | undefined, hi: number | null | undefined) =>
-  lo === null || lo === undefined ? "" : money(lo) === money(hi) ? money(lo) : `${money(lo)} to ${money(hi)}`;
+/** A money range in one unit, the high end's: "$1k to $12k", "Under $1k to $3.1M", never "$1,408 to $12k". */
+export const moneyRange = (lo: number | null | undefined, hi: number | null | undefined) => {
+  if (lo === null || lo === undefined) return "";
+  const h = (hi || 0) / 100, l = lo / 100;
+  const low = h >= 1_000_000 && l < 1_000_000 && l >= 1000 ? `$${Math.round(l / 1000)}k`
+    : h >= 10_000 && l < 10_000 ? (l < 500 ? "Under $1k" : `$${Math.round(l / 1000)}k`) : money(lo);
+  return low === money(hi) ? low : `${low} to ${money(hi)}`;
+};
 
 /** A rate with its range in small type: 38% (34 to 42). */
 export function Rate({ rate, low, high }: { rate: number | null | undefined; low?: number | null; high?: number | null }) {
@@ -53,7 +59,7 @@ export function Hours({ used, of }: { used: number; of: number }) {
     <span className={`hours${over ? " over" : ""}`}>
       <span className="track"><i style={{ width: `${(w * 100).toFixed(1)}%` }} />
         {over ? <b className="hours-tick" style={{ left: `${((of / scale) * 100).toFixed(1)}%` }} /> : null}</span>
-      <span className="val">{over ? <strong>Over </strong> : null}{Math.round(used)} of {Math.round(of)} hours</span>
+      <span className="val">{Math.round(used)} of {Math.round(of)} hours{over ? <strong> (over)</strong> : null}</span>
     </span>
   );
 }
@@ -114,7 +120,7 @@ export function Nest({ rows, floor, ceil }: { rows: [string, number | undefined,
           <span className="range-line" aria-hidden="true">
             {hi > 0 ? <i className="range-band" style={{ left: `${logPos(Math.max(lo, floor), floor, ceil)}%`, width: `${Math.max(1.5, logPos(hi, floor, ceil) - logPos(Math.max(lo, floor), floor, ceil))}%` }} /> : null}
           </span>
-          <span className="range-val">{hi > 0 ? moneyRange(lo, hi) : "None"}</span>
+          <span className="range-val">{hi > 0 ? moneyRange(lo, hi) : k === "SOM" ? "No capacity" : "None"}</span>
         </span>
       ))}
     </span>

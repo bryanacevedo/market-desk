@@ -31,18 +31,24 @@ def segment_economics(cur) -> dict:
     opps = sum(r["opps"] for r in rows) or 1
     wins = sum(r["wins"] for r in rows)
     overall = wins / opps
+    start = db.val(cur, "select window_start from analysis_runs where id = %s", run)
     acv_all = db.val(cur, """select percentile_cont(0.5) within group (order by amount_cents) from deals
-                             where kind = 'new' and outcome = 'won'""") or 0
-    out = {"_overall": {"win_rate": overall, "acv": int(acv_all)}}
+                             where kind = 'new' and outcome = 'won' and closed_at >= %s""", start) or 0
+    # The share of worked accounts that become deals, as in SOM: expected value is never every account a deal.
+    o = db.one(cur, """select count(distinct company) as n, count(distinct company) filter (where opportunities > 0) as k
+                       from desk_results where worked and destination = 'account_desk' and period_end - period_start >= 60
+                       and (test is null or (select status from segment_tests t where t.id = test) <> 'running')""")
+    opp = (o["k"] / o["n"]) if o and o["n"] else float(settings(cur).get("opp_rate_default", 0.10))
+    out = {"_overall": {"win_rate": overall, "acv": int(acv_all), "opp": opp}}
     for r in rows:
-        out[r["value"]] = {"win_rate": (r["wins"] + k * overall) / (r["opps"] + k),
+        out[r["value"]] = {"win_rate": (r["wins"] + k * overall) / (r["opps"] + k), "opp": opp,
                            "acv": int(r["acv_median"]) if r["wins"] >= 15 and r["acv_median"] else int(acv_all)}
     return out
 
 
 def expected_value(econ: dict, segment: str, score: int | None) -> int:
     e = econ.get(segment) or econ["_overall"]
-    return int(e["win_rate"] * e["acv"] * (score or 0) / 100)
+    return int(e["opp"] * e["win_rate"] * e["acv"] * (score or 0) / 100)
 
 
 def _people(cur, ids: list[int]) -> list[dict]:
@@ -64,24 +70,36 @@ def build_plan(cur, *, name: str, author: int, territories: list[dict], on: date
     return pid
 
 
-def assign(cur, plan_id: int, *, on: date) -> dict:
+def assign(cur, plan_id: int, *, on: date, as_of: date | None = None) -> dict:
     s = settings(cur)
     hours = s["hours_per_tier"]
     band = float(s.get("balance_band", 0.15))
     plan = db.one(cur, "select * from territory_plans where id = %s", plan_id)
     terrs = db.all(cur, "select * from territories where plan = %s order by id", plan_id)
     econ = segment_economics(cur)
-    manual = {r["company"]: r for r in db.all(cur, "select * from assignments where plan = %s and reason_code = 'manual'", plan_id)}
-    db.run(cur, "delete from assignments where plan = %s and reason_code <> 'manual'", plan_id)
+    # A refill (as_of given) keeps every account already placed and only fills the hours that are free; a fresh
+    # assignment keeps only the hand moves.
+    if as_of:
+        manual = {r["company"]: r for r in db.all(cur, "select * from assignments where plan = %s", plan_id)}
+    else:
+        manual = {r["company"]: r for r in db.all(cur, "select * from assignments where plan = %s and reason_code = 'manual'", plan_id)}
+        db.run(cur, "delete from assignments where plan = %s and reason_code <> 'manual'", plan_id)
     rows = db.all(cur, """
-        select c.id, c.lifecycle, c.owner_id, c.region_group, c.region, f.tier, f.score, f.segment, f.judged,
-               exists (select 1 from deals d where d.company = c.id and d.outcome = 'open') as open_deal,
+        select c.id, c.owner_id, c.region_group, c.region, f.tier, f.score, f.segment, f.judged,
+               -- What was true on the plan's date, not today: a customer who signed later is still a prospect here.
+               case when exists (select 1 from customers u where u.company = c.id and u.started_on <= %(on)s
+                                 and (u.churned_on is null or u.churned_on > %(on)s)) then 'customer'
+                    when exists (select 1 from deals d where d.company = c.id and d.created_at::date <= %(on)s
+                                 and (d.closed_at is null or d.closed_at::date > %(on)s)) then 'open_opp'
+                    else 'prospect' end as lifecycle,
+               exists (select 1 from deals d where d.company = c.id and d.created_at::date <= %(on)s
+                       and (d.closed_at is null or d.closed_at::date > %(on)s)) as open_deal,
                exists (select 1 from segment_test_members m join segment_tests t on t.id = m.test
                        where m.company = c.id and m.grp = 'held_back' and t.status = 'running') as held,
                exists (select 1 from segment_test_members m join segment_tests t on t.id = m.test
                        where m.company = c.id and m.grp = 'worked' and t.status = 'running') as test_worked
-        from companies c join account_fit f on f.company = c.id and f.icp_version = %s
-        where not c.sole_trader""", plan["based_on"])
+        from companies c join account_fit f on f.company = c.id and f.icp_version = %(v)s
+        where not c.sole_trader""", {"on": as_of or min(on, plan["created_at"].date()), "v": plan["based_on"]})
     people_ids = sorted({p for t in terrs for p in t["rule"]["people"]})
     people = {u["id"]: u for u in _people(cur, people_ids)}
     avail = {u: float(people[u]["selling_hours_month"]) * effective_fte(people[u], on) for u in people}
@@ -100,7 +118,7 @@ def assign(cur, plan_id: int, *, on: date) -> dict:
         if r["id"] in manual:
             m = manual[r["id"]]
             if m["owner"] in people:
-                used[m["owner"]] += hours.get(r["tier"], 0)
+                used[m["owner"]] += float(s.get("hours_test_account", 0.25)) if m["reason_code"] == "test" else float(hours.get(r["tier"], 0))
                 ev[m["owner"]] += expected_value(econ, r["segment"], r["score"])
                 count[m["owner"]][r["tier"]] += 1
             continue
@@ -221,6 +239,10 @@ def place_test_members(cur, test_id: int) -> int:
     if not plan:
         return 0
     terrs = db.all(cur, "select * from territories where plan = %s order by id", plan["id"])
+    # The held-back group is never worked: it leaves every live plan the day the test starts.
+    db.run(cur, """delete from assignments a using territory_plans p, segment_test_members m
+                   where p.id = a.plan and p.status in ('active', 'draft') and m.test = %s and m.company = a.company
+                     and m.grp = 'held_back' and a.reason_code not in ('existing_owner', 'open_deal')""", test_id)
     rows = db.all(cur, """select c.id, c.region_group, f.segment from segment_test_members m join companies c on c.id = m.company
                           join account_fit f on f.company = c.id and f.icp_version = %s
                           where m.test = %s and m.grp = 'worked'
@@ -239,8 +261,8 @@ def place_test_members(cur, test_id: int) -> int:
 
 
 def manual_move(cur, plan_id: int, company: int, to_user: int, note: str, by: dict) -> None:
-    if by["role"] not in ("revops", "manager"):
-        raise PermissionError("RevOps or a manager moves an account.")
+    if by["role"] != "revops":
+        raise PermissionError("RevOps moves an account by hand; a manager activates the plan.")
     if not note or len(note.strip()) < 3:
         raise ValueError("A manual move needs a note.")
     plan = db.one(cur, "select * from territory_plans where id = %s", plan_id)
@@ -322,11 +344,41 @@ def hiring_gap(cur, plan_id: int) -> dict:
 def capacity_accounts(cur, plan_id: int) -> float:
     """Accounts the plan's people can work in 12 months: accounts they can hold at once at the hours their current book
     uses per account, times the turns a year (12 / account_cycle_months)."""
-    r = db.one(cur, """select sum(hours_available) as avail, sum(hours_required) as used,
-                       sum((accounts_by_tier->>'A')::int + (accounts_by_tier->>'B')::int) as n
-                       from capacity_snapshots where plan = %s""", plan_id)
-    if not r or not r["n"]:
+    # Hours per account from the plan's own A and B accounts at their tier hours, test accounts left out.
+    hours = settings(cur)["hours_per_tier"]
+    r = db.one(cur, """select sum(hours_available) as avail from capacity_snapshots where plan = %s""", plan_id)
+    mix = db.all(cur, """select f.tier, count(*) as n from assignments a join territory_plans p on p.id = a.plan
+                         join account_fit f on f.company = a.company and f.icp_version = p.based_on
+                         where a.plan = %s and a.reason_code <> 'test' and f.tier in ('A','B') group by f.tier""", plan_id)
+    n = sum(m["n"] for m in mix)
+    if not r or not n:
         return 0.0
-    per = float(r["used"]) / r["n"]
+    per = sum(m["n"] * float(hours[m["tier"]]) for m in mix) / n
     turns = 12 / float(settings(cur).get("account_cycle_months", 3))
     return float(r["avail"]) / per * turns if per else 0.0
+
+
+def release_test(cur, test_id: int) -> int:
+    """A test that is read or stopped hands its worked accounts back: they leave every live plan, and the next plan
+    places them by its rules."""
+    n = db.run(cur, """delete from assignments a using territory_plans p, segment_test_members m
+                       where p.id = a.plan and p.status in ('active', 'draft') and a.reason_code = 'test'
+                         and m.test = %s and m.company = a.company and m.grp = 'worked'""", test_id)
+    # The freed hours are filled again by the plan's own rules, from what is true today; hand moves stay.
+    today = db.val(cur, "select app_now()::date")
+    for p in db.all(cur, "select id, effective_on from territory_plans where status in ('active', 'draft')"):
+        assign(cur, p["id"], on=p["effective_on"], as_of=today)
+    return n
+
+
+def draft_from_active(cur, by: dict, name: str, on) -> int:
+    """RevOps drafts the next plan from the active plan's territories, assigned afresh under the published profile."""
+    if by["role"] != "revops":
+        raise PermissionError("RevOps drafts plans.")
+    active = db.one(cur, "select * from territory_plans where status = 'active'")
+    if not active:
+        raise ValueError("There is no active plan to start from.")
+    terrs = [{"key": t["key"], "label": t["label"], "region_groups": t["rule"]["region_groups"],
+              "segments": t["rule"]["segments"], "people": t["rule"]["people"], "ae": t["paired_ae"]}
+             for t in db.all(cur, "select * from territories where plan = %s order by id", active["id"])]
+    return build_plan(cur, name=name, author=by["id"], territories=terrs, on=on)

@@ -69,9 +69,11 @@ def scenarios(cur) -> list[tuple[str, str, str, int, bool]]:
     pub = db.val(cur, "select id from icp_versions where status = 'published'")
     moves = fit.what_moves(cur, v4, pub)
     out.append(("S1", "Draft v4 has companies that move tier against v3", "Profile", moves["total"], moves["total"] > 0))
-    over = db.val(cur, "select count(*) from capacity_snapshots s join territory_plans p on p.id = s.plan where p.status = 'active' and s.hours_required > s.hours_available")
+    # The draft for next quarter: Nadia's ramp leaves the team short, and someone is over their hours.
+    draft = db.val(cur, "select id from territory_plans where status = 'draft'")
+    over = db.val(cur, "select count(*) from capacity_snapshots s where s.plan = %s and s.hours_required > s.hours_available + 0.05", draft)
     from market import territories
-    gap = territories.hiring_gap(cur, db.val(cur, "select id from territory_plans where status = 'active'"))
+    gap = territories.hiring_gap(cur, draft)
     out.append(("S2", "A plan with someone over capacity and a hiring gap above zero", "Territories, Capacity", over,
                 over > 0 and gap["accounts"] > 0))
     manual = db.val(cur, "select count(*) from assignments where reason_code = 'manual' and length(note) > 3")

@@ -18,9 +18,9 @@ Python 3.13 with uv, FastAPI, psycopg 3, Postgres 18, plain SQL migrations appli
 
 | Role key | Who in the demo | Can |
 |---|---|---|
-| `revops` | Sam Kowalski | Own the profile, sources, settings and plans; draft profile versions and plans; make a proposal a draft; dismiss proposals; start and decide segment tests; create target books. |
-| `manager` | Elena Duarte | Publish a profile version she did not author (only a manager publishes); activate a plan she did not author; dismiss proposals; decide segment tests. |
-| `sdr` | Maya Okafor, Daniel Reyes, Priya Natarajan, Tom Whitaker, Nadia Haddad (starts 2026-12-01) | See My book and Accounts filtered to their own. |
+| `revops` | Sam Kowalski | Own the profile, sources, settings and plans; draft profile versions and plans; move an account by hand in a draft plan, with a note; make a proposal a draft; dismiss proposals; start and decide segment tests; create target books; erase a team member or a company's notes. |
+| `manager` | Elena Duarte | Publish a profile version she did not author (only a manager publishes, and the database refuses anyone else); activate a plan she did not author; dismiss proposals; decide segment tests; erase a team member or a company's notes. She reviews a plan and does not move accounts in it. |
+| `sdr` | Maya Okafor, Daniel Reyes, Priya Natarajan, Tom Whitaker, Nadia Haddad (starts 2026-12-01) | See My book and Accounts filtered to their own, and a segment's story, quotes and roles; not its planning figures, and not which group of a running test an account is in. |
 | `ae` | Grace Lindqvist, Omar Bello, Hannah Mercer | Same as SDR. |
 
 Company money (deal sizes, TAM, SAM, SOM in dollars, expected value, costs) is returned by the API only to `revops` and `manager`. For other roles the API leaves those keys out; hiding in the browser is not the control.

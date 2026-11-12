@@ -33,7 +33,7 @@ export function RuleRows({ rules }: { rules: any[] }) {
 export function Moves({ id }: { id: number }) {
   const { data, error, reload } = useData<any>(`/api/profile/versions/${id}/moves`);
   if (error) return <Failed error={error} retry={reload} />;
-  if (!data) return <Loading rows={4} />;
+  if (!data) return <div><div className="small mute">Working out what moves against the published version</div><Loading rows={4} /></div>;
   const max = Math.max(1, ...data.moves.map((m: any) => m.count));
   return (
     <div className="two">
@@ -49,13 +49,18 @@ export function Moves({ id }: { id: number }) {
       </Section>
       <Section title="Backtest">
         <div className="ledger">
-          <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) repeat(3, 52px)" }}><span>Group</span><span className="num">A</span><span className="num">B</span><span className="num">C or X</span></div>
+          <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) 64px repeat(3, 52px)" }}><span>Group</span><span className="num">A now</span><span className="num">A</span><span className="num">B</span><span className="num">C or X</span></div>
           {data.backtest.map((g: any) => {
             const t = Math.max(1, g.n);
             const s = (k: number) => `${Math.round((100 * k) / t)}%`;
+            const was = (data.backtest_published || []).find((x: any) => x.group === g.group);
+            const cur = (data.backtest || []).find((x: any) => x.group === "Current customers");
+            const warn = g.group === "Churned customers" && cur && g.mix.A / Math.max(1, g.n) >= cur.mix.A / Math.max(1, cur.n);
             return (
-              <div key={g.group} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) repeat(3, 52px)" }}>
-                <span className="cell-main"><span className="t">{g.group}</span><span className="s">{n0(g.n)} companies</span></span>
+              <div key={g.group} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) 64px repeat(3, 52px)" }}>
+                <span className="cell-main"><span className="t">{g.group}</span><span className="s">{n0(g.n)} companies</span>
+                  {warn ? <span className="s"><Status kind="hold">A as often as current</Status></span> : null}</span>
+                <span className="num mute">{was ? `${Math.round((100 * was.mix.A) / Math.max(1, was.n))}%` : ""}</span>
                 <span className="num">{s(g.mix.A)}</span><span className="num">{s(g.mix.B)}</span><span className="num">{s(g.mix.C + g.mix.X + g.mix["Not judged"])}</span>
               </div>
             );
@@ -82,9 +87,8 @@ export function Profile() {
         <Fig value={p.tiers.B} label="Tier B from" />
       </div>
       {data.job ? <div className="notice"><Status kind="wait">Waiting</Status>Rescoring every company</div> : null}
-      <Section title="Published" icon={ListChecks}><RuleRows rules={p.rules} /></Section>
       {data.drafts.map((d: any) => (
-        <div key={d.id} className="halo"><Section title={`Draft, version ${d.number}`} icon={PencilSimpleLine}
+        <div key={d.id} className="halo"><Section title={`Draft v${d.number}`} icon={PencilSimpleLine}
           right={<div className="actions">
             <button className="btn line sm" onClick={() => openSheet("version", d.id)}>Open</button>
             <button className="btn sm" disabled={busy || !d.can_publish}
@@ -97,6 +101,7 @@ export function Profile() {
         </Section></div>
       ))}
       {!data.drafts.length ? <Empty title="No draft" icon={Scales} /> : null}
+      <Section title="Published" icon={ListChecks}><RuleRows rules={p.rules} /></Section>
       <Section title="Versions" icon={ClockCounterClockwise}>
         <div className="ledger">
           {data.versions.map((v: any) => (

@@ -18,7 +18,7 @@ _INITIALS = re.compile(r"\b(?:[A-Z]\.\s*){1,3}[A-Z][\w'\-]+")
 _NON_LATIN = re.compile(r"[\u0370-\u03ff\u0400-\u052f\u0590-\u06ff\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]+(?:\s+[\u0370-\u03ff\u0400-\u052f\u0590-\u06ff\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]+)*")
 _PROFILE = re.compile(r"\b(?:https?://)?(?:[\w-]+\.)?(?:linkedin\.com|x\.com|twitter\.com)/\S+", re.I)
 # A capitalised word after a word that introduces a person: "Spoke to Aiko", "the CFO, Ahmed, said".
-_AFTER = re.compile(r"(\b(?:with|to|from|cc|met|called|asked|told|per|and|CFO|CEO|VP|controller|champion)[,:]?\s+)([A-Z\u00c0-\u00de][\w'\-]+(?:[ -][A-Z\u00c0-\u00de][\w'\-]+)*)")
+_AFTER = re.compile(r"((?:\b(?:with|to|from|cc|met|called|asked|told|per|and|CFO|CEO|VP|controller|champion)|\bw/)[,:]?\s+)([A-Z\u00c0-\u00de][\w'\-]+(?:[ -][A-Z\u00c0-\u00de][\w'\-]+)*)")
 # Two or more capitalised words in a row, with accented letters: "José Núñez", "Kevin Smith", "Hugo van der Berg".
 _W = r"[A-Z\u00c0-\u00de](?:[a-z\u00df-\u00ff]|'[A-Z])[\w'\-]*"
 _PAIR = re.compile(rf"\b{_W}(?:\s+(?:van|von|de|der|den|da|di|del|le|la|bin|al)){{0,3}}\s+{_W}")
@@ -29,6 +29,13 @@ _FIRSTS = "|".join(sorted(set(FIRST) | {"John", "Jane", "Mary", "James", "David"
 _FULL = re.compile(rf"\b(?:{_FIRSTS})\s+(?:(?:van|von|de|da|di|del|le)\s+)?[a-zA-Z][a-zA-Z'\-]+\b", re.I)
 _BEFORE_TAG = re.compile(r"\b([A-Z\u00c0-\u00de][\w'\-]+)\s+(?=\[)")
 _EMAIL = re.compile(r"[\w.+\-]+@[\w\-]+\.[\w.\-]+")
+# An address written out to dodge filters: "jsmith at acme dot com".
+_EMAIL_WORDS = re.compile(r"\b[\w.+\-]+\s*(?:\bat\b|\[at\]|\(at\))\s*[\w\-]+\s*(?:\bdot\b|\[dot\]|\(dot\))\s*[a-z]{2,}\b", re.I)
+# A handle: "@jsmith".
+_HANDLE = re.compile(r"(?<![\w.@\[])@[A-Za-z_][\w.]{1,30}")
+# A capitalised word before a department or a bracketed role: "Kowalski from finance", "Lucia (controller)".
+_DEPT = re.compile(r"\b([A-Z\u00c0-\u00de][\w'\-]+)(?=\s+(?:from|in|at|of|on)\s+(?:the\s+)?(?:finance|legal|procurement|it|security|billing|ops|operations|accounting|tax|revops|engineering)\b)")
+_PAREN_ROLE = re.compile(r"\b([A-Z\u00c0-\u00de][\w'\-]+)(?=\s*\((?:the\s+)?[a-z][a-z ,]{1,30}\))")
 _PHONE = re.compile(r"\+?\d[\d\s().\-]{7,}\d")
 
 
@@ -51,6 +58,8 @@ def _keep(m: re.Match, whole: str | None = None) -> bool:
 def redact(text: str, contacts: list[tuple[str, str]]) -> str:
     """contacts: (full name, role label) from the CRM for this deal. Returns text with no person named."""
     out = _EMAIL.sub("[email]", text)
+    out = _EMAIL_WORDS.sub("[email]", out)
+    out = _HANDLE.sub("[handle]", out)
     out = _PROFILE.sub("[profile]", out)
     out = _PHONE.sub("[phone]", out)
     for full, role in sorted(contacts, key=lambda c: -len(c[0])):
@@ -59,13 +68,16 @@ def redact(text: str, contacts: list[tuple[str, str]]) -> str:
         out = re.sub(re.escape(full), tag, out, flags=re.I)
         for part in (parts[-1], parts[0]) if len(parts) >= 2 else ():
             # A surname alone, or the first name alone, still names the person, in any case.
-            out = re.sub(rf"(?<![\w\[])[\w'\-]*{re.escape(part)}[\w'\-]*(?![\w\]])", tag, out, flags=re.I)
+            # Whole words only: a surname like Lower must not eat "lower" inside "slower" or "overages".
+            out = re.sub(rf"(?<![\w\[]){re.escape(part)}(?![\w\]])", tag, out, flags=re.I)
         local = ".".join(p.lower() for p in parts)
         out = re.sub(rf"\b{re.escape(local)}\b", tag, out, flags=re.I)
     out = _TITLE.sub("[person]", out)
     out = _INITIALS.sub("[person]", out)
     out = _NON_LATIN.sub("[person]", out)
     out = _FULL.sub("[person]", out)
+    out = _DEPT.sub(lambda m: m.group(0) if m.group(1) in KEEP else "[person]", out)
+    out = _PAREN_ROLE.sub(lambda m: m.group(0) if m.group(1) in KEEP else "[person]", out)
     out = _AFTER.sub(lambda m: m.group(0) if _keep(m, m.group(2)) else m.group(1) + "[person]", out)
     out = _PAIR.sub(lambda m: m.group(0) if _keep(m) else "[person]", out)
     # A capitalised word just before a redacted name is that person's other name: "Mark [controller]".

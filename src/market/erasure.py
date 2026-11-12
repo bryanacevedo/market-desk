@@ -29,6 +29,13 @@ def erase_user(cur, user_id: int, by: dict) -> dict:
     db.run(cur, "update deals set owner = null where owner = %s", user_id)
     db.run(cur, "update companies set owner_id = null where owner_id = %s", user_id)
     db.run(cur, "update call_notes set author = null where author = %s", user_id)
+    # Their name in the audit log and in notes on plan moves goes too.
+    db.run(cur, "update audit_log set actor = 'Erased team member' where actor_id = %s or actor = %s", user_id, u["name"])
+    for part in sorted({u["name"], u["name"].split()[0]}, key=len, reverse=True):
+        db.run(cur, "update assignments set note = regexp_replace(note, %s, 'Erased team member', 'g') where note ~ %s",
+               rf"\m{part}\M", rf"\m{part}\M")
+        db.run(cur, "update audit_log set detail = regexp_replace(detail::text, %s, 'Erased team member', 'g')::jsonb where detail::text ~ %s",
+               rf"\m{part}\M", rf"\m{part}\M")
     db.run(cur, """update users set name = 'Erased team member', email = 'erased-' || id || '@erased.invalid',
                    active = false, erased = true where id = %s""", user_id)
     db.run(cur, "insert into erasures (kind, subject, by_user) values ('user', %s, %s)", str(user_id), by["id"])
@@ -39,7 +46,19 @@ def erase_user(cur, user_id: int, by: dict) -> dict:
 def erase_company_notes(cur, company_id: int, by: dict) -> dict:
     if by["role"] not in ("revops", "manager"):
         raise PermissionError("RevOps or a manager erases notes.")
+    rows = db.all(cur, """select q.id, q.text from quotes q join call_notes n on n.id = q.call_note
+                          join deals d on d.id = n.deal where d.company = %s""", company_id)
+    gone, texts = [r["id"] for r in rows], [r["text"] for r in rows]
     n = db.run(cur, "delete from call_notes where deal in (select id from deals where company = %s)", company_id)
+    # A segment story that quoted one of these notes is withheld, and the stored model output that held it is cleared.
+    for st in db.all(cur, "select id, sentences from segment_stories where sentences is not null"):
+        quoted = {q.get("id") for q in ((st["sentences"] or {}).get("payload") or {}).get("quotes", [])}
+        if quoted & set(gone):
+            db.run(cur, """update segment_stories set sentences = null, status = 'withheld',
+                           failures = '["A quoted note was erased"]' where id = %s""", st["id"])
+    if gone:
+        db.run(cur, """update llm_calls set output = '{}' where task = 'segment_story'
+                       and exists (select 1 from unnest(%s::text[]) t where position(t in output::text) > 0)""", texts)
     db.run(cur, "update deals set loss_reason_text = null where company = %s", company_id)
     db.run(cur, "update customers set churn_reason_text = null where company = %s", company_id)
     db.run(cur, "insert into erasures (kind, subject, by_user) values ('company_notes', %s, %s)", str(company_id), by["id"])

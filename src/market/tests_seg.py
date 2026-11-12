@@ -110,6 +110,9 @@ def decide(cur, test_id: int, decision: str, by: dict, note: str | None = None) 
                    ends_on = case when %s = 'extend' then ends_on + 60 else ends_on end where id = %s""",
            decision, by["id"], note, status, decision, test_id)
     audit.log(cur, by["name"], f"test_{decision}", "segment_test", test_id, {"note": note}, actor_id=by["id"])
+    if status == "read":
+        from . import territories
+        territories.release_test(cur, test_id)
     if decision == "expand":
         from . import proposals
         proposals.generate(cur)

@@ -35,6 +35,30 @@ CHECKS: list[tuple[str, str]] = [
         or (d.snapshot->>'employees')::int > c.employees)"""),
     ("No call note names a prospect (no CRM contact pattern survives redaction)",
      r"""select id from call_notes where text_redacted ~ '(Mr|Ms|Mrs|Dr)\.\s+[A-Z]' or text_redacted ~ '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}'"""),
+    ("A competitor quote names the competitor the deal was lost to",
+     """select q.id from quotes q join call_notes n on n.id = q.call_note join deals d on d.id = n.deal
+        where q.kind = 'competitor' and d.competitor is not null and position(d.competitor in q.text) = 0"""),
+    ("Patient data comes up only at healthcare companies outside the US",
+     """select q.id from quotes q join call_notes n on n.id = q.call_note join deals d on d.id = n.deal
+        where q.text ilike '%%patient data%%' and (d.snapshot->>'industry' <> 'Healthcare software' or d.snapshot->>'country' = 'US')"""),
+    ("A plan holds only customers and open deals that existed on the day the account was placed",
+     """select a.plan, a.company from assignments a
+        where (a.reason_code = 'existing_owner' and not exists (select 1 from customers c where c.company = a.company
+                 and c.started_on <= a.created_at::date))
+           or (a.reason_code = 'open_deal' and not exists (select 1 from deals d where d.company = a.company
+                 and d.created_at::date <= a.created_at::date))"""),
+    ("No live plan holds a running test's held-back account",
+     """select a.plan, a.company from assignments a join territory_plans p on p.id = a.plan
+        join segment_test_members m on m.company = a.company join segment_tests t on t.id = m.test
+        where p.status in ('active', 'draft') and t.status = 'running' and m.grp = 'held_back'
+          and a.reason_code not in ('existing_owner', 'open_deal')"""),
+    ("Segment capacity follows SAM: no covered segment gets more capacity than its SAM count",
+     """select key from segment_sizing where dimension = 'segment' and run = (select max(id) from sizing_runs)
+        and capacity_accounts > sam_count + 0.5"""),
+    ("A test's results are read after the period they cover",
+     "select id from desk_results where test is not null and read_at::date <= period_end"),
+    ("A sole trader is one person",
+     "select id from companies where sole_trader and employees > 1"),
     ("Every quote is a verbatim part of its call note",
      "select q.id from quotes q join call_notes n on n.id = q.call_note where position(q.text in n.text_redacted) = 0"),
     ("Every book row belongs to the plan its book names",

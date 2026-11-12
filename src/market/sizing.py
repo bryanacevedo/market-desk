@@ -42,17 +42,24 @@ def run(cur) -> int:
     tot_opps = sum(r["opps"] for r in seg_f.values()) or 1
     tot_wins = sum(r["wins"] for r in seg_f.values())
     overall = tot_wins / tot_opps
-    won = db.all(cur, "select d.amount_cents, d.snapshot from deals d where d.kind = 'new' and d.outcome = 'won'")
+    win_start = db.val(cur, "select window_start from analysis_runs where id = %s", ev_run)
+    won = db.all(cur, """select d.amount_cents, d.snapshot from deals d where d.kind = 'new' and d.outcome = 'won'
+                         and d.closed_at >= %s""", win_start)
     from .fit import segment_of
     acv_by_seg = defaultdict(list)
     for d in won:
         acv_by_seg[segment_of({"segments": C.SEGMENTS}, d["snapshot"])].append(d["amount_cents"])
     all_acv = [d["amount_cents"] for d in won]
-    # Opportunities per worked account over 12 months, from the desks' results (worked groups only): the segment's own
-    # rate from 100 worked accounts up, else the overall rate; with no results at all, the default in settings.
-    opp_rows = db.all(cur, """select f.segment, count(*) as n, count(*) filter (where r.opportunities > 0) as k
-                              from desk_results r join account_fit f on f.company = r.company and f.icp_version = %s
-                              where r.worked and r.period_end > %s::date - 365 group by f.segment""", vid, now)
+    # Opportunities per worked account: Account Desk's worked accounts over a full stretch of work (60 days or more),
+    # never a running test's first weeks or a one-day event. The segment's own rate from 100 such accounts, else the
+    # overall rate, else the default in settings before any results exist.
+    opp_rows = db.all(cur, """
+        select f.segment, count(distinct r.company) as n, count(distinct r.company) filter (where r.opportunities > 0) as k
+        from desk_results r join account_fit f on f.company = r.company and f.icp_version = %s
+        where r.worked and r.destination = 'account_desk' and r.period_end - r.period_start >= 60
+          and r.period_end > %s::date - 365
+          and (r.test is null or (select status from segment_tests t where t.id = r.test) <> 'running')
+        group by f.segment""", vid, now)
     opp_n = sum(r["n"] for r in opp_rows)
     opp_k = sum(r["k"] for r in opp_rows)
     default_rate = float(s_get(s, "opp_rate_default", 0.10))
@@ -79,16 +86,38 @@ def run(cur) -> int:
         groups[("total", "all")].append(c)
     # Capacity is shared by segments in proportion to their tier A and B companies in SAM, so segment rows add up to
     # the total; region rows use the overall signer (SPEC 15.11).
-    # Capacity goes to segments and regions in proportion to the tier A and B accounts the active plan owns there: a
-    # segment no territory works gets none, and SOM there is zero.
-    owned_seg = {r["k"]: r["n"] for r in db.all(cur, """
-        select f.segment as k, count(*) as n from assignments a join account_fit f on f.company = a.company and f.icp_version = %s
-        where a.plan = %s and f.tier in ('A','B') group by 1""", vid, plan)} if plan else {}
-    owned_reg = {r["k"]: r["n"] for r in db.all(cur, """
-        select c.region_group as k, count(*) as n from assignments a join companies c on c.id = a.company
-        join account_fit f on f.company = a.company and f.icp_version = %s
-        where a.plan = %s and f.tier in ('A','B') group by 1""", vid, plan)} if plan else {}
-    owned_total = sum(owned_seg.values())
+    # Capacity goes to the segments the active plan's territories cover, in proportion to their tier A and B companies
+    # in SAM (SPEC 15.1). A segment can use no more than its SAM; what it cannot use passes to segments with room.
+    covered = {x for r in db.all(cur, "select rule from territories where plan = %s", plan) for x in r["rule"]["segments"]} if plan else set()
+    sam_ab_seg: dict[str, int] = defaultdict(int)
+    sam_ab_reg: dict[str, int] = defaultdict(int)
+    for c in comps:
+        if c["tier"] in ("A", "B") and c["judged"] and _in_sam(c, reach, signer_seg.get(c["segment"], signer_all)):
+            sam_ab_seg[c["segment"]] += 1
+        if c["tier"] in ("A", "B") and c["judged"] and _in_sam(c, reach, signer_all):
+            sam_ab_reg[c["region_group"]] += 1
+
+    def share_out(room: dict[str, int], total: float) -> dict[str, float]:
+        out = {k: 0.0 for k in room}
+        left, open_ = total, {k for k, v in room.items() if v > 0}
+        while left > 0.5 and open_:
+            weight = sum(room[k] - out[k] for k in open_)
+            if weight <= 0:
+                break
+            given = 0.0
+            for k in list(open_):
+                add = min(left * (room[k] - out[k]) / weight, room[k] - out[k])
+                out[k] += add
+                given += add
+                if room[k] - out[k] < 0.5:
+                    open_.discard(k)
+            left -= given
+            if given < 0.5:
+                break
+        return out
+
+    cap_seg = share_out({k: v for k, v in sam_ab_seg.items() if k in covered}, cap_accounts)
+    cap_reg = share_out(dict(sam_ab_reg), cap_accounts)
     rows = []
     for (dim, key), cs in groups.items():
         tiers = Counter(c["tier"] if c["judged"] else "NJ" for c in cs)
@@ -126,9 +155,8 @@ def run(cur) -> int:
         tam_low, tam_high = ab_known * p25, int((ab_known + nj * fit_share) * p75)
         sam_low, sam_high = sam_ab * p25, int((sam_ab + sam_nj * sam_fit) * p75)
         sam_count = sam_ab
-        owned = owned_seg if dim == "segment" else owned_reg
-        share = (owned.get(key, 0) / owned_total) if owned_total else 0
-        cap = cap_accounts * share if dim != "total" else cap_accounts
+        cap = (cap_seg.get(key, 0.0) if dim == "segment" else cap_reg.get(key, 0.0) if dim == "region_group"
+               else sum(cap_seg.values()))
         workable = min(sam_count, cap)
         o_rate, o_lo, o_hi, o_from = opp_basis(key if dim == "segment" else None)
         som_low = int(workable * o_lo * wlo * p25)

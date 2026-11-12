@@ -84,7 +84,7 @@ export function App() {
         </nav>
         <div className="grow" />
         <div className="side-foot">
-          {me?.simulated ? <div className="clock"><span className="when">{new Date(me.now).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })}</span><span className="note">Invented company, simulated sources.</span></div> : null}
+          {me?.simulated ? <div className="clock"><span className="when">{new Date(me.now).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span><span className="note">Invented company, simulated sources.</span></div> : null}
           {me && me.users.length ? (
             <div className="acting">
               <label htmlFor="acting">Acting as</label>

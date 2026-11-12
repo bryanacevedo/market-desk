@@ -54,11 +54,11 @@ export function Accounts() {
             {data.rows.map((r: any) => (
               <button key={r.id} className="row" style={{ gridTemplateColumns: cols }} onClick={() => openSheet("company", r.id)}>
                 <Logo domain={r.primary_domain} name={r.name} />
-                <span className="cell-main"><span className="t">{r.name}</span><span className="s">{r.industry || "Industry unknown"}{r.employees ? `, ${n0(r.employees)} people` : ""}</span></span>
+                <span className="cell-main"><span className="t">{r.name}</span><span className="s">{r.industry || "Industry unknown"}{r.employees ? `, ${n0(r.employees)} employees` : ""}</span></span>
                 <span className="clip mute">{r.segment_label}</span>
                 <span className="num"><Tier tier={r.tier} judged={r.judged} />{r.judged && r.score !== null ? <small className="mute"> {r.score}</small> : null}</span>
                 <span className="num mute">{pct(r.scored_out_of)}</span>
-                <span className="cell-main">{r.over_capacity ? <Status kind="hold">A over capacity</Status> : <span className="t" style={{ fontWeight: 450 }}>{r.owner || <span className="faint">Unassigned</span>}</span>}{r.owner ? <span className="s">{reasonWord(r.reason_code)}</span> : null}</span>
+                <span className="cell-main">{r.over_capacity ? <Status kind="hold">Unassigned, no hours</Status> : <span className="t" style={{ fontWeight: 450 }}>{r.owner || <span className="faint">Unassigned</span>}</span>}{r.owner ? <span className="s">{reasonWord(r.reason_code)}</span> : null}</span>
                 <span className="num mute">{r.last_dest ? (r.last_meetings ? <Status kind="ok">Meeting</Status> : "No meeting") : ""}</span>
               </button>
             ))}
@@ -94,9 +94,10 @@ export function MyBook() {
         <Section key={t} title={t === "X" ? "Customers and open deals" : `Tier ${t}`} count={by(t).length} icon={Books}>
           <div className="ledger wrap-names">
             {by(t).slice(0, 120).map((r: any) => (
-              <button key={r.id} className="row" style={{ gridTemplateColumns: "28px minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr)" }} onClick={() => openSheet("company", r.id)}>
+              <button key={r.id} className="row" style={{ gridTemplateColumns: "28px minmax(0,1.4fr) 52px minmax(0,1fr) minmax(0,1fr)" }} onClick={() => openSheet("company", r.id)}>
                 <Logo domain={r.primary_domain} name={r.name} />
                 <span className="cell-main"><span className="t">{r.name}</span><span className="s">{r.industry}</span></span>
+                <span className="num" data-label="Score">{r.score ?? ""}</span>
                 <span className="clip mute">{r.segment_label}</span>
                 <span className="clip">{reasonWord(r.reason_code)}</span>
               </button>

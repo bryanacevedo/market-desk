@@ -116,7 +116,7 @@ def decide(cur) -> list[dict]:
     min_opps = int(s.get("drop_rule_min_opps", 60))
     for kind, r in profiles.all_rules(rules):
         f = db.one(cur, "select * from findings where run = %s and trait = 'rule' and value = %s", run, J(r.get("key")))
-        weak = f and (f["verdict"] == "explained_by_size" or (f["verdict"] == "not_clear" and f["diff_low"] <= 0 <= f["diff_high"]))
+        weak = f and f["verdict"] in ("explained_by_size", "not_clear")
         if weak and f["opps"] >= min_opps and kind != "excludes":
             out.append({"key": f"drop_rule:{r['key']}", "kind": "drop_rule", "finding": f, "rule": r, "from": kind})
     from . import tests_seg
@@ -158,7 +158,7 @@ def _payload(p: dict) -> dict:
     if p["kind"] == "segment_expand":
         value_label = C.SEGMENT_LABEL[r["value"][0]]
         rep = p["report"]
-        findings = [{"id": p["test"]["id"], "trait": "Segment test, meetings booked", "value": value_label,
+        findings = [{"id": 0, "test_id": p["test"]["id"], "trait": "Segment test, meetings booked", "value": value_label,
                      "opportunities": rep["treated"]["accounts"], "win_rate": pct(rep["treated"]["rate"]),
                      "range": f"{pct(rep['interval'][0])} to {pct(rep['interval'][1])}",
                      "rest_win_rate": pct(rep["holdout"]["rate"]), "verdict": "Clearly higher", "top_loss": None}]

@@ -27,9 +27,10 @@ def deal_traits(snap: dict, source: str) -> list[tuple[str, str, object]]:
     band = C.size_band(snap.get("employees"))
     if band:
         out.append(("size_band", band, band))
-    for f in ("region", "revenue_band"):
-        if snap.get(f):
-            out.append((f, snap[f], snap[f]))
+    if snap.get("region"):
+        out.append(("region", snap["region"], snap["region"]))
+    if snap.get("revenue_band"):
+        out.append(("revenue_band", C.nice(snap["revenue_band"]), snap["revenue_band"]))
     if snap.get("country"):
         out.append(("country", C.COUNTRY_NAME.get(snap["country"], snap["country"]), snap["country"]))
     pm = snap.get("pricing_model")
@@ -76,7 +77,7 @@ def rule_label(rule: dict) -> str:
     elif rule["field"] == "segment":
         vals = [C.SEGMENT_LABEL.get(x, x) for x in (v if isinstance(v, list) else [v])]
     else:
-        vals = v if isinstance(v, list) else [v]
+        vals = [C.nice(x) if rule["field"] == "revenue_band" else x for x in (v if isinstance(v, list) else [v])]
     joined = ", ".join(str(x) for x in vals)
     return f"{field}: {'none of ' if rule['op'] == 'has_none' else ''}{joined}"
 

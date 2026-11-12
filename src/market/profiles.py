@@ -102,12 +102,12 @@ def demo_versions() -> list[dict]:
     v4 = copy.deepcopy(v3)
     v4["factors"].append({"key": "usage_pricing", "field": "pricing_model", "op": "eq", "value": "usage", "weight": 20,
                           "why": "Usage-based pricing wins far more often."})
-    v4["penalties"].append({"key": "too_big", "field": "employees", "op": "between", "value": [2001, 4999], "weight": 20,
+    v4["penalties"].append({"key": "too_big", "field": "employees", "op": "between", "value": [2000, 4999], "weight": 20,
                             "why": "2,000 to 4,999 employees rarely close."})
     return [
-        {"rules": v1, "note": "First profile, from the founders' first 40 customers.", "created": "2024-01-15",
+        {"rules": v1, "note": "First profile, from the founders' early deals and interviews.", "created": "2024-01-15",
          "published": "2024-02-01"},
-        {"rules": v2, "note": "Healthcare out after a year of compliance losses; revenue band widened.",
+        {"rules": v2, "note": "Revenue band widened to $20M and up.",
          "created": "2025-03-20", "published": "2025-04-01"},
         {"rules": v3, "note": "Revenue band narrowed; legacy ERP penalty added. The profile Account Desk runs.",
          "created": "2026-05-25", "published": "2026-06-02"},

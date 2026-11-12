@@ -121,3 +121,41 @@ def test_header_auth_refuses_an_unsigned_header(monkeypatch, client):
     r = client.get("/api/me", headers={"Cf-Access-Authenticated-User-Email": "sam.kowalski@lumenledger.example",
                                        "X-Acting-As": "1"})
     assert r.status_code == 401
+
+
+def _keys(x, out=None):
+    out = set() if out is None else out
+    if isinstance(x, dict):
+        for k, v in x.items():
+            out.add(k)
+            _keys(v, out)
+    elif isinstance(x, list):
+        for v in x:
+            _keys(v, out)
+    return out
+
+
+def test_no_money_shaped_key_reaches_an_sdr(client, ids):
+    """By shape, not by a list: any key ending in _cents, or naming TAM, SAM, SOM, deal size or expected value, fails."""
+    import re
+    bad = re.compile(r"(_cents$|^(tam|sam|som|acv)(_|$)|^ev(_|$)|expected_value)")
+    me = ids["Maya"]
+    book = client.get("/api/mybook", headers=h(me)).json()
+    cid = (book.get("rows") or [{}])[0].get("id")
+    paths = ["/api/segments/software", "/api/segments/devtools", "/api/mybook", "/api/accounts", f"/api/people/{me}"]
+    if cid:
+        paths.append(f"/api/companies/{cid}")
+    for path in paths:
+        r = client.get(path, headers=h(me))
+        assert r.status_code == 200, path
+        leaked = sorted(k for k in _keys(r.json()) if bad.search(k))
+        assert not leaked, f"{path} sends {leaked} to an SDR"
+
+
+def test_a_manager_does_not_move_accounts_by_hand(client, ids):
+    with db.tx() as cur:
+        pid = db.val(cur, "select id from territory_plans where status = 'draft'")
+        cid = db.val(cur, "select company from assignments where plan = %s and reason_code = 'rule' limit 1", pid)
+    r = client.post(f"/api/plans/{pid}/move", headers=h(ids["Elena"]),
+                    json={"company": cid, "to": ids["Maya"], "note": "Testing the rule."})
+    assert r.status_code == 403

@@ -53,25 +53,33 @@ def read_descriptions(cur) -> int:
 
 
 def code_losses(cur) -> int:
-    n = 0
-    for d in db.all(cur, "select id, loss_reason_text from deals where outcome = 'lost' and loss_reason_text is not null"):
+    # Each loss is coded the hour after it closes, so no call is stamped before the deal it reads.
+    n, keep = 0, db.val(cur, "select at from sim_clock")
+    for d in db.all(cur, """select id, loss_reason_text, closed_at from deals where outcome = 'lost' and loss_reason_text is not null
+                            and closed_at <= %s order by closed_at""", keep):
+        clock(cur, d["closed_at"] + timedelta(hours=1))
         out = ai.code_loss(cur, d["loss_reason_text"], "loss")
         db.run(cur, "update deals set loss_code = %s, loss_code_source = 'model', competitor = coalesce(competitor, %s) where id = %s",
                out["code"], out["competitor"], d["id"])
         n += 1
-    for c in db.all(cur, "select company, churn_reason_text from customers where churn_reason_text is not null"):
+    for c in db.all(cur, "select company, churn_reason_text, churned_on from customers where churn_reason_text is not null"):
+        clock(cur, _ts(str(c["churned_on"])) + timedelta(hours=9) if c["churned_on"] else keep)
         out = ai.code_loss(cur, c["churn_reason_text"], "churn")
         db.run(cur, "update customers set churn_reason_code = %s where company = %s", out["code"], c["company"])
         n += 1
+    clock(cur, keep)
     return n
 
 
 def insert_version(cur, u: dict, number: int, *, status: str, published: str | None = None) -> int:
     v = profiles.demo_versions()[number - 1]
+    keep = db.val(cur, "select at from sim_clock")
+    clock(cur, v["created"])
     vid = db.val(cur, """insert into icp_versions (number, status, rules, note, author, published_by, published_at, created_at)
                          values (%s,%s,%s,%s,%s,%s,%s,%s) returning id""", number, status, J(v["rules"]), v["note"],
                  u["Sam"]["id"], u["Elena"]["id"] if published else None, _ts(published) if published else None, _ts(v["created"]))
     audit.log(cur, "Sam Kowalski", "profile_draft_created", "icp_version", vid, {"number": number}, actor_id=u["Sam"]["id"])
+    clock(cur, keep)
     return vid
 
 
@@ -128,7 +136,9 @@ def test_results(cur, test_id: int, worked_rate: float, held_rate: float, start:
         ids = [r["company"] for r in db.all(cur, "select company from segment_test_members where test = %s and grp = %s order by company",
                                              test_id, grp)]
         hit = set(rng.sample(ids, round(rate * len(ids))))
-        src = db.val(cur, "select max(id) from source_runs where source = 'crm'")
+        # Worked accounts' results come from Account Desk, held-back accounts' from the CRM; both read the day after the end.
+        src = db.val(cur, "select max(id) from source_runs where source = %s", "account_desk" if grp == "worked" else "crm")
+        read_at = _ts(str(end)) + timedelta(days=1, hours=8)
         for cid in ids:
             m = (1 + (rng.random() < 0.25)) if cid in hit else 0
             opp = 1 if cid in hit and rng.random() < 0.35 else 0
@@ -138,7 +148,7 @@ def test_results(cur, test_id: int, worked_rate: float, held_rate: float, start:
                            meetings, opportunities, pipeline_cents, read_at, source_run)
                            values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                    cid, "account_desk" if grp == "worked" else None, start, end, grp == "worked", grp == "held_back",
-                   test_id, m, opp, opp * rng.randint(25_000, 60_000) * 100, world.NOW, src)
+                   test_id, m, opp, opp * rng.randint(25_000, 60_000) * 100, min(read_at, world.NOW), src)
 
 
 def book_results(cur, book_id: int, start: date, seed: int) -> None:
@@ -186,7 +196,10 @@ def build_demo(n_companies: int = 18_000, seed: int = 7) -> dict:
     with db.tx() as cur:
         info["world"] = world.build(cur, seed=seed, n_companies=n_companies)
     with db.tx() as cur:
+        keep = db.val(cur, "select at from sim_clock")
+        clock(cur, "2024-01-10")  # the model read the descriptions when the companies first came in
         info["model_read_fields"] = read_descriptions(cur)
+        clock(cur, keep)
         info["losses_coded"] = code_losses(cur)
     with db.tx() as cur:
         u = users(cur)
@@ -234,6 +247,8 @@ def build_demo(n_companies: int = 18_000, seed: int = 7) -> dict:
         test_results(cur, t1, 0.22, 0.106, date(2026, 5, 1), date(2026, 8, 31), seed + 1)
         test_results(cur, t2, 0.11, 0.106, date(2026, 5, 1), date(2026, 8, 31), seed + 2)
         db.run(cur, "update segment_tests set status = 'read' where id = any(%s)", [t1, t2])
+        for t in (t1, t2):
+            territories.release_test(cur, t)
         # 1 October: the data infrastructure test starts, and its worked group joins the next book.
         clock(cur, "2026-10-01")
         t3 = tests_seg.create_draft(cur, "data_infra", "Data infrastructure companies book meetings at twice the rate of the rest.", sam)
@@ -259,10 +274,15 @@ def build_demo(n_companies: int = 18_000, seed: int = 7) -> dict:
         fit.score_version(cur, db.val(cur, "select id from icp_versions where status = 'published'"))
         q1 = territories.build_plan(cur, name="First quarter 2027", author=sam["id"], territories=territories_q1(u),
                                     on=date(2027, 1, 1), created_at=_ts("2026-11-09"))
-        moved = db.one(cur, """select a.company, a.owner from assignments a where a.plan = %s and a.reason_code = 'rule'
+        # An account Maya owns in the active plan that the draft hands to Daniel: she keeps it by hand.
+        moved = db.one(cur, """select a.company, a.owner from assignments a
+                              join assignments b on b.company = a.company and b.plan = (select id from territory_plans where status = 'active')
+                              where a.plan = %s and a.reason_code = 'rule' and a.owner = %s and b.owner = %s
+                              order by a.company limit 1""", q1, u["Daniel"]["id"], u["Maya"]["id"])
+        moved = moved or db.one(cur, """select a.company, a.owner from assignments a where a.plan = %s and a.reason_code = 'rule'
                               and a.owner = %s order by a.company limit 1""", q1, u["Daniel"]["id"])
         territories.manual_move(cur, q1, moved["company"], u["Maya"]["id"],
-                                "Maya has worked this account since the spring; she keeps it.", sam)
+                                "Maya has worked this account in the current plan; she keeps it.", sam)
         # 10 November: the nightly evidence run, Sam's draft version 4, then the day's decisions.
         clock(cur, datetime(2026, 11, 10, 6, 0, tzinfo=timezone.utc))
         info["analysis_run"] = r2 = evidence.run(cur)

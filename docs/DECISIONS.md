@@ -91,3 +91,27 @@ Numbered. Each says what was decided, why, and what it costs.
 
 ## 30. Market Desk's own look: ochre, Archivo, ranges as intervals
 **What:** ochre `#A2671F` is the accent and the halo; Archivo semi-condensed is the display type; steel blue `#3E6A8A` is the waiting status; ranges are drawn as intervals and the market as a field of tiles (`docs/DESIGN-CHECKLIST.md`, "Spirit"). **Why:** Bryan, 2026-11-12: v1 was too close to Account Desk; each desk shares the bones and keeps its own spirit (Events Desk green, Account Desk cobalt). Amber is the waiting colour in the other desks and sits next to ochre, so waiting moved to steel blue. **Cost:** a status colour that differs from the sister desks; a reader moving between them learns one new colour.
+
+## 31. Capacity follows SAM, and what a segment cannot use passes on
+
+SPEC 15.1 shares the plan's 12-month capacity among the segments its territories cover in proportion to their tier A and B companies in SAM. A segment can never work more companies than its SAM; what it cannot use passes to the covered segments with room, so no capacity is lost to the cap. A segment no territory covers gets none, and Market says "No capacity" there rather than a zero market. Region rows are a second view of the same capacity, shared by each region's SAM and priced at the overall rates; they are not a split of the segment rows, so they do not add up to the total (the README glossary says so).
+
+## 32. The share that becomes a deal counts only full stretches of Account Desk work
+
+The opportunity rate behind SOM and expected value is the share of Account Desk's worked accounts, over periods of 60 days or more in the last year, that opened a deal. A running test's first weeks and Events Desk's one-day results are left out: they measure something else. A segment uses its own rate from 100 such accounts, otherwise the overall rate; before any results exist, the default in settings, shown as an assumption.
+
+## 33. Expected value is a 12-month figure on the same basis as SOM
+
+Per account, expected value is the share that becomes a deal, times the segment's planning win rate, times its deal size, times the fit score over 100. The first layer reviewers found per-person expected value larger than the company's SOM, because it left out the share that becomes a deal; it now includes it, so a person's figure is a share of what the plan can win, not every account a deal.
+
+## 34. A finished test hands its accounts back
+
+When a test is read, its worked accounts leave every live plan, and the next plan places them by its rules. A test's held-back accounts leave every live plan the day the test starts. A plan is built from what was true on the day it was drafted: a company that became a customer, or opened a deal, after that day is still a prospect in that plan.
+
+## 35. Who moves and who erases
+
+Only RevOps moves an account by hand, in a draft plan, with a note; the manager reviews and activates. RevOps or a manager may erase a team member or a company's notes. Erasing a person also scrubs their name from the audit log and from move notes; erasing a company's notes withholds any segment story that quoted them and clears the stored model output that held the quote.
+
+## 36. What the layer reviews left as it was
+
+The Events Desk document keeps the heading "Looks right, is not", because Events Desk's parser reads it by name. The `?as=` parameter that picks the acting person stays on the public demo only, for links and screenshots; a live install takes identity from the access header alone. The demo's 14 SDR-owned accounts that opened deals with an AE after the active plan was drafted stay as they are: the plan shows them under "What changes" until the next plan.

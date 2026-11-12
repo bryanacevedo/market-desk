@@ -43,7 +43,7 @@ def _company(cur, account: str) -> int | None:
     a = account.strip()
     if a.isdigit():
         return int(a)
-    return db.val(cur, "select id from companies where primary_domain = lower(%s) or lower(name) = lower(%s) order by id limit 1", a, a)
+    return db.val(cur, "select id from companies where not sole_trader and (primary_domain = lower(%s) or lower(name) = lower(%s)) order by id limit 1", a, a)
 
 
 @server.tool(annotations=READ_ONLY)
@@ -52,7 +52,7 @@ def find_accounts(query: str, limit: int = 10) -> list[dict]:
     return _read(lambda cur: db.all(cur, """
         select c.id, c.name, c.primary_domain, c.lifecycle, f.tier, f.judged, f.score, f.segment
         from companies c join account_fit f on f.company = c.id and f.icp_version = (select id from icp_versions where status = 'published')
-        where c.name ilike %s or c.primary_domain ilike %s order by f.score desc nulls last limit %s""",
+        where not c.sole_trader and (c.name ilike %s or c.primary_domain ilike %s) order by f.score desc nulls last limit %s""",
         f"%{_like(query)}%", f"%{_like(query)}%", max(1, min(limit, 50))))
 
 

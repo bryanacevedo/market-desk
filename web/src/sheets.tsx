@@ -119,7 +119,7 @@ function SegmentSheet({ id }: { id: string }) {
           <Section title="Why they buy">
             {d.story?.status === "ok" ? (
               <div className="story">{d.story.sentences.map((s: any, i: number) => <p key={i}>{s.text}</p>)}</div>
-            ) : d.story ? <Status kind="none">Withheld</Status> : null}
+            ) : d.story ? <div className="notice"><Status kind="none">Withheld</Status>The wording failed its check twice, so only the figures show.</div> : null}
             <div className="quotes">{d.quotes.slice(0, 4).map((q: any) => (
               <div key={q.id} className="said-q"><span className="said-kind">{QUOTE_KIND[q.kind]}</span><div className="quote small">{q.text}</div></div>
             ))}</div>
@@ -145,14 +145,14 @@ function SegmentSheet({ id }: { id: string }) {
                 rows={[["TAM", z.tam_low, z.tam_high], ["SAM", z.sam_low, z.sam_high], ["SOM", z.som_low, z.som_high]]} />
               <dl className="kv">
                 <dt>Deal size</dt><dd>{money(z.acv_basis.p25)} to {money(z.acv_basis.p75)}{z.acv_basis.from === "overall" ? <span className="mute">, all segments</span> : null}</dd>
-                <dt>Win rate used</dt><dd><RangeLine rate={z.win_rate_basis.shrunk} low={z.win_rate_basis.low} high={z.win_rate_basis.high} ends /></dd>
+                <dt>Planning win rate, pulled toward the overall rate</dt><dd><RangeLine rate={z.win_rate_basis.shrunk} low={z.win_rate_basis.low} high={z.win_rate_basis.high} ends /></dd>
                 <dt>Became deals</dt><dd><RangeLine rate={z.capacity_basis.opp_rate} low={z.capacity_basis.opp_low} high={z.capacity_basis.opp_high} max={0.2} ends /></dd>
                 <dt>Accounts the plan can work</dt><dd>{n0(z.capacity_basis.capacity_accounts)}</dd>
               </dl>
             </Section>
           ) : null}
           {d.coverage.length ? (
-            <Section title="Data coverage">
+            <Section title="Fields known">
               <div className="bars">{d.coverage.map((c: any) => <Bar key={c.field} label={c.field === "pricing_model" ? "Pricing model" : c.field === "tech" ? "Technology" : "Industry"} value={c.filled} of={1} shown={pct(c.filled)} />)}</div>
             </Section>
           ) : null}
@@ -187,12 +187,12 @@ function FindingSheet({ id }: { id: string }) {
         <div className="figs">
           <Fig sm value={n0(f.opps)} label="Deals" />
           <Fig sm value={pct(f.rate)} label="Win rate" />
-          <Fig sm value={pct(f.rest_rate)} label="Others" />
+          <Fig sm value={pct(f.rest_rate)} label="Win rate, the rest" />
           {f.cycle ? <Fig sm value={`${Math.round(f.cycle.median)}`} unit=" days" label="Won-deal cycle" /> : null}
         </div>
         <dl className="kv">
           <dt>Range</dt><dd><RangeLine rate={f.rate} low={f.low} high={f.high} other={f.rest_rate} ends /></dd>
-          <dt>Other deals</dt><dd>{n0(f.rest_opps)}</dd>
+          <dt>Deals in the rest</dt><dd>{n0(f.rest_opps)}</dd>
           {f.cycle ? <><dt>Cycle range</dt><dd>{Math.round(f.cycle.low)} to {Math.round(f.cycle.high)} days</dd></> : null}
           {f.acv_median !== undefined && f.acv_median !== null ? <><dt>Deal size</dt><dd>{money(f.acv_median)} ({money(f.acv_p25)} to {money(f.acv_p75)})</dd></> : null}
           {f.churn !== null ? <><dt>Left within a year</dt><dd>{pct(f.churn)} of {n0(f.churn_n)}</dd></> : null}
@@ -271,7 +271,7 @@ function CompanySheet({ id }: { id: string }) {
           ) : null}
           {c.owner ? (
             <Section title="Owner">
-              <dl className="kv"><dt>Owner</dt><dd>{c.owner.id ? <button className="link" onClick={() => openSheet("person", c.owner.id)}>{c.owner.name}</button> : "Unassigned"}</dd>
+              <dl className="kv"><dt>In the active plan</dt><dd>{c.owner.id ? <button className="link" onClick={() => openSheet("person", c.owner.id)}>{c.owner.name}</button> : "Unassigned"}</dd>
                 <dt>Why</dt><dd>{({ rule: "Territory rule", test: "Segment test", existing_owner: "Customer", open_deal: "Open deal", balance_move: "Moved to balance", manual: "Moved by hand" } as any)[c.owner.reason] || c.owner.reason}</dd>
                 {c.owner.note ? <><dt>Note</dt><dd>{c.owner.note}</dd></> : null}
                 {c.owner.moved_from ? <><dt>From</dt><dd>{c.owner.moved_from}</dd></> : null}</dl>
@@ -438,7 +438,7 @@ function TestSheet({ id }: { id: string }) {
             : lead && (t.status === "running" || (t.status === "read" && !t.decision)) ? <>
               <button className="btn quiet" disabled={busy} onClick={() => run(() => api(`/api/tests/${t.id}/decide`, { method: "POST", body: { decision: "drop" } }), "Dropped.")}>Drop</button>
               <button className="btn line" disabled={busy} onClick={() => run(() => api(`/api/tests/${t.id}/decide`, { method: "POST", body: { decision: "extend" } }), "Extended by 60 days.")}>Extend</button>
-              <button className="btn" disabled={busy || !r.clear} onClick={() => run(() => api(`/api/tests/${t.id}/decide`, { method: "POST", body: { decision: "expand" } }), "Expanded. A proposal is open on Changes.")}>Expand</button>
+              <button className="btn" disabled={busy || !r.clear} onClick={() => run(() => api(`/api/tests/${t.id}/decide`, { method: "POST", body: { decision: "expand" } }), "Expand proposed. The proposal is open on Changes.")}>Expand</button>
             </> : undefined}>
           <Title sub={t.started_on ? `${day(t.started_on)} to ${day(t.ends_on)}` : "Not started"}>{t.segment_label}</Title>
           <div className="small">{t.hypothesis}</div>

@@ -5,7 +5,7 @@ import { Empty, Failed, Loading, Section, Status, day, n0, pct, useBusy, useData
 import { RangeLine } from "../parts";
 import { openSheet } from "../sheets";
 
-const DECISION: Record<string, string> = { expand: "Expanded", drop: "Dropped", extend: "Extended" };
+const DECISION: Record<string, string> = { expand: "Expand proposed", drop: "Dropped", extend: "Extended" };
 
 export function testState(t: any): [any, string] {
   if (t.status === "draft") return ["wait", "Draft"];
@@ -45,14 +45,14 @@ export function Tests() {
       <div className="head"><h1>Tests</h1></div>
       {data.rows.length ? (
         <div className="ledger">
-          <div className="row head" style={{ gridTemplateColumns: cols }}><span>Segment</span><span>Started</span><span>Worked met, ring: held back</span><span>Result</span></div>
+          <div className="row head" style={{ gridTemplateColumns: cols }}><span>Segment</span><span>Started</span><span>Meeting rate, worked vs held back</span><span>Result</span></div>
           {data.rows.map((t: any) => {
             const [g, w] = testState(t);
             return (
               <button key={t.id} className="row" style={{ gridTemplateColumns: cols }} onClick={() => openSheet("test", t.id)}>
                 <span className="cell-main"><span className="t">{t.segment_label}</span><span className="s">{n0(t.members)} accounts</span></span>
                 <span className="mute">{t.started_on ? day(t.started_on) : "Not started"}</span>
-                <span data-label="Worked, ring: held back"><RangeLine rate={t.report.treated.rate} other={t.report.holdout.rate} max={0.3} /></span>
+                <span data-label="Meeting rate, worked vs held back"><RangeLine rate={t.report.treated.rate} other={t.report.holdout.rate} max={0.3} /></span>
                 <span className="cell-main"><Status kind={g}>{w}</Status>{t.decision ? <span className="s">{DECISION[t.decision]}</span> : null}</span>
               </button>
             );
