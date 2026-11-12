@@ -12,7 +12,7 @@ Numbered. Each says what was decided, why, and what it costs.
 **What:** every sizing figure and every rate is shown as a range; no single TAM number exists on any screen. **Why:** a TAM point estimate claims a precision the inputs do not have. **Cost:** figures take more room and need a tap to see their parts.
 
 ## 4. The size check
-**What:** every clear finding is checked within size bands with a Mantel-Haenszel odds ratio; if its 95% interval includes 1, the verdict is Explained by size. **Why:** size drives most B2B win rates, so a trait that only travels with size would otherwise become a rule. **Cost:** a real effect that is also concentrated in one size band can be called Explained by size; the finding still shows its crude figures.
+**What:** every clear finding is checked within size bands with a Mantel-Haenszel odds ratio; if its 95% interval includes 1 and the effect shrinks by at least half (decision 15), the verdict is Explained by size. **Why:** size drives most B2B win rates, so a trait that only travels with size would otherwise become a rule. **Cost:** a real effect that is also concentrated in one size band can be called Explained by size; the finding still shows its crude figures.
 
 ## 5. Two people to publish a profile or activate a plan
 **What:** the database refuses a profile published by its author and a plan activated by its author. **Why:** the profile decides every account's tier and owner; one person should not change it alone (Account Desk does the same for play launches). **Cost:** a desk with one RevOps person and no manager cannot publish; the plan's single-person exception was not built.
@@ -21,7 +21,7 @@ Numbered. Each says what was decided, why, and what it costs.
 **What:** sizing and expected value use (wins + 20 x overall) / (opps + 20). The constant is a setting. **Why:** a segment with 9 deals and 5 wins would otherwise carry a 56% win rate into SOM. **Cost:** a small segment that really is better looks closer to average until it has deals.
 
 ## 7. Capacity in hours per account per month
-**What:** A 1.0, B 0.4, C 0.1, X 0 hours a month per account (decision 17); 100 selling hours a month per person; ramp linear over 3 months (Bridge Group 2025 average). These are our assumptions, labelled as such on the Capacity tab and in Settings. **Why:** L-016: size by throughput times window times seats. **Cost:** the hours per tier are invented; a real team sets them.
+**What:** A 1.0, B 0.4, C 0.1, X 0 hours a month per account (decision 17); 100 selling hours a month per SDR and 40 per AE for account work (RevOps and the manager carry none); ramp linear over 3 months (Bridge Group 2025 average). These are our assumptions, labelled as such on the Capacity tab and in Settings. **Why:** L-016: size by throughput times window times seats. **Cost:** the hours per tier are invented; a real team sets them.
 
 ## 8. Statistics copied from Account Desk, then extended
 **What:** `stats.py` copies Account Desk's `wilson`, `newcombe`, `n_per_arm` and `fisher_greater` (intervals default to 90%), then adds a two-sided Fisher exact test, Holm, Mantel-Haenszel and a median interval. Every evidence call passes `conf=0.95` explicitly; segment tests use 90%, as Account Desk's play tests do. **Why:** one method across the desks; evidence about the profile is held to a stricter level than a test of a play. **Cost:** two levels in one product, stated in README.
@@ -60,7 +60,7 @@ Numbered. Each says what was decided, why, and what it costs.
 **What:** sizing rows exist for each segment, each region group and the whole market. **Why:** reachability differs by region (P6, DACH), and a segment row cannot show that. **Cost:** two tables to read on Market, behind one switch.
 
 ## 20. A rule explained by size is proposed for removal
-**What:** a rule of the published profile whose own finding is Not clear or Explained by size, with at least 60 deals, becomes a drop proposal. The plan named only Not clear. **Why:** a rule that only travels with size double counts the size rule. **Cost:** more proposals; the region rule's drop proposal is dismissed in the demo with the reason a sales leader would give.
+**What:** a factor or penalty of the published profile (never an exclude) whose own finding is Not clear or Explained by size, with at least 60 deals, becomes a drop proposal. The plan named only Not clear. **Why:** a rule that only travels with size double counts the size rule. **Cost:** more proposals; the region rule's drop proposal is dismissed in the demo with the reason a sales leader would give.
 
 ## 21. Expected value
 **What:** shrunk segment win rate times the segment's median won deal times the fit score over 100. **Why:** the plan said "shrunk win rate times ACV for the account's segment and tier"; tiers within a segment have too few deals to carry their own rates, so the score stands in for the tier. **Cost:** expected value ranks accounts; it is not a forecast.
@@ -79,3 +79,12 @@ Numbered. Each says what was decided, why, and what it costs.
 
 ## 26. The held-back meeting rate in the finished tests is 10.6%
 **What:** the world gives the finished tests' held-back groups 11 meetings out of 104 rather than 10. **Why:** Account Desk's reading recomputes the sample it needs from the held-back rate it sees; at 9.6% it asks for 107 held-back accounts and the 520-account test could not be read. Gate 0 predicted this. The world was tuned, not the rule. **Cost:** a test that lands just under its design rate reads as needing more accounts.
+
+## 27. A restricted licence blanks cells, it does not refuse the book
+**What:** a value whose only source forbids redistribution is left blank in every file the desk writes; the rest of the row ships. **Why:** refusing the whole book over one vendor's field would stop every handoff; a blank cell is a gap Account Desk already handles (it leaves unknown fields out of the score). **Cost:** a book can carry a company whose most useful field is blank.
+
+## 28. The world export is the demo's only
+**What:** `world-export` refuses unless the desk is in demo mode, leaves sole traders out, and applies the same licence and model-read rules as a book. The people in it are invented at export time. Whoever loads it into a desk that contacts people takes on that desk's duties to them; this desk stores none. **Why:** on live data it would invent people at real employers. **Cost:** the shared world stays a demo universe until the other desks have their own people data.
+
+## 29. Writes take JSON, and an unchosen visitor is an SDR
+**What:** every write must arrive as JSON, and a request that names no user acts as the first SDR; the web app opens a first visit as RevOps by choice. **Why:** the security review: a cross-site form cannot send JSON, and the least-privileged default never shows company money by accident. **Cost:** a script that posts forms must send JSON.

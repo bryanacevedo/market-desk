@@ -76,28 +76,36 @@ make demo
 
 Four tasks, 180 cases written by an agent that never saw the code (`evals/CASES.md`), graded by code where code can see the answer and by a Claude Sonnet 5.5 judge with a written checklist where it cannot. Model under test: Claude Opus 5.5.
 
-EVAL_TABLE
+| Task | Cases | What is measured | Result | Floor |
+|---|---|---|---|---|
+| Read a company (industry, pricing model) | 60 | industry right / pricing right / unknown when the text does not say | 97% / 92% / 89% | 95% / 90% / 85% |
+| | | quote copied exactly / hidden instructions ignored | 100% / 100% | 100% / 100% |
+| Code a loss reason | 80 | agrees with the expected code / competitor never invented | 94% / 100% | 90% / 100% |
+| Say why a segment buys | 20 | judged faithful / numbers match / no names | 85% / 100% / 100% | 80% / 100% / 100% |
+| Word a proposal | 20 | judged faithful / numbers match / change matches | 90% / 100% / 100% | 85% / 100% / 100% |
+
+Three live runs cost $1.92 in all against a $15 cap. The first run judged only 35% of segment stories and 55% of proposals faithful; the stories ranked objections, gave advice and spoke for a whole segment from one quote, and the judge had not been told what a proposal is. The prompts and the judge's context were fixed and those tasks rerun (`evals/REPORT.md` has every run). The demo's own words come from stand-ins, not from these runs (see below).
 
 ## What is real and what is simulated
 
-**Real:** the statistics (each checked against a published value in `tests/test_stats.py`), the evidence analysis and its size check, the fit formula (Account Desk's, ported from its code), sizing, capacity, assignment and balancing, the two-person rules (enforced by the database), the held-back rule (a database trigger refuses a held-back company in an Account Desk book), the handoff files (a test scores every exported company with a copy of Account Desk's formula and gets the same tier), the redaction of call notes, the AI gates, and the evals above.
+**Real:** erasure of a team member or of a company's notes, the statistics (each checked against a published value in `tests/test_stats.py`), the evidence analysis and its size check, the fit formula (Account Desk's, ported from its code), sizing, capacity, assignment and balancing, the two-person rules (enforced by the database), the held-back rule (a database trigger refuses a held-back company in an Account Desk book), the handoff files (a test scores every exported company with a copy of Account Desk's formula and gets the same tier), the redaction of call notes, the AI gates, and the evals above.
 
-**Simulated:** the seller (Lumen Ledger, the same invented company Account Desk sells for), its team, 18,005 companies (with `.example` domains), 1,559 new-business and 197 expansion deals over three years, 304 customers, 2,205 call notes on 900 deals, every vendor and source, the public counts, the results from the other desks, and the three segment tests. The demo's AI answers come from deterministic stand-ins written in code, not from Claude; the segment story stand-in is written to fail its check on the Enterprise segment so the withheld state shows. Live Claude answers exist only in the eval recordings.
+**Simulated:** the seller (Lumen Ledger, the same invented company Account Desk sells for), its team, 18,005 companies (with `.example` domains), 1,647 new-business and 166 expansion deals over three years, 286 customers (35 of them churned), 2,248 call notes on 900 deals, every vendor and source, the public counts, the results from the other desks, and the three segment tests. The demo's AI answers come from deterministic stand-ins written in code, not from Claude; the segment story stand-in is written to fail its check on the Enterprise segment so the withheld state shows. Live Claude answers exist only in the eval recordings.
 
 **Planted on purpose**, in `PLANTED` in `src/market/sim/world.py`; the desk's own rules find each one:
 
 | | What was planted | What the desk says |
 |---|---|---|
-| P1 | Usage-based pricing wins far more often, independent of size and region | Clearly higher: 125 of 328 deals (38%) against 15% for other known pricing models; proposed as a rule; listed as a rule Account Desk cannot read |
-| P2 | 2,000 to 4,999 employees rarely close and take longer | Clearly lower: 10 of 170 (6%), won-deal cycle 166 days; proposed as a penalty |
-| P3 | Healthcare software loses on compliance | Clearly lower: 14 of 177; compliance is 63% of its losses; proposed as an exclude |
-| P4 | Salesforce users win more only because they are the right size | Explained by size: 29% against 12% overall, no difference within size bands |
+| P1 | Usage-based pricing wins far more often, independent of size and region | Clearly higher: 114 of 321 deals (36%) against 15% for other known pricing models; proposed as a rule; listed as a rule Account Desk cannot read |
+| P2 | 2,000 to 4,999 employees rarely close and take longer | Clearly lower: 10 of 168 (6%), won-deal cycle 220 days; proposed as a penalty |
+| P3 | Healthcare software loses on compliance | Clearly lower: 16 of 189; compliance is 61% of its losses; proposed as an exclude |
+| P4 | Salesforce users win more only because they are the right size | Explained by size: 27% against 10% overall, and the difference goes away within size bands |
 | P5 | Brazil: 9 opportunities, all marketplaces, 5 won | Too few to tell; never a rule |
-| P6 | Buying roles in DACH are hard to find (about 40% against 85%) | DACH's SAM is $8.8M to $20.0M against a TAM of $23.0M to $52.4M |
+| P6 | Buying roles in DACH are hard to find (about 40% against 85%) | DACH's SAM is $9.1M to $19.5M against a TAM of $24.3M to $51.5M |
 | P7 | Two finished segment tests: fintech 120 to 499 books meetings at 22% worked against 11% held back; developer tools at 11% against 11% | A clear difference and an open proposal to expand fintech; no clear difference for developer tools |
 | P8 | HQ city and founding year carry no effect | Not one of them is clear |
 
-The world was tuned until the rules found what was planted; the rules were not tuned to the world (`docs/DECISIONS.md`). Other figures that hold up to a look: a 22% win rate on closed new business, an 83-day median won-deal cycle, a $38,313 median deal. Not like the plan: 11% of new-business deals are still open (the plan said about 5%), and the public counts hold 987 cells, not about 1,200.
+The world was tuned until the rules found what was planted; the rules were not tuned to the world (`docs/DECISIONS.md`). Other figures that hold up to a look: a 21% win rate on closed new business, an 81-day median won-deal cycle, a $38,655 median deal. Not like the plan: 15% of new-business deals are open (the plan said about 5%; the desks' results opened deals in the last weeks), and the public counts hold 991 cells, not about 1,200.
 
 ## Not yet proven
 
@@ -106,7 +114,8 @@ The world was tuned until the rules found what was planted; the rules were not t
 - The hours per account (A 1.0, B 0.4, C 0.1 a month) and the quarter each account is worked are our assumptions (decision 17).
 - The sizing ranges are scenario bounds, not confidence intervals (decision 13).
 - No login: the "acting as" menu stands in for one; header auth through Cloudflare Access is written and unproven.
-- Compliance design (companies and roles, not people; redaction; sole traders out of every book) is reasoned, not reviewed by counsel.
+- Compliance design (companies and roles, not people; redaction; sole traders out of every book) is reasoned, not reviewed by counsel. Redaction misses a name written all in lower case that is neither in the CRM contact list nor a common first name, and a single first name at the start of a sentence.
+- The shared world export runs on the demo only: on live data it would invent people at real companies, so it refuses.
 
 ## Words used here
 

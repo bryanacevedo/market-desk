@@ -2,7 +2,7 @@
 
 `fit` is Account Desk's `scoring.fit` (src/outbound/scoring.py), ported from its code, plus an `eq` operator, a
 Not judged state of its own (docs/DECISIONS.md 12) and the rule that a model-read value never excludes a company.
-`fit` is pure: the stored inputs always give the stored score (tests/test_fit.py).
+`fit` is pure: the stored inputs always give the stored score (tests/test_privacy_and_gates.py).
 """
 from __future__ import annotations
 

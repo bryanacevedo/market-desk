@@ -19,7 +19,7 @@ Python 3.13 with uv, FastAPI, psycopg 3, Postgres 18, plain SQL migrations appli
 | Role key | Who in the demo | Can |
 |---|---|---|
 | `revops` | Sam Kowalski | Own the profile, sources, settings and plans; draft profile versions and plans; make a proposal a draft; dismiss proposals; start and decide segment tests; create target books. |
-| `manager` | Elena Duarte | Publish a profile version she did not author; activate a plan she did not author; dismiss proposals; decide segment tests. |
+| `manager` | Elena Duarte | Publish a profile version she did not author (only a manager publishes); activate a plan she did not author; dismiss proposals; decide segment tests. |
 | `sdr` | Maya Okafor, Daniel Reyes, Priya Natarajan, Tom Whitaker, Nadia Haddad (starts 2026-12-01) | See My book and Accounts filtered to their own. |
 | `ae` | Grace Lindqvist, Omar Bello, Hannah Mercer | Same as SDR. |
 
@@ -164,6 +164,19 @@ SQL parameters everywhere; roles checked in the API for every write and every mo
 ## 14. Definition of done
 
 PLAN section 12 "Definition of done", items 1 to 10.
+
+## 14a. Corrections from gates 1 to 6 (2026-11-12)
+
+- Only a manager publishes a profile version, and never its author (gate 1).
+- Evidence: the Holm family is every trait value with at least 30 deals, including values later called Too few because they have under 5 wins, and each rule of the published profile is tested as a trait of its own (deals matching the rule against the rest).
+- `loss_code` has no rewrite: its gate clears an unsupported competitor and maps an unknown code to `other`; there is no prose to withhold.
+- Sizing also has a `total` row; region rows and Outside use the overall signer; the account-to-opportunity rate is the segment's own from 100 worked accounts, else the overall rate, else the `opp_rate_default` setting before any results exist.
+- An "expand" decision needs a clear difference, and only an expanded test makes a `segment_expand` proposal.
+- A licence that forbids redistribution blanks the affected cells in every file (books, the Events Desk document, the world export) rather than refusing the book (decision 27).
+- Writes take JSON only (a cross-site form cannot send it); the results webhook validates rows, reads a delivery once and accepts held-back rows and a test id; `python -m market import-results FILE` reads the same rows from a CSV (5 MB, 50,000 rows).
+- `MODE=live` refuses to start without `AUTH_MODE=header`. Erasure is `POST /api/users/{id}/erase` and `POST /api/companies/{id}/erase-notes` (refused on the public demo).
+- The demo is built in date order, so a book, a plan or a test never knows what happened after its date; tests and books exclude companies with a deal open or a customer contract on their own date.
+- A tier A prospect in our regions with no owner shows on Accounts as "A over capacity".
 
 ## 15. Gate 0 corrections (2026-11-11, fresh Opus reviewer: 1 blocker, 9 majors, 7 nits)
 
