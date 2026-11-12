@@ -105,7 +105,7 @@ export const TIPS: Record<string, string> = {
   "Opportunities": "Deals opened from these accounts.",
   "Pipeline": "Value of the deals opened.",
   "Meetings": "Meetings booked with these accounts.",
-  "Customers and open deals": "Accounts you own because they already buy from us or have a deal open.",
+  "Customers and open deals": "Accounts that already buy from us or have a deal open. Their owners come from the CRM.",
   "Desk results": "What Account Desk or Events Desk reported back for this account.",
   // added after the sales-leader read
   "of public count": "Companies in our data as a share of the official count for the same countries, industries and sizes.",
@@ -117,7 +117,7 @@ export const TIPS: Record<string, string> = {
   "Lift": "How many points more often worked accounts booked meetings than held-back ones, as a likely range.",
   "eligible": "Accounts in the segment no one has worked recently, so they can join a test.",
   "Retired": "An ICP version no longer in use.",
-  "Account Desk": "Our tool where reps research and work their accounts. Each rep's book of accounts, and the ICP, go there from here.",
+  "Account Desk": "Our tool where SDRs research and work their accounts. Each SDR's book of accounts, and the ICP, go there from here.",
   "Events Desk": "Our tool that plans events and who to meet there. It receives the ICP as a document from here.",
   "By segment": "How many of the companies that change tier sit in each segment.",
   "Draft A": "Share the draft rates A. Compare with A now.",
@@ -146,4 +146,5 @@ export const TIPS: Record<string, string> = {
   "Too early to tell": "The test is still running and has too few meetings to read a difference.",
   "Finished": "The test has run its course and its result is in.",
   "Why it was lost, top reasons": "The most common loss reasons; the rest of the losses had other reasons.",
+  "CRM Desk": "Our CRM. Each account's tier, segment, fit score and owner go there from here, so sellers see them where they work.",
 };

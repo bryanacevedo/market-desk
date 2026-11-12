@@ -234,10 +234,7 @@ def accounts(cur, u: dict, *, q: str, tier: str, segment: str, owner: str, page:
     plan = _active_plan(cur)
     where = ["c.lifecycle <> 'competitor'", "not c.sole_trader"]
     args: list = []
-    if u["role"] in ("sdr", "ae"):
-        where.append("a.owner = %s")
-        args.append(u["id"])
-    elif owner == "unassigned":
+    if owner == "unassigned":
         where.append("a.owner is null")
     elif owner.isdigit():
         where.append("a.owner = %s")
@@ -287,8 +284,6 @@ def company(cur, cid: int, u: dict, allowed: bool | None = None) -> dict | None:
     plan = _active_plan(cur)
     a = db.one(cur, """select a.*, u.name as owner_name, m.name as moved_from_name from assignments a left join users u on u.id = a.owner
                        left join users m on m.id = a.moved_from where a.plan = %s and a.company = %s""", plan, cid)
-    if u["role"] in ("sdr", "ae") and (not a or a["owner"] != u["id"]):
-        raise_forbidden()
     if allowed is None:
         allowed = u["role"] in ("revops", "manager")
     fields = db.all(cur, """select f.field, f.value, f.source, s.label as source_label, f.observed_at, f.confidence, f.quote
@@ -517,7 +512,7 @@ def book(cur, bid: int, allowed: bool) -> dict | None:
                                        "plan_name", "file_sha256")}, "files": files, "sample": rows, "markdown": md}, allowed)
 
 
-# ---------------------------------------------------------------- Sources, My book, Settings
+# ---------------------------------------------------------------- Sources, Settings
 
 def sources(cur, allowed: bool) -> dict:
     rows = db.all(cur, """
@@ -544,26 +539,6 @@ def source(cur, key: str, allowed: bool) -> dict | None:
     return strip({**s, "runs": runs}, allowed)
 
 
-def mybook(cur, u: dict) -> dict:
-    plan = _active_plan(cur)
-    pub = _published(cur)
-    rows = db.all(cur, """select c.id, c.name, c.primary_domain, c.industry, c.employees, f.tier, f.score, f.segment, f.scored_out_of,
-                          a.reason_code, a.note from assignments a join companies c on c.id = a.company
-                          join account_fit f on f.company = c.id and f.icp_version = %s
-                          where a.plan = %s and a.owner = %s order by f.tier, f.score desc nulls last, c.name""", pub["id"], plan, u["id"])
-    segs = sorted({r["segment"] for r in rows})
-    stories = {}
-    for s in segs:
-        st = db.one(cur, "select status, sentences from segment_stories where segment = %s order by drafted_at desc limit 1", s)
-        if st:
-            body = st["sentences"] or {}
-            stories[s] = {"status": st["status"], "label": C.SEGMENT_LABEL.get(s), "sentences": body.get("sentences"),
-                          "quotes": {q["id"]: q for q in (body.get("payload") or {}).get("quotes", [])}}
-    for r in rows:
-        r["segment_label"] = C.SEGMENT_LABEL.get(r["segment"])
-    snap = db.one(cur, "select * from capacity_snapshots where plan = %s and user_id = %s", plan, u["id"])
-    return {"rows": rows, "stories": stories, "tiers": pub["rules"]["tiers"],
-            "capacity": snap and {"hours_available": snap["hours_available"], "hours_required": snap["hours_required"]}}
 
 
 def settings(cur) -> dict:

@@ -159,13 +159,13 @@ def current_user(request: Request) -> dict:
             raw = request.headers.get("X-Acting-As") or request.query_params.get("as")
             u = db.one(cur, "select * from users where id = %s and active", int(raw)) if raw and raw.isdigit() else None
             if u is None:
-                # No choice made yet: the least-privileged view, an AE's, never company money.
-                u = db.one(cur, "select * from users where role = 'ae' and active order by id limit 1")
+                # No choice made yet: the manager, who reads everything and cannot change sources or settings.
+                u = db.one(cur, "select * from users where role = 'manager' and active order by id limit 1")
     if u is None:
         raise HTTPException(401, "Sign in to use the desk.")
-    if u["role"] == "sdr":
-        # SDRs work their books in Account Desk; Market Desk is not theirs.
-        raise HTTPException(403, "SDRs work their books in Account Desk.")
+    if u["role"] not in ("revops", "manager"):
+        # Sellers see the result where they work: their books in Account Desk and CRM Desk, not here.
+        raise HTTPException(403, "Sellers see their books in Account Desk and CRM Desk.")
     return u
 
 
@@ -213,8 +213,8 @@ def health() -> dict:
 @app.get("/api/me")
 def me(u: dict = Depends(current_user)) -> dict:
     with db.tx() as cur:
-        users = db.all(cur, "select id, name, role from users where active and role <> 'sdr' order by case role when 'revops' then 0 "
-                            "when 'manager' then 1 else 2 end, name") if CONFIG.auth_mode == "demo" else []
+        users = db.all(cur, "select id, name, role from users where active and role in ('revops', 'manager') "
+                            "order by case role when 'revops' then 0 else 1 end, name") if CONFIG.auth_mode == "demo" else []
         open_changes = db.val(cur, "select count(*) from change_proposals where status = 'open'")
         counts = {"changes": open_changes if u["role"] == "revops" else 0,
                   "icp": db.val(cur, "select count(*) from icp_versions where status = 'draft' and author <> %s", u["id"]) if u["role"] == "manager" else 0,
@@ -246,7 +246,6 @@ def market(by: str = "segment", u: dict = Depends(current_user)) -> dict:
 
 @app.get("/api/segments/{key}")
 def segment(key: str, u: dict = Depends(current_user)) -> dict:
-    # AEs read a segment's why-they-buy on My book; money is stripped for them.
     with db.tx() as cur:
         out = views.segment(cur, key, money(u))
     if out is None:
@@ -324,8 +323,6 @@ def territories_page(plan: int | None = None, u: dict = Depends(current_user)) -
 
 @app.get("/api/people/{uid}")
 def person(uid: int, u: dict = Depends(current_user)) -> dict:
-    if u["role"] in ("sdr", "ae") and uid != u["id"]:
-        raise HTTPException(403, "You can see your own book.")
     with db.tx() as cur:
         out = views.person(cur, uid, money(u))
     if out is None:
@@ -439,10 +436,6 @@ def source(key: str, u: dict = Depends(current_user)) -> dict:
     return out
 
 
-@app.get("/api/mybook")
-def mybook(u: dict = Depends(current_user)) -> dict:
-    with db.tx() as cur:
-        return views.mybook(cur, u)
 
 
 @app.get("/api/settings")

@@ -23,12 +23,12 @@ Accounts in the plan's regions
 Accounts in the segment no one has worked recently, so they can join a test.
 Accounts in the segment test that Account Desk worked.
 Accounts new since the version before.
+Accounts that already buy from us or have a deal open. Their owners come from the CRM.
 Accounts the person would gain.
 Accounts the person would lose.
 Accounts the plan can work
 Accounts whose owner changed since the version before.
 Accounts whose tier changed since the version before.
-Accounts you own because they already buy from us or have a deal open.
 Active since #, by #
 An ICP version no longer in use.
 At meeting rates this low, more accounts, or more time, are needed before a difference can be read.
@@ -49,7 +49,7 @@ Deals closed in this many months count as evidence.
 Deals opened from these accounts.
 Decisions only you can make right now.
 Each person's expected value is within 15% of the territory average and nobody is over capacity.
-Each rep's book goes to Account Desk
+Each seller's book goes to CRM Desk, and each SDR's to Account Desk
 Every account that changes owner if this draft is activated, customers and open deals included, so it can differ from the A and B count beside each person.
 Every other deal with a known value for the same trait.
 Extra SDRs at full hours it would take to work every unassigned A and B account in the plan's regions.
@@ -83,13 +83,12 @@ Median size of won new-business deals in the last two years, with the middle hal
 Meeting rate, worked vs held back
 Meetings booked with these accounts.
 Months an account is worked
-No accounts in your book
 No evidence behind this rule yet.
 No results back from Account Desk yet
 Not sent to Account Desk
-Opened a deal since the plan
+Our CRM. Each account's tier, segment, fit score and owner go there from here, so sellers see them where they work.
 Our tool that plans events and who to meet there. It receives the ICP as a document from here.
-Our tool where reps research and work their accounts. Each rep's book of accounts, and the ICP, go there from here.
+Our tool where SDRs research and work their accounts. Each SDR's book of accounts, and the ICP, go there from here.
 Overdue by # ##
 Page # of #
 Points the rule adds to, or removes from, a company's fit score out of 100.

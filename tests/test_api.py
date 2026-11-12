@@ -33,24 +33,18 @@ def h(uid):
 MONEY = ("tam_low", "sam_high", "som_low", "acv_median", "pipeline_cents", "expected_value_cents", "amount_cents")
 
 
-def test_an_ae_sees_no_money_and_no_team_pages(client, ids):
-    assert client.get("/api/market", headers=h(ids["Grace"])).status_code == 403
-    assert client.get("/api/evidence", headers=h(ids["Grace"])).status_code == 403
-    for path in ("/api/segments/software", "/api/mybook", "/api/accounts", f"/api/people/{ids['Grace']}"):
-        r = client.get(path, headers=h(ids["Grace"]))
-        assert r.status_code == 200, path
-        assert not any(k in r.text for k in MONEY), path
-    assert client.get(f"/api/people/{ids['Hannah']}", headers=h(ids["Grace"])).status_code == 403
+def test_sellers_do_not_use_the_desk(client, ids):
+    """SDRs and AEs are people in the plan; their books go to CRM Desk and Account Desk. Market Desk refuses them."""
+    for who in ("Maya", "Grace"):
+        assert client.get("/api/me", headers=h(ids[who])).status_code == 403
+        assert client.get("/api/accounts", headers=h(ids[who])).status_code == 403
+        assert client.get("/api/profile/versions/3", headers=h(ids[who])).status_code == 403
 
 
-def test_an_ae_sees_only_their_accounts(client, ids):
-    r = client.get("/api/accounts", headers=h(ids["Grace"])).json()
-    assert r["total"] > 0 and all(row["owner"] == "Grace Lindqvist" for row in r["rows"])
-    other = None
-    with db.tx() as cur:
-        other = db.val(cur, """select a.company from assignments a join territory_plans p on p.id = a.plan and p.status = 'active'
-                               where a.owner = %s limit 1""", ids["Tom"])
-    assert client.get(f"/api/companies/{other}", headers=h(ids["Grace"])).status_code == 403
+def test_a_visitor_who_has_not_chosen_is_the_manager(client):
+    me = client.get("/api/me").json()
+    assert me["user"]["role"] == "manager"
+    assert {u["role"] for u in me["users"]} == {"revops", "manager"}
 
 
 def test_revops_sees_money(client, ids):
@@ -73,12 +67,6 @@ def test_a_cross_site_form_cannot_write(client, ids):
     r = client.post(f"/api/profile/versions/{v4}/publish", headers={**h(ids["Elena"]), "Content-Type": "application/x-www-form-urlencoded"},
                     content=b"x=1")
     assert r.status_code == 415
-
-
-def test_an_ae_cannot_read_versions_or_findings(client, ids):
-    assert client.get("/api/profile/versions/3", headers=h(ids["Grace"])).status_code == 403
-    assert client.get("/api/findings/1", headers=h(ids["Grace"])).status_code == 403
-    assert client.post("/api/proposals/1/dismiss", headers=h(ids["Grace"]), json={"reason": "no"}).status_code in (403, 422)
 
 
 def test_dismiss_needs_a_reason(client, ids):
@@ -122,41 +110,6 @@ def test_header_auth_refuses_an_unsigned_header(monkeypatch, client):
                                        "X-Acting-As": "1"})
     assert r.status_code == 401
 
-
-def _keys(x, out=None):
-    out = set() if out is None else out
-    if isinstance(x, dict):
-        for k, v in x.items():
-            out.add(k)
-            _keys(v, out)
-    elif isinstance(x, list):
-        for v in x:
-            _keys(v, out)
-    return out
-
-
-def test_no_money_shaped_key_reaches_an_ae(client, ids):
-    """By shape, not by a list: any key ending in _cents, or naming TAM, SAM, SOM, deal size or expected value, fails."""
-    import re
-    bad = re.compile(r"(_cents$|^(tam|sam|som|acv)(_|$)|^ev(_|$)|expected_value)")
-    me = ids["Grace"]
-    book = client.get("/api/mybook", headers=h(me)).json()
-    cid = (book.get("rows") or [{}])[0].get("id")
-    paths = ["/api/segments/software", "/api/segments/devtools", "/api/mybook", "/api/accounts", f"/api/people/{me}"]
-    if cid:
-        paths.append(f"/api/companies/{cid}")
-    for path in paths:
-        r = client.get(path, headers=h(me))
-        assert r.status_code == 200, path
-        leaked = sorted(k for k in _keys(r.json()) if bad.search(k))
-        assert not leaked, f"{path} sends {leaked} to an AE"
-
-
-def test_sdrs_do_not_use_the_desk(client, ids):
-    """SDRs are people in the plan whose books go to Account Desk; Market Desk refuses them and does not offer them."""
-    assert client.get("/api/me", headers=h(ids["Maya"])).status_code == 403
-    me = client.get("/api/me").json()
-    assert me["user"]["role"] == "ae" and "sdr" not in {u["role"] for u in me["users"]}
 
 
 def test_a_manager_does_not_move_accounts_by_hand(client, ids):
