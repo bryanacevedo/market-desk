@@ -20,7 +20,7 @@ Python 3.13 with uv, FastAPI, psycopg 3, Postgres 18, plain SQL migrations appli
 |---|---|---|
 | `revops` | Sam Kowalski | Own the profile, sources, settings and plans; draft profile versions and plans; move an account by hand in a draft plan, with a note; make a proposal a draft; dismiss proposals; start and decide segment tests; create target books; erase a team member or a company's notes. |
 | `manager` | Elena Duarte | Publish a profile version she did not author (only a manager publishes, and the database refuses anyone else); activate a plan she did not author; dismiss proposals; decide segment tests; erase a team member or a company's notes. She reviews a plan and does not move accounts in it. |
-| `sdr`, `ae` | Maya Okafor, Daniel Reyes, Priya Natarajan, Tom Whitaker, Nadia Haddad (starts 2026-12-01); Grace Lindqvist, Omar Bello, Hannah Mercer | Sellers: people in the plan, not users of Market Desk. The API refuses them and the demo does not offer them. Each seller's book, with every account's tier, segment, fit score and owner, goes to CRM Desk; each SDR's book also goes to Account Desk. |
+| `sdr`, `ae` | Maya Okafor, Daniel Reyes, Priya Natarajan, Tom Whitaker, Nadia Haddad (starts 2026-12-01); Grace Lindqvist, Omar Bello, Hannah Mercer | Sellers: people in the plan, not users of Market Desk. The API refuses them and the demo does not offer them. Each seller's book, with every account's tier, segment, fit score and owner, is meant to go to CRM Desk (not built yet); Account Desk gets one book file with every assigned account and its owner. |
 
 Both users of Market Desk, `revops` and `manager`, see company money. A visitor who has not chosen reads as the manager. The MCP server still leaves money out of what it returns.
 

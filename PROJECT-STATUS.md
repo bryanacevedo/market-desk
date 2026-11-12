@@ -1,15 +1,18 @@
 # Market Desk: project status
 
-**Updated:** 2026-11-12. **Spec:** `docs/SPEC.md` (section 15 holds the gate 0 corrections and wins where they differ); decisions `docs/DECISIONS.md` 1 to 30.
+**Updated:** 2026-11-12. **Spec:** `docs/SPEC.md` (section 15 holds the gate 0 corrections and wins where they differ); decisions `docs/DECISIONS.md` 1 to 39.
 
 ## Where it stands
 
-Built end to end on a simulated world, overnight 2026-11-11 to 12. Public at https://github.com/bryanacevedo/market-desk; live at https://market-desk-3kou.onrender.com (first deploy healthy, pages not yet walked live).
+Built end to end on a simulated world, overnight 2026-11-11 to 12. Public at https://github.com/bryanacevedo/market-desk; live at https://market-desk-3kou.onrender.com (pages checked live in gate 10; every push to `main` now redeploys on Render by itself). Two roles sign in, RevOps and the manager; SDRs and AEs are plan data only (decision 39).
+
+Film: a plain-English explainer (1:52), https://bryanacevedo.github.io/project-videos/video/market-desk.mp4, linked from the README.
 
 Redesigned 2026-11-12 with its own spirit (`docs/DESIGN-CHECKLIST.md`, Spirit; decision 30).
 
 Checked by running, on the demo database built from seed 7:
-- 18,005 companies; 1,661 new-business and 166 expansion deals over 36 months; 286 customers, 35 of them churned; 2,253 call notes on 900 deals; 1,163 deals in the 24-month evidence window, 79 trait values tested; 55 tests passing; 52 rules-against-data checks passing.
+- 18,005 companies; 1,661 new-business and 166 expansion deals over 36 months; 286 customers, 35 of them churned; 2,253 call notes on 900 deals; 1,163 deals in the 24-month evidence window, 79 trait values tested; 52 rules-against-data checks passing (`make audit`, 2026-11-12).
+- `make test`: 53 tests passing on real Postgres 18 (2026-11-12, after the seller views and their tests were removed).
 - Every planted relationship P1 to P8 found by the desk's own rules (`docs/SCENARIO-COVERAGE.md`).
 - The demo builds in about 35 seconds locally, in date order from November 2023 to 11 November 2026.
 
@@ -30,7 +33,7 @@ Every gate was run by a fresh agent that had not seen the build (never a fork), 
 | 7 Eval floors | 2026-11-12 | Passed on the live run and on replay (`tests/test_evals.py`). Safety floors 100%; judge-faithful 85% (stories) and 90% (proposals) after prompt fixes forced by the first run (35% and 55%). Three live runs, $1.92 in all. |
 | 8 Final whole-system goldfish | 2026-11-12 | Two reviewers. Code and demo: 1 blocker (Expand accepted a test that did worse), 11 majors; fixed in the engine (expand needs a lift, drops only weak rules, SOM adds up, capacity only to worked segments, test hours, results by book date, the Events Desk document says only what evidence says). Docs: 7 majors, all fixed (private references removed, the floors disclosed, P4's base, test claims worded to what the tests check). |
 | 9 Deep doc sweep | 2026-11-12 | Fresh reviewer re-read every number from the database, tests and eval results: 96 right, 7 wrong (deal count, open share, two DACH figures rounded differently from the screen, scenario count, build time, a stale note), all fixed; no dashes; every page, sheet, file, command and README link exists; 13 screen terms added to the glossary. |
-| 10 Deploy and live check | 2026-11-12 | Live at https://market-desk-3kou.onrender.com, serving the redesigned build (Render auto-deploy did not fire on later pushes; deploys are started through Render's API). Checked as a visitor: every page's endpoint as RevOps, the manager and an SDR (all 200; the SDR is refused Market and profile versions and receives no money fields); the Segment, Finding, Company, Proposal and Book sheets' endpoints; the results webhook refuses uploads on the demo; API docs are off; Territories at 375 wide with no sideways scroll. |
+| 10 Deploy and live check | 2026-11-12 | Live at https://market-desk-3kou.onrender.com, serving the redesigned build (at the time Render's auto-deploy did not fire, so those deploys went through Render's API; since 2026-11-12 every push to `main` deploys by itself). Checked as a visitor: every page's endpoint as RevOps, the manager and an SDR (all 200; the SDR is refused Market and profile versions and receives no money fields); the Segment, Finding, Company, Proposal and Book sheets' endpoints; the results webhook refuses uploads on the demo; API docs are off; Territories at 375 wide with no sideways scroll. |
 | 11 Layer reviews | 2026-11-12 | Eight fresh reviewers, one per layer. Fixed: capacity shared by SAM with overflow passed on (Software had no SOM); expected value counts the share that becomes a deal (it was larger than SOM); finished tests hand accounts back and plans refill; held-back accounts leave plans when a test starts; plans see only what was true on their day; quotes match their deal; profile notes match the rules; drop-rule as specified; test results read after their period; AI calls stamped after their inputs; manager-only publish in the database; one results row per company, desk, period and test; erasure reaches audit names, move notes and stories; rate limit keyed on the proxy's address, evidence runs capped site-wide; redaction gaps closed; sole traders out of every read; SDRs lose segment planning figures and a running test's group; managers no longer move accounts; 25 copy fixes; Profile shows the draft first with v3 beside v4 in the backtest; a "Waiting on you" line; scores in My book; figures land without the count when a tab is hidden. 7 audit checks added. Left: decisions 36, and the bigger redesigns in the report. |
 | 12 Design pass 2 | 2026-11-12 | Fresh Opus designer on every page and sheet at 1440 and 375 as each role, with Account Desk and Events Desk open as the bar (17 findings, 2 blockers); fresh Opus editor on every visible string (38 AI tells). Fixed all blockers and majors and the cheap minors, plus the three held redesigns (capacity as a range, draft read against the active plan, fit bands in My book). Decision 37. Left: Settings as percentages with one Save, the phone tile field, a Market tab switch that keeps the old rows while loading, segment sheet's own decision button. |
 | 13 Ranges and tips | 2026-11-12 | Bryan could not read the ranges. Named scales, written ends, keys, and one tooltip component on every term; a fresh sales-leader reviewer read every page twice (49 items, then 11), fixed until clear. Decision 38. |
@@ -41,7 +44,7 @@ Every gate was run by a fresh agent that had not seen the build (never a fork), 
 
 Proven by tests on real Postgres 18: statistics against published values; the size check; fit reproduces from stored inputs; two-person publish and activate; the held-back trigger; Account Desk equivalence on every exported company with its fields known; the Events Desk document's headings, numbers and tiers; 50 planted names never reach the database; the AI gates on failing fixtures; exporting the shared world twice from one database gives identical files; two builds of the world from its seed write identical rows (checked on a 1,500-company world without the story).
 
-Not proven: anything against a real CRM, vendor or public count; Account Desk or Events Desk importing these files; header auth through Cloudflare Access.
+Not proven: anything against a real CRM, vendor or public count; Account Desk or Events Desk importing these files; header auth through Cloudflare Access. Not built: sending sellers' books to CRM Desk.
 
 ## What was cut
 
@@ -51,5 +54,4 @@ Nothing from the plan's cut list so far. The MCP server is built (4 read-only to
 
 - An Account Desk change: accept pricing model and segment, so usage pricing stops being a dropped rule.
 - Have Account Desk and Events Desk load the shared world export.
-- A walkthrough video.
 - Publishing a profile version does not redraw the plan; RevOps drafts a new plan after it (worth automating as a draft).

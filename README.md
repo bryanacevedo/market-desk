@@ -11,7 +11,7 @@
 [![license](https://img.shields.io/badge/license-PolyForm%20Noncommercial-5E6A62)](LICENSE.md)
 [![live demo](https://img.shields.io/badge/live%20demo-Render-A2671F)](https://market-desk-3kou.onrender.com)
 
-[Live demo](https://market-desk-3kou.onrender.com) · [How it works](#what-it-does) · [Decisions](docs/DECISIONS.md)
+[Live demo](https://market-desk-3kou.onrender.com) · [Film (1:52)](https://bryanacevedo.github.io/project-videos/video/market-desk.mp4) · [How it works](#what-it-does) · [Decisions](docs/DECISIONS.md)
 
 <img src="docs/screens/market-desktop.png" alt="The Market page: segments as a field of tiles sized by reachable market, and each segment's TAM, SAM and SOM drawn as nested ranges" width="900">
 
@@ -20,11 +20,15 @@
 > [!NOTE]
 > **What is real and what is simulated.** The company (Lumen Ledger), its 18,005 companies, three years of deals, call notes, sources and the other desks' results are invented, built from a fixed seed. The statistics, the profile and fit formula, sizing, territories, the handoff files, the two-person rules and the AI checks are real code, tested on real Postgres. Eight relationships were planted in the data on purpose and the desk finds each with its own rules; [the full list](#what-is-real-and-what-is-simulated) says which.
 
-[The rules](#the-rules-it-is-built-on) · [What it does](#what-it-does) · [The other desks](#how-it-fits-with-the-other-two-desks) · [Shared world](#the-shared-world) · [Run it](#run-it) · [AI evals](#ai-evals) · [Real and simulated](#what-is-real-and-what-is-simulated) · [Not yet proven](#not-yet-proven) · [Words](#words-used-here)
+[The rules](#the-rules-it-is-built-on) · [What it does](#what-it-does) · [The other desks](#how-it-fits-with-the-other-two-desks) · [Shared world](#the-shared-world) · [Run it](#run-it) · [AI evals](#ai-evals) · [Real and simulated](#what-is-real-and-what-is-simulated) · [Not yet proven](#not-yet-proven) · [Words](#words-used-here) · [Portfolio](#portfolio)
 
-Market Desk learns the ideal customer profile from every deal won, lost and churned, with each rule's win rate, range and verdict; it sizes every segment as ranges, counting only buyers the team can reach and accounts it can actually work in a year; it tiers every company and gives it to someone with hours to work it; it hands that book to [Account Desk](https://github.com/bryanacevedo/account-desk) and [Events Desk](https://github.com/bryanacevedo/events-desk), the two desks that reach out to the accounts; and it proposes changes to the profile only when their results say it was wrong, for a manager to publish.
+Market Desk learns the ideal customer profile from every deal won, lost and churned, with each rule's win rate, range and verdict; it sizes every segment as ranges, counting only buyers the team can reach and accounts it can actually work in a year; it tiers every company and gives it to someone with hours to work it; it writes a book file for [Account Desk](https://github.com/bryanacevedo/account-desk) and an ICP document for [Events Desk](https://github.com/bryanacevedo/events-desk), the two desks that reach out to the accounts (neither imports them yet); and it proposes changes to the profile only when their results say it was wrong, for a manager to publish.
 
-Pick who you are acting as in the demo's sidebar: RevOps or the sales manager. Sellers do not use Market Desk: each seller's book, with every account's tier, segment, fit score and owner, goes to CRM Desk, and each SDR's book to Account Desk, so they see the result where they work. If it has been idle, Render takes up to a minute to wake it.
+[![Watch the explainer (1:52)](https://bryanacevedo.github.io/project-videos/video/market-desk-poster.jpg)](https://bryanacevedo.github.io/project-videos/video/market-desk.mp4)
+
+**[Watch the explainer (1:52)](https://bryanacevedo.github.io/project-videos/video/market-desk.mp4)**: a plain-English explainer for someone outside RevOps. It answers two questions a sales team argues about, who to sell to and how many sellers it needs, from the demo's own deals: who the team wins with, how big the reachable market is, what that means per territory, and how the team will know it was right. Every figure in it was read from the live demo on 12 November 2026.
+
+Pick who you are acting as in the demo's sidebar: RevOps or the sales manager. Those are the only two roles. SDRs and AEs are data here, people in the territory plan, and do not sign in: their accounts are meant to reach them where they work. Market Desk already writes one book file in Account Desk's format, with every assigned account and its owner, SDRs' and AEs' alike; sending each seller's book to [CRM Desk](https://crm-desk-sevh.onrender.com) is planned, not built. If it has been idle, Render takes up to a minute to wake it.
 
 <p align="center">
 <img src="docs/screens/evidence-desktop.png" alt="Evidence: each trait's win rate drawn as a range against the others, with a plain verdict" width="49%">
@@ -135,6 +139,7 @@ The world was adjusted until the rules found the planted effects; the rules were
 ## Not yet proven
 
 - Nothing here has run against a real CRM, a real data vendor or real public counts; the adapters are contracts only.
+- Nothing sends a seller's book to CRM Desk yet. The Territories page says each seller's book goes there; that is the plan (decision 39), not built.
 - Account Desk and Events Desk do not import these books yet; the equivalence test uses a copy of Account Desk's formula, and whether Events Desk's parser reads this ICP document is untested.
 - The hours per account (A 1.0, B 0.4, C 0.1 a month) and the quarter each account is worked are our assumptions (decision 17).
 - The sizing ranges are scenario bounds (decision 13).
@@ -179,7 +184,18 @@ The world was adjusted until the rules found the planted effects; the rules were
 | Hiring gap | Tier A and B companies in our regions that nobody has hours for |
 | Book | A versioned file set sent to another desk |
 | Acting as | The demo's menu for choosing who you are: RevOps or the manager |
-| Seller's book | The accounts a plan gives one SDR or AE; it goes to CRM Desk with each account's tier, segment, fit score and owner, and an SDR's also to Account Desk as a file |
+| Seller's book | The accounts a plan gives one SDR or AE. Every seller's assigned accounts go into one book file for Account Desk, with the owner on each row; sending each seller's book to CRM Desk, with each account's tier, segment, fit score and owner, is planned |
+
+## Portfolio
+
+| Project | What it does | Links |
+|---|---|---|
+| Account Desk | Signal-based, account-based outbound with a person on the send decision | [Code](https://github.com/bryanacevedo/account-desk) · [Live demo](https://account-desk-x4ko.onrender.com) · [Film](https://bryanacevedo.github.io/project-videos/video/account-desk.mp4) |
+| Events Desk | For someone who runs events all year: seat requests and approvals, attendee lists turned into the companies and people worth meeting, with checked emails, handed back as a sheet for sales | [Code](https://github.com/bryanacevedo/events-desk) · [Live demo](https://events-desk.onrender.com) · [Film](https://bryanacevedo.github.io/project-videos/video/events-desk.mp4) |
+| Market Desk (this repository) | Decides who a B2B team sells to from its own deals, sizes that market and splits it into territories | [Live demo](https://market-desk-3kou.onrender.com) · [Film](https://bryanacevedo.github.io/project-videos/video/market-desk.mp4) |
+| CRM Desk | A CRM for teams of one to fifty with Salesforce's data model and a simpler experience; Account Desk and Events Desk can use it as their CRM | [Live demo](https://crm-desk-sevh.onrender.com) · [Film](https://bryanacevedo.github.io/project-videos/video/crm-desk.mp4) (code private) |
+
+All four films: https://bryanacevedo.github.io/project-videos/
 
 ## Licence
 
