@@ -1,0 +1,12 @@
+# The public demo: an invented company, simulated sources, no keys. Postgres lives inside the container with the
+# simulated world built into the image, so every restart is the same fresh desk in seconds. Sleeps after 15 idle
+# minutes on the free plan.
+services:
+  - type: web
+    name: market-desk
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: PUBLIC_DEMO
+        value: "1"
