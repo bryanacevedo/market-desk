@@ -31,9 +31,10 @@ export function Market() {
     </>
   );
   if (error) return <div className="page">{head}<Failed error={error} retry={reload} /></div>;
-  if (!data || data.by !== by) return <div className="page">{head}<Loading /></div>;
+  if (!data) return <div className="page">{head}<Loading /></div>;
+  const stale = data.by !== by;
   const f = data.figures;
-  const seg = by === "segment";
+  const seg = data.by === "segment";
   const open = (k: string) => (seg ? openSheet("segment", k) : navigate(`/accounts?region=${encodeURIComponent(k)}`));
   const [rawFloor, ceil] = moneyScale(data.rows.flatMap((r) => [r.tam_high, r.som_low, r.som_high]));
   // Four powers of ten at most, so the marks can be named; a range below the scale starts at its left edge.
@@ -44,7 +45,7 @@ export function Market() {
   }));
   const cols = "minmax(150px,1.1fr) 64px 72px minmax(100px,0.9fr) minmax(290px,2.6fr)" + (seg ? " minmax(180px,1.3fr)" : "");
   return (
-    <div className="page">
+    <div className={`page${stale ? " stale" : ""}`} aria-busy={stale}>
       {head}
       <div className="figs">
         <Fig value={n0(f.companies)} label="Companies" />

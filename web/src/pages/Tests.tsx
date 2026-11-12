@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Flask } from "@phosphor-icons/react";
 import { api } from "../api";
-import { Empty, Failed, Loading, Section, Status, day, n0, pct, useBusy, useData, T, Tip } from "../lib";
+import { Empty, Failed, Loading, Section, Status, day, n0, pct, useBusy, useData, T, Tip, usePath } from "../lib";
 import { Pair, RateAxis } from "../parts";
 import { openSheet } from "../sheets";
 import { TIPS } from "../tips";
@@ -35,7 +35,8 @@ export function Tests() {
   const { data, error, reload } = useData<any>("/api/tests");
   const me = useData<any>("/api/me").data;
   const [busy, run] = useBusy();
-  const [segment, setSegment] = useState("");
+  const [, params] = usePath();
+  const [segment, setSegment] = useState(params.get("segment") || "");
   const [hyp, setHyp] = useState("");
   if (error) return <div className="page"><Failed error={error} retry={reload} /></div>;
   if (!data) return <div className="page"><div className="head"><h1>Tests</h1></div><Loading /></div>;

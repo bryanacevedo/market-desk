@@ -149,8 +149,8 @@ export function MarketField({ tiles, onPick, smaller }: { tiles: { key: string; 
       {big.map((t, i) => (
         <button key={t.key} role="listitem" type="button" onClick={() => onPick(t.key)} title={`${t.label}, ${t.value}`}
           className={`tile${t.muted ? " muted" : ""}${t.weight / total < 0.08 ? " narrow" : ""}`}
-          style={{ flex: `${t.weight / total} 1 0`, ["--tone" as any]: t.muted ? 0 : tone(t.aShare), animationDelay: `${i * 40}ms` }}>
-          <span className="tile-name">{t.weight / total < 0.08 ? t.label.split(", ").map((w, k) => <span key={k} style={{ display: "block" }}>{w}</span>) : t.label}</span>
+          style={{ flex: `${t.weight / total} 1 0`, ["--tone" as any]: t.muted ? 0 : tone(t.aShare), ["--w" as any]: `${(100 * t.weight) / Math.max(...big.map((b) => b.weight))}%`, animationDelay: `${i * 40}ms` }}>
+          <span className="tile-name">{t.weight / total < 0.08 ? t.label.split(", ").map((w, k) => <span key={k} className="tn-part">{w}</span>) : t.label}</span>
           <span className="tile-val">{t.value}</span>
           {!t.muted ? <span className="tile-a">{Math.round(100 * t.aShare)}% tier A</span> : null}
         </button>

@@ -35,6 +35,7 @@ Every gate was run by a fresh agent that had not seen the build (never a fork), 
 | 12 Design pass 2 | 2026-11-12 | Fresh Opus designer on every page and sheet at 1440 and 375 as each role, with Account Desk and Events Desk open as the bar (17 findings, 2 blockers); fresh Opus editor on every visible string (38 AI tells). Fixed all blockers and majors and the cheap minors, plus the three held redesigns (capacity as a range, draft read against the active plan, fit bands in My book). Decision 37. Left: Settings as percentages with one Save, the phone tile field, a Market tab switch that keeps the old rows while loading, segment sheet's own decision button. |
 | 13 Ranges and tips | 2026-11-12 | Bryan could not read the ranges. Named scales, written ends, keys, and one tooltip component on every term; a fresh sales-leader reviewer read every page twice (49 items, then 11), fixed until clear. Decision 38. |
 | 14 SDRs out | 2026-11-12 | Bryan: remove SDRs from Market Desk. SDRs are plan data only; their books go to Account Desk. Sign-in and the demo menu refuse SDRs; RevOps, manager and AE unchanged; the default visitor is an AE. Tests rewritten to the AE view. Decision 39. |
+| 15 Leftovers | 2026-11-12 | Settings as percentages with one Save; the tile field on a phone as one row per segment, bar length as SAM; Market keeps its rows, dimmed, while switching Segments and Regions; the segment sheet ends on its decision (Test this segment). |
 
 ## Proven and not proven
 

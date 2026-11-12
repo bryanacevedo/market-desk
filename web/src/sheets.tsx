@@ -101,6 +101,7 @@ const Title = ({ children, sub }: { children: ReactNode; sub?: ReactNode }) => (
 const QUOTE_KIND: Record<string, string> = { reason_to_buy: "Why", objection: "Objection", competitor: "Competitor" };
 
 function SegmentSheet({ id }: { id: string }) {
+  const me = useData<any>("/api/me").data;
   return (
     <Wrap kind="segment" path={`/api/segments/${id}`}>{(d) => {
       const z = d.sizing;
@@ -166,7 +167,10 @@ function SegmentSheet({ id }: { id: string }) {
               ))}</div>
             </Section>
           ) : null}
-          <div className="actions"><button className="btn sm" onClick={() => { closeSheet(); navigate(`/accounts?segment=${d.key}`); }}>Accounts in this segment</button></div>
+          <div className="actions">
+            {me?.user.role === "revops" ? <button className="btn sm" onClick={() => { closeSheet(); navigate(`/tests?segment=${d.key}`); }}>Test this segment</button> : null}
+            <button className="btn line sm" onClick={() => { closeSheet(); navigate(`/accounts?segment=${d.key}`); }}>Accounts in this segment</button>
+          </div>
         </Frame>
       );
     }}</Wrap>

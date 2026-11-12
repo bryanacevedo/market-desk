@@ -54,18 +54,21 @@ export function Settings() {
   return (
     <div className="page">
       <div className="head"><h1>Settings</h1></div>
-      <Section title="Assumptions and thresholds" icon={GearSix}>
+      <Section title="Assumptions and thresholds" icon={GearSix} right={
+        <button className="btn sm" disabled={busy || !Object.keys(edit).length || Object.values(edit).some((v) => v.trim() === "" || Number.isNaN(Number(v)))}
+          onClick={() => run(async () => {
+            for (const [k, v] of Object.entries(edit)) {
+              await api(`/api/settings/${k}`, { method: "POST", body: { value: PCT.has(k) ? Number(v) / 100 : Number(v) } });
+            }
+            setEdit({});
+          }, "Saved.")}>{Object.keys(edit).length > 1 ? `Save ${Object.keys(edit).length} changes` : "Save"}</button>}>
         <div className="ledger">
           {data.settings.map((s: any) => (
-            <div key={s.key} className="row" style={{ gridTemplateColumns: "minmax(0,1.6fr) 180px 150px" }}>
+            <div key={s.key} className={`row${edit[s.key] !== undefined ? " edited" : ""}`} style={{ gridTemplateColumns: "minmax(0,1.6fr) 200px" }}>
               <span className="cell-main" title={s.note}><span className="t"><T>{SETTING[s.key] || s.key}</T></span>{s.note.startsWith("Our assumption") ? <span className="s">Our assumption</span> : null}</span>
               {typeof s.value === "number" ? (
-                <span className="with-unit"><input className="input" aria-label={SETTING[s.key] || s.key} value={edit[s.key] ?? String(PCT.has(s.key) ? Math.round(s.value * 1000) / 10 : s.value)} onChange={(e) => setEdit({ ...edit, [s.key]: e.target.value })} />{PCT.has(s.key) ? <span className="mute">%</span> : null}</span>
+                <span className="with-unit"><input className="input" aria-label={SETTING[s.key] || s.key} value={edit[s.key] ?? String(PCT.has(s.key) ? Math.round(s.value * 1000) / 10 : s.value)} onChange={(e) => setEdit({ ...edit, [s.key]: e.target.value })} /><span className="mute unit">{PCT.has(s.key) ? "%" : ""}</span></span>
               ) : <span>{show(s.value)}</span>}
-              {typeof s.value === "number" ? (
-                <button className="btn line sm" disabled={busy || edit[s.key] === undefined || Number.isNaN(Number(edit[s.key]))}
-                  onClick={() => run(() => api(`/api/settings/${s.key}`, { method: "POST", body: { value: PCT.has(s.key) ? Number(edit[s.key]) / 100 : Number(edit[s.key]) } }), "Saved.")}>Save</button>
-              ) : <span />}
             </div>
           ))}
         </div>

@@ -288,3 +288,30 @@ h1 { font-size: 30px; line-height: 36px; font-weight: 560; letter-spacing: -0.01
 .link:hover { text-decoration: none; background: var(--well-2); }
 .notice.waiting .link { background: var(--ground); box-shadow: inset 0 0 0 1px var(--accent-line); }
 .tile.narrow .tile-name { flex-direction: column; }
+
+/* Settings: a changed value is marked until it is saved with the one Save. */
+.row.edited .input { box-shadow: inset 0 0 0 1px var(--accent); }
+
+/* On a phone the field turns on its side: one row per segment, the shaded bar as long as its SAM against the largest,
+   the name, value and tier A share written over it. Width keeps its meaning. */
+@media (max-width: 767px) {
+  .field { flex-direction: column; flex-wrap: nowrap; height: auto; gap: 4px; }
+  .field .tile, .field .tile.narrow { flex: none !important; height: auto; min-height: 44px; padding: 8px 10px; display: grid;
+    grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 10px; background: var(--ground);
+    box-shadow: inset 0 0 0 1px var(--line); position: relative; overflow: hidden; }
+  .field .tile::before { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--w, 100%);
+    background: color-mix(in srgb, var(--accent) calc(var(--tone) * 1%), var(--ground)); z-index: 0; }
+  .field .tile > * { position: relative; z-index: 1; }
+  .field .tile .tile-name, .field .tile.narrow .tile-name { writing-mode: horizontal-tb; transform: none; display: block; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; font-size: 13.5px; line-height: 18px; -webkit-line-clamp: unset; }
+  .field .tile.narrow .tile-name > span { display: inline; }
+  .field .tile.narrow .tile-name > span + span::before { content: ", "; }
+  .field .tile .tile-val, .field .tile.narrow .tile-val { display: block; grid-column: 1; font-size: 12px; -webkit-line-clamp: 1; }
+  .field .tile .tile-a, .field .tile.narrow .tile-a { display: block; grid-row: 1 / span 2; grid-column: 2; font-size: 12px; }
+  .field .tile.muted::before { background: var(--well); }
+  .field .tile.smaller { outline: 1px dashed var(--line-2); box-shadow: none; }
+  .field .tile.smaller::before { display: none; }
+}
+.page.stale .figs, .page.stale section, .page.stale .ledger { opacity: .45; transition: opacity 160ms var(--ease); pointer-events: none; }
+.with-unit .unit { width: 14px; flex: none; } .with-unit { width: 100%; } .with-unit .input { flex: 1 1 auto; min-width: 0; }
+.tn-part { display: block; } @media (max-width: 767px) { .tn-part { display: inline; } .tn-part + .tn-part::before { content: ", "; } }
