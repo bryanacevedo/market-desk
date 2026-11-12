@@ -1,0 +1,4 @@
+{"tasks": "all", "fill": false, "cents": 115.31, "note": "First run. Judge-faithful 35% (stories) and 55% (proposals)."}
+{"tasks": "segment_story,proposal_text", "fill": false, "cents": 57.0, "note": "After the story prompt fix and judge context: 85% and 75%."}
+{"tasks": "proposal_text", "fill": false, "cents": 20.07, "note": "Proposal prompt told its inputs are data: 90%."}
+{"tasks": "all", "fill": true, "cents": 9.75, "note": "Judge checklist adds the cases' traps and sees each sentence's citations; first-attempt scoring. Model answers replayed; only the judge called."}

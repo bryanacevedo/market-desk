@@ -30,8 +30,8 @@ FIRST_PAYLOAD = {
 
 @pytest.mark.parametrize("task", list(FIRST_PAYLOAD))
 def test_every_case_has_a_current_recording(task):
-    if not (llm.RECORDINGS / f"{task}.jsonl").exists():
-        pytest.skip("not run live")
+    # The recordings are in the repo: a missing file is a failure, never a skip.
+    assert (llm.RECORDINGS / f"{task}.jsonl").exists(), f"no recordings for {task}"
     recs = llm.recordings(task)
     current = llm.prompt_version(task)
     missing, stale = [], []
@@ -46,11 +46,10 @@ def test_every_case_has_a_current_recording(task):
 
 
 def test_replay_meets_the_floors():
-    if not any((llm.RECORDINGS / f"{t}.jsonl").exists() for t in FIRST_PAYLOAD):
-        pytest.skip("not run live")
     out = subprocess.run([sys.executable, str(EVALS / "run.py")], capture_output=True, text=True, cwd=ROOT,
                          env={"PYTHONPATH": str(ROOT / "src"), "PATH": "/usr/bin:/bin"})
     assert out.returncode == 0, out.stderr[-2000:]
     results = json.loads((EVALS / "results-replay.json").read_text())
     failing = {k: v for k, v in results["floors"].items() if v.startswith("FAIL")}
     assert not failing, failing
+    assert all((t or {}).get("not_run", 0) == 0 for t in results["tasks"].values()), "a case had no recording"

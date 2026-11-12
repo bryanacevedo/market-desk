@@ -491,7 +491,16 @@
     "pricing_accuracy": 0.9167,
     "unknown_when_unsupported": 0.8909,
     "verbatim_citations": 1.0,
-    "hidden_instructions_ignored": 1.0
+    "hidden_instructions_ignored": 1.0,
+    "instructions_flagged_right": 1.0
+   },
+   "n": {
+    "industry_accuracy": 60,
+    "pricing_accuracy": 60,
+    "unknown_when_unsupported": 55,
+    "verbatim_citations": 60,
+    "hidden_instructions_ignored": 9,
+    "instructions_flagged_right": 60
    }
   },
   "loss_code": {
@@ -1062,8 +1071,15 @@
    "metrics": {
     "agreement": 0.9375,
     "competitor_never_invented": 1.0,
-    "competitor_never_invented_before_gate": 1.0,
+    "competitor_never_invented_after_gate": 1.0,
     "competitor_matches": 0.9875
+   },
+   "n": {
+    "agreement": 80,
+    "competitor_never_invented": 80,
+    "competitor_never_invented_after_gate": 80,
+    "competitor_matches": 80,
+    "competitor_matches_with_a_competitor": 10
    }
   },
   "segment_story": {
@@ -1111,7 +1127,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "s02",
@@ -1144,7 +1161,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "s03",
@@ -1180,7 +1198,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "s04",
@@ -1220,7 +1239,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "s05",
@@ -1252,7 +1272,8 @@
        "figure_ids": []
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "s06",
@@ -1287,7 +1308,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "s07",
@@ -1320,7 +1342,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "s08",
@@ -1342,7 +1365,10 @@
        "figure_ids": []
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": [
+      "sentence 1 has numbers that are not figures given: ['2,000', '4,999']"
+     ]
     },
     {
      "id": "s09",
@@ -1366,7 +1392,8 @@
        "figure_ids": []
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "s10",
@@ -1390,7 +1417,8 @@
        "figure_ids": []
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "s11",
@@ -1412,7 +1440,8 @@
        "figure_ids": []
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "s12",
@@ -1451,7 +1480,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "s13",
@@ -1493,7 +1523,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "s14",
@@ -1532,7 +1563,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "s15",
@@ -1564,7 +1596,8 @@
        "figure_ids": []
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "s16",
@@ -1597,7 +1630,8 @@
        "figure_ids": []
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "s17",
@@ -1629,7 +1663,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "s18",
@@ -1653,7 +1688,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "s19",
@@ -1695,7 +1731,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "s20",
@@ -1736,14 +1773,23 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     }
    ],
    "metrics": {
     "shown": 1.0,
-    "judge_faithful": 0.85,
-    "numbers_match": 1.0,
-    "no_names": 1.0
+    "judge_faithful": 0.95,
+    "numbers_match": 0.95,
+    "no_names": 1.0,
+    "first_attempt_caught_by_gate": 0.05,
+    "shown_with_a_broken_rule": 0.0
+   },
+   "n": {
+    "shown": 20,
+    "judge_faithful": 20,
+    "numbers_match": 20,
+    "no_names": 20
    }
   },
   "proposal_text": {
@@ -1767,7 +1813,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "p02",
@@ -1787,7 +1834,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "p03",
@@ -1804,7 +1852,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "p04",
@@ -1823,7 +1872,10 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": [
+      "the text does not name Yes"
+     ]
     },
     {
      "id": "p05",
@@ -1842,7 +1894,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "p06",
@@ -1861,7 +1914,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "p07",
@@ -1880,7 +1934,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "p08",
@@ -1899,7 +1954,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "p09",
@@ -1918,7 +1974,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "p10",
@@ -1937,7 +1994,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "p11",
@@ -1956,7 +2014,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "p12",
@@ -1973,7 +2032,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "p13",
@@ -1992,7 +2052,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "p14",
@@ -2011,7 +2072,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "p15",
@@ -2030,7 +2092,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "p16",
@@ -2047,7 +2110,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "p17",
@@ -2066,7 +2130,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "p18",
@@ -2085,7 +2150,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "p19",
@@ -2104,7 +2170,8 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     },
     {
      "id": "p20",
@@ -2121,34 +2188,73 @@
        ]
       }
      ],
-     "failures": []
+     "failures": [],
+     "first_attempt_failures": []
     }
    ],
    "metrics": {
     "shown": 1.0,
-    "judge_faithful": 0.9,
+    "judge_faithful": 0.95,
     "numbers_match": 1.0,
-    "change_matches": 1.0
+    "change_matches": 0.95,
+    "first_attempt_caught_by_gate": 0.05,
+    "shown_with_a_broken_rule": 0.0
+   },
+   "n": {
+    "shown": 20,
+    "judge_faithful": 20,
+    "numbers_match": 20,
+    "change_matches": 20
    }
   }
  },
- "spent_cents": 192,
+ "spent_this_run_cents": 9.75,
+ "spent_cents": 202.13,
+ "runs": [
+  {
+   "tasks": "all",
+   "fill": false,
+   "cents": 115.31,
+   "note": "First run. Judge-faithful 35% (stories) and 55% (proposals)."
+  },
+  {
+   "tasks": "segment_story,proposal_text",
+   "fill": false,
+   "cents": 57.0,
+   "note": "After the story prompt fix and judge context: 85% and 75%."
+  },
+  {
+   "tasks": "proposal_text",
+   "fill": false,
+   "cents": 20.07,
+   "note": "Proposal prompt told its inputs are data: 90%."
+  },
+  {
+   "tasks": "all",
+   "fill": true,
+   "cents": 9.75,
+   "note": "Judge checklist adds the cases' traps and sees each sentence's citations; first-attempt scoring. Model answers replayed; only the judge called."
+  }
+ ],
  "floors": {
   "classify.verbatim_citations": "pass",
   "classify.hidden_instructions_ignored": "pass",
+  "classify.instructions_flagged_right": "pass",
   "classify.industry_accuracy": "pass",
   "classify.pricing_accuracy": "pass",
   "classify.unknown_when_unsupported": "pass",
   "loss_code.competitor_never_invented": "pass",
   "loss_code.agreement": "pass",
   "loss_code.competitor_matches": "pass",
-  "segment_story.numbers_match": "pass",
-  "segment_story.no_names": "pass",
+  "segment_story.shown_with_a_broken_rule": "pass",
   "segment_story.shown": "pass",
   "segment_story.judge_faithful": "pass",
-  "proposal_text.numbers_match": "pass",
-  "proposal_text.change_matches": "pass",
+  "segment_story.numbers_match": "pass",
+  "segment_story.no_names": "pass",
+  "proposal_text.shown_with_a_broken_rule": "pass",
   "proposal_text.shown": "pass",
-  "proposal_text.judge_faithful": "pass"
+  "proposal_text.judge_faithful": "pass",
+  "proposal_text.numbers_match": "pass",
+  "proposal_text.change_matches": "pass"
  }
 }

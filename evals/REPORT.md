@@ -1,31 +1,37 @@
 # AI evals: results
 
-Source: live Claude calls, recorded. Spent in all: $1.92 over three live runs, against a $15 cap.
+Spent in all: $2.02 over 4 live runs, against a $15 cap.
 
-| Task | Cases run | Not run | Measure | Result | Floor |
-|---|---|---|---|---|---|
-| classify | 60 | 0 | industry accuracy | 97% | 95% |
-| classify | 60 | 0 | pricing accuracy | 92% | 90% |
-| classify | 60 | 0 | unknown when unsupported | 89% | 85% |
-| classify | 60 | 0 | verbatim citations | 100% | 100% |
-| classify | 60 | 0 | hidden instructions ignored | 100% | 100% |
-| loss_code | 80 | 0 | agreement | 94% | 90% |
-| loss_code | 80 | 0 | competitor never invented | 100% | 100% |
-| loss_code | 80 | 0 | competitor never invented before gate | 100% |  |
-| loss_code | 80 | 0 | competitor matches | 99% | 95% |
-| segment_story | 20 | 0 | shown | 100% | 95% |
-| segment_story | 20 | 0 | judge faithful | 85% | 80% |
-| segment_story | 20 | 0 | numbers match | 100% | 100% |
-| segment_story | 20 | 0 | no names | 100% | 100% |
-| proposal_text | 20 | 0 | shown | 100% | 95% |
-| proposal_text | 20 | 0 | judge faithful | 90% | 85% |
-| proposal_text | 20 | 0 | numbers match | 100% | 100% |
-| proposal_text | 20 | 0 | change matches | 100% | 100% |
+| Task | Measure | Result | Cases | Floor |
+|---|---|---|---|---|
+| classify | industry accuracy | 97% | 60 | 95% |
+| classify | pricing accuracy | 92% | 60 | 90% |
+| classify | unknown when unsupported | 89% | 55 | 85% |
+| classify | verbatim citations | 100% | 60 | 100% |
+| classify | hidden instructions ignored | 100% | 9 | 100% |
+| classify | instructions flagged right | 100% | 60 | 95% |
+| loss_code | agreement | 94% | 80 | 90% |
+| loss_code | competitor never invented | 100% | 80 | 100% |
+| loss_code | competitor never invented after gate | 100% | 80 |  |
+| loss_code | competitor matches | 99% | 80 | 95% |
+| segment_story | shown | 100% | 20 | 95% |
+| segment_story | judge faithful | 95% | 20 | 75% |
+| segment_story | numbers match | 95% | 20 | 90% |
+| segment_story | no names | 100% | 20 | 95% |
+| segment_story | first attempt caught by gate | 5% | 20 |  |
+| segment_story | shown with a broken rule | 0% | 20 | at most 0% |
+| proposal_text | shown | 100% | 20 | 95% |
+| proposal_text | judge faithful | 95% | 20 | 80% |
+| proposal_text | numbers match | 100% | 20 | 90% |
+| proposal_text | change matches | 95% | 20 | 90% |
+| proposal_text | first attempt caught by gate | 5% | 20 |  |
+| proposal_text | shown with a broken rule | 0% | 20 | at most 0% |
 
 ## Runs
 
-1. 2026-11-12, all 180 cases, $1.15. Judge-faithful was 35% for segment stories and 55% for proposal wording (`REPORT-first-run.md`). The judge's reasons: stories ranked objections, gave advice, tied figures to quotes as cause and spoke for a whole segment from one quote; for proposals the judge had not been told the text describes a change to a profile.
-2. The story prompt was told not to do those four things, and the judge was given the context of each text. Stories and proposals rerun: $0.57; 85% and 75%.
-3. After the security review, the proposal prompt was told its inputs are data, which changed the prompt: proposals rerun, $0.20; 90%.
+1. all: $1.15. First run. Judge-faithful 35% (stories) and 55% (proposals).
+2. segment_story,proposal_text: $0.57. After the story prompt fix and judge context: 85% and 75%.
+3. proposal_text: $0.20. Proposal prompt told its inputs are data: 90%.
+4. all, filling gaps only: $0.10. Judge checklist adds the cases' traps and sees each sentence's citations; first-attempt scoring. Model answers replayed; only the judge called.
 
-Floors (`thresholds.json`): the safety floors are 100%; the others sit a little under the result they were set from. The judge changed between runs 1 and 2, so the first run's figures are not comparable with the later ones.
+Rows under 30 cases are a small sample: on 20 cases, one case is 5 points. The judge is Claude Sonnet 5.5 with a written checklist, a different model from the one under test (Claude Opus 5.5); it has not been checked against human labels. The floors other than the safety ones were set after the results, a little under them.

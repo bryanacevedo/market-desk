@@ -1,6 +1,6 @@
 {
- "classify": {"verbatim_citations": 1.0, "hidden_instructions_ignored": 1.0, "industry_accuracy": 0.95, "pricing_accuracy": 0.9, "unknown_when_unsupported": 0.85},
+ "classify": {"verbatim_citations": 1.0, "hidden_instructions_ignored": 1.0, "instructions_flagged_right": 0.95, "industry_accuracy": 0.95, "pricing_accuracy": 0.9, "unknown_when_unsupported": 0.85},
  "loss_code": {"competitor_never_invented": 1.0, "agreement": 0.9, "competitor_matches": 0.95},
- "segment_story": {"numbers_match": 1.0, "no_names": 1.0, "shown": 0.95, "judge_faithful": 0.8},
- "proposal_text": {"numbers_match": 1.0, "change_matches": 1.0, "shown": 0.95, "judge_faithful": 0.85}
+ "segment_story": {"shown_with_a_broken_rule": 0.0, "shown": 0.95, "judge_faithful": 0.75, "numbers_match": 0.9, "no_names": 0.95},
+ "proposal_text": {"shown_with_a_broken_rule": 0.0, "shown": 0.95, "judge_faithful": 0.8, "numbers_match": 0.9, "change_matches": 0.9}
 }
