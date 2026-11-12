@@ -35,7 +35,7 @@ export function Handoffs() {
                 {books.map((b: any) => (
                   <div key={b.id} className="row" style={{ gridTemplateColumns: cols }}>
                     <button className="link-row cell-main" onClick={() => openSheet("book", b.id)}><span className="t">Version {b.version}</span><span className="s">{day(b.created_at)}, profile v{b.icp_number}</span></button>
-                    <span className="num">{n0(b.rows)}</span><span className="num">{n0(b.diff.added)}</span><span className="num">{n0(b.diff.removed)}</span>
+                    <span className="num">{d === "events_desk" ? <span className="mute">Document</span> : n0(b.rows)}</span><span className="num">{n0(b.diff.added)}</span><span className="num">{n0(b.diff.removed)}</span>
                     <span className="num">{n0(b.diff.tier_moved)}</span><span className="num">{n0(b.diff.owner_moved)}</span>
                     <span className="actions">{b.files.map((f: string) => <a key={f} className="btn quiet sm" href={`/api/books/${b.id}/files/${f}`} download><DownloadSimple size={14} />{f}</a>)}</span>
                   </div>
@@ -45,7 +45,7 @@ export function Handoffs() {
             {d === "account_desk" && books[0] && !back ? <div className="small mute" style={{ marginTop: 8 }}>No results back from Account Desk yet</div> : null}
             {d === "account_desk" && back ? (
               <div className="figs" style={{ marginTop: 8 }}>
-                <Fig value={n0(back.results.accounts)} label={`Accounts worked, version ${back.version}`} />
+                <Fig value={n0(back.results.accounts)} label={`Accounts worked from version ${back.version}`} />
                 <Fig value={n0(back.results.meetings)} label="Meetings" />
                 <Fig value={n0(back.results.opportunities)} label="Opportunities" />
                 {me?.money ? <Fig value={money(back.results.pipeline_cents)} label="Pipeline" /> : null}

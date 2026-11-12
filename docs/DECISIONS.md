@@ -131,3 +131,7 @@ A fresh designer compared every screen with Account Desk and Events Desk, and a 
 - Copy: 38 tells removed (an explainer tagline, cute nav groups, one name each for changes, ICP, rules not sent to Account Desk, capacity and data known; stand-in sentences that repeated the figures beside them).
 
 Kept as Bryan liked them: Market's TAM, SAM and SOM rows, Evidence's bands and the tier-mix table (now with v3 beside v4).
+
+## 38. Every range explains itself, and every term has a tip
+
+Bryan could not read the market ranges, and he is the best-informed reader the screens will get. Each range now says what it is on the line (TAM, SAM, SOM), writes its low and high, and sits under a named scale (money marks are powers of ten; rates run 0% to 60%, tests 0% to 30%). Market, Evidence and Changes carry a key drawn the way the marks look. One Tip component explains figures, column heads, section titles, sheet terms and status words from one dictionary (`web/src/tips.ts`), on hover and on keyboard focus; inside a pressable row it does not take focus of its own. A fresh reviewer who had never seen the product read every page as a sales leader twice; the first read found 49 unexplained items, the second 11, all fixed or explained. The help cursor is not used, at Bryan's request. Settings show shares as percentages. Text links are quiet buttons.

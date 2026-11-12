@@ -1,11 +1,12 @@
+import { TIPS } from "./tips";
 import { useEffect, useRef, type ReactNode } from "react";
 import {
   ArrowLeft, ArrowsLeftRight, BookOpen, Buildings, ChartPieSlice, Database, Flask, Lightbulb, ListChecks, Scales, UserCircle, X,
 } from "@phosphor-icons/react";
 import { api } from "./api";
 import { Logo } from "./marks";
-import { Bar, Empty, Failed, Fig, Loading, Section, Status, day, money, n0, navigate, pct, useBusy, useData, T } from "./lib";
-import { Hours, Nest, RangeLine, Tier, TierMix, Verdict, moneyScale } from "./parts";
+import { Bar, Empty, Failed, Fig, Loading, Section, Status, day, money, n0, navigate, pct, useBusy, useData, T, Tip } from "./lib";
+import { Hours, Nest, RangeLine, Tier, TierMix, Verdict, moneyScale, RateAxis } from "./parts";
 
 // ---------------------------------------------------------------- the sheet frame (Account Desk's, with this desk's kinds)
 
@@ -133,7 +134,7 @@ function SegmentSheet({ id }: { id: string }) {
             </Section>
           ) : null}
           {d.losses?.length ? (
-            <Section title="Why it was lost">
+            <Section title="Why it was lost, top reasons">
               <div className="bars">{d.losses.map((l: any) => <Bar key={l.code} label={l.code.replace(/_/g, " ").replace(/^\w/, (c: string) => c.toUpperCase())} value={l.share} of={1} shown={pct(l.share)} />)}</div>
             </Section>
           ) : null}
@@ -145,8 +146,8 @@ function SegmentSheet({ id }: { id: string }) {
                 rows={[["TAM", z.tam_low, z.tam_high], ["SAM", z.sam_low, z.sam_high], ["SOM", z.som_low, z.som_high]]} />
               <dl className="kv">
                 <dt><T>Deal size</T></dt><dd>{money(z.acv_basis.p25)} to {money(z.acv_basis.p75)}{z.acv_basis.from === "overall" ? <span className="mute">, all segments</span> : null}</dd>
-                <dt><T>Planning win rate</T></dt><dd><RangeLine rate={z.win_rate_basis.shrunk} low={z.win_rate_basis.low} high={z.win_rate_basis.high} ends /></dd>
-                <dt><T>Deal rate</T></dt><dd><RangeLine rate={z.capacity_basis.opp_rate} low={z.capacity_basis.opp_low} high={z.capacity_basis.opp_high} max={0.2} ends /></dd>
+                <dt><T>Planning win rate</T></dt><dd><RateAxis /><RangeLine rate={z.win_rate_basis.shrunk} low={z.win_rate_basis.low} high={z.win_rate_basis.high} spell /></dd>
+                <dt><T>Deal rate</T></dt><dd><RateAxis max={0.2} /><RangeLine rate={z.capacity_basis.opp_rate} low={z.capacity_basis.opp_low} high={z.capacity_basis.opp_high} max={0.2} spell /></dd>
                 <dt><T>Accounts the plan can work</T></dt><dd>{n0(z.capacity_basis.capacity_accounts)}</dd>
               </dl>
             </Section>
@@ -160,7 +161,7 @@ function SegmentSheet({ id }: { id: string }) {
             <Section title="Tests">
               <div className="ledger">{d.tests.map((t: any) => (
                 <button key={t.id} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) auto" }} onClick={() => openSheet("test", t.id)}>
-                  <span className="cell-main"><span className="t">Segment test</span><span className="s">{day(t.started_on)} to {day(t.ends_on)}</span></span><Status kind={t.status === "running" ? "go" : "ok"}>{t.status === "running" ? "Running" : "Read"}</Status>
+                  <span className="cell-main"><span className="t">Segment test</span><span className="s">{day(t.started_on)} to {day(t.ends_on)}</span></span><Status kind={t.status === "running" ? "go" : "ok"}>{t.status === "running" ? "Running" : "Finished"}</Status>
                 </button>
               ))}</div>
             </Section>
@@ -312,7 +313,7 @@ function CompanySheet({ id }: { id: string }) {
               <div className="ledger">{c.results.map((r: any) => (
                 <div key={r.id} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) 80px 90px" }}>
                   <span className="cell-main"><span className="t">{r.destination === "events_desk" ? "Events Desk" : r.held_back ? "Held back" : "Account Desk"}</span><span className="s">{day(r.period_start)} to {day(r.period_end)}</span></span>
-                  <span className="num" data-label="Meetings">{r.meetings}</span><span className="num" data-label="Deals opened">{r.opportunities}</span>
+                  <span className="num" data-label="Meetings">{r.meetings} {r.meetings === 1 ? "meeting" : "meetings"}</span><span className="num" data-label="Deals opened">{r.opportunities} {r.opportunities === 1 ? "deal" : "deals"}</span>
                 </div>
               ))}</div>
             </Section>
@@ -339,7 +340,7 @@ function PersonSheet({ id }: { id: string }) {
   return (
     <Wrap kind="person" path={`/api/people/${id}`}>{(p) => (
       <Frame kind="person" crumb={p.name}>
-        <Title sub={`${p.role === "ae" ? "AE" : p.role === "sdr" ? "SDR" : p.role === "revops" ? "RevOps" : "Manager"}, since ${day(p.started_on)}`}>{p.name}</Title>
+        <Title sub={`${p.role === "ae" ? "AE" : p.role === "sdr" ? "SDR" : p.role === "revops" ? "RevOps" : "Manager"}, ${new Date(p.started_on) > new Date() ? "starts" : "since"} ${day(p.started_on)}`}>{p.name}</Title>
         {p.capacity ? (
           <>
             <div className="figs">
@@ -451,7 +452,7 @@ function TestSheet({ id }: { id: string }) {
               </div>
               {r.enough ? <Status kind={r.clear ? "ok" : "none"}>{r.clear ? "Clear difference" : "No clear difference"}</Status>
                 : <Status kind="wait">Needs more accounts</Status>}
-              {r.enough && r.interval ? <span className="small">Lift: {Math.round(r.interval[0] * 100)} to {Math.round(r.interval[1] * 100)} points</span>
+              {r.enough && r.interval ? <span className="small"><Tip tip={TIPS["Lift"]}>Lift</Tip>: {Math.round(r.interval[0] * 100)} to {Math.round(r.interval[1] * 100)} points</span>
                 : <span className="small">Needs {n0(r.still_needed.holdout + r.still_needed.treated)} more accounts</span>}
             </div>
           </Section>
@@ -463,9 +464,9 @@ function TestSheet({ id }: { id: string }) {
           ) : null}
           <Section title="Accounts" count={t.members}>
             <div className="ledger scrolly">{t.sample.map((m: any) => (
-              <button key={m.id} className="row" style={{ gridTemplateColumns: "24px minmax(0,1fr) 100px 60px" }} onClick={() => openSheet("company", m.id)}>
+              <button key={m.id} className="row" style={{ gridTemplateColumns: "24px minmax(0,1fr) 100px 84px" }} onClick={() => openSheet("company", m.id)}>
                 <Logo domain={m.primary_domain} name={m.name} size={24} /><span className="t clip">{m.name}</span>
-                <Status kind={m.grp === "held_back" ? "none" : "ok"}>{m.grp === "held_back" ? "Held back" : "Worked"}</Status><span className="num">{m.meetings} met</span>
+                <Status kind={m.grp === "held_back" ? "none" : "ok"}>{m.grp === "held_back" ? "Held back" : "Worked"}</Status><span className="num">{m.meetings} {m.meetings === 1 ? "meeting" : "meetings"}</span>
               </button>
             ))}</div>
           </Section>
@@ -522,6 +523,7 @@ function BookSheet({ id }: { id: string }) {
           <Fig sm value={n0(b.diff.added)} label="Added" />
           <Fig sm value={n0(b.diff.removed)} label="Removed" />
           <Fig sm value={n0(b.diff.tier_moved)} label="Tier moved" />
+          <Fig sm value={n0(b.diff.owner_moved)} label="Owner moved" />
         </div>
         <div className="actions">{b.files.map((f: any) => <a key={f.path} className="btn line sm" href={`/api/books/${b.id}/files/${f.path}`} download>{f.path}</a>)}</div>
         {b.dropped_rules.length ? (
@@ -549,7 +551,7 @@ function SourceSheet({ id }: { id: string }) {
   return (
     <Wrap kind="source" path={`/api/sources/${id}`}>{(s) => (
       <Frame kind="source" crumb={s.label}>
-        <Title sub={s.adapter === "sim" ? "Simulated" : "Live"}>{s.label}</Title>
+        <Title sub={s.adapter === "sim" ? "Simulated data" : "Live"}>{s.label}</Title>
         <dl className="kv">
           <dt><T>Runs every</T></dt><dd>{s.cadence_hours >= 48 ? `${Math.round(s.cadence_hours / 24)} days` : `${s.cadence_hours} hours`}</dd>
           <dt><T>Cost</T></dt><dd>{s.paid ? (s.price_cents_per_unit !== undefined ? <>{`$${(s.price_cents_per_unit / 100).toFixed(2)} a ${s.unit}`} <span className="mute">Our assumption</span></> : "Paid") : "Free"}</dd>

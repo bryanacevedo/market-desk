@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { Flask } from "@phosphor-icons/react";
 import { api } from "../api";
-import { Empty, Failed, Loading, Section, Status, day, n0, pct, useBusy, useData, T } from "../lib";
-import { Pair } from "../parts";
+import { Empty, Failed, Loading, Section, Status, day, n0, pct, useBusy, useData, T, Tip } from "../lib";
+import { Pair, RateAxis } from "../parts";
 import { openSheet } from "../sheets";
+import { TIPS } from "../tips";
 
 const DECISION: Record<string, string> = { expand: "Expand proposed", drop: "Dropped", extend: "Extended" };
 
 export function testState(t: any): [any, string] {
   if (t.status === "draft") return ["wait", "Draft"];
-  if (t.status === "running" && !t.report.enough) return ["wait", "Needs more accounts"];
+  if (t.status === "running" && !t.report.enough) return ["wait", "Too early to tell"];
   if (!t.report.enough) return ["wait", "Needs more accounts"];
   return t.report.clear ? ["ok", "Clear difference"] : ["none", "No clear difference"];
 }
@@ -23,7 +24,7 @@ export function Lift({ r }: { r: any }) {
       </div>
       {r.enough ? (
         <div className="lift-verdict">
-          <span className="small">Lift: {Math.round(r.interval[0] * 100)} to {Math.round(r.interval[1] * 100)} points</span>
+          <span className="small"><Tip tip={TIPS["Lift"]}>Lift</Tip>: {Math.round(r.interval[0] * 100)} to {Math.round(r.interval[1] * 100)} points</span>
         </div>
       ) : <div className="small">Needs {n0(r.still_needed.holdout + r.still_needed.treated)} more accounts</div>}
     </div>
@@ -45,12 +46,12 @@ export function Tests() {
       <div className="head"><h1>Tests</h1></div>
       {data.rows.length ? (
         <div className="ledger">
-          <div className="row head" style={{ gridTemplateColumns: cols }}><T>Segment</T><T>Started</T><T>Meeting rate, worked vs held back</T><T>Result</T></div>
+          <div className="row head" style={{ gridTemplateColumns: cols }}><T>Segment</T><T>Started</T><span className="axis-head"><T>Meeting rate, worked vs held back</T><RateAxis max={0.3} pair /></span><T>Result</T></div>
           {data.rows.map((t: any) => {
             const [g, w] = testState(t);
             return (
               <button key={t.id} className="row" style={{ gridTemplateColumns: cols }} onClick={() => openSheet("test", t.id)}>
-                <span className="cell-main"><span className="t">{t.segment_label}</span><span className="s">{n0(t.members)} accounts</span></span>
+                <span className="cell-main"><span className="t">{t.segment_label}</span><span className="s">{n0(t.members)} accounts, worked and held back</span></span>
                 <span className="mute">{t.started_on ? day(t.started_on) : "Not started"}</span>
                 <span data-label="Meeting rate, worked vs held back"><Pair r={t.report} /></span>
                 <span className="cell-main"><Status kind={g}>{w}</Status>{t.decision ? <span className="s">{DECISION[t.decision]}</span> : null}</span>
@@ -65,7 +66,7 @@ export function Tests() {
             <label className="form-field"><span className="small mute">Segment</span>
               <select className="select" value={segment} onChange={(e) => setSegment(e.target.value)}>
                 <option value="">Choose</option>
-                {data.segments.map((s: any) => <option key={s.key} value={s.key}>{s.label}, {n0(s.eligible)} eligible</option>)}
+                {data.segments.map((s: any) => <option key={s.key} value={s.key}>{s.label}, {n0(s.eligible)} accounts free to test</option>)}
               </select>
             </label>
             <label className="form-field"><span className="small mute">What we expect</span>
@@ -74,7 +75,7 @@ export function Tests() {
             <button className="btn" disabled={busy || !segment || hyp.trim().length < 5}
               onClick={() => run(() => api("/api/tests", { method: "POST", body: { segment, hypothesis: hyp } }), "Test drafted.").then(() => { setHyp(""); })}>Draft it</button>
           </div>
-          {chosen ? <div className="small mute">{n0(chosen.eligible)} eligible, {n0(data.cohort)} needed</div> : null}
+          {chosen ? <div className="small mute">{n0(chosen.eligible)} accounts free to test, {n0(data.cohort)} needed</div> : null}
         </Section>
       ) : null}
     </div>

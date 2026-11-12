@@ -2,7 +2,9 @@ import { useState } from "react";
 import { CheckSquare, Lightbulb } from "@phosphor-icons/react";
 import { api } from "../api";
 import { Empty, Failed, Loading, Section, Status, navigate, useBusy, useData, T } from "../lib";
-import { RangeLine } from "../parts";
+import { RangeLine, VERDICT_WORD, Verdict } from "../parts";
+
+const VERDICT_CODE: Record<string, string> = Object.fromEntries(Object.entries(VERDICT_WORD).map(([k, v]) => [v, k]));
 import { openSheet } from "../sheets";
 
 export const KIND: Record<string, string> = {
@@ -31,10 +33,10 @@ function Evidence({ p }: { p: any }) {
   const test = !p.finding_ids.length;
   return (
     <div className="prop-ev">
-      <span className="pe-band"><RangeLine label={test ? "Meeting rate " : "Win rate "} rate={num(f.win_rate)} low={test || !range ? null : Number(range[1]) / 100}
+      <span className="pe-band"><span className="pe-label">{test ? "Meeting rate, worked" : "Win rate"}</span><RangeLine label={test ? "Meeting rate " : "Win rate "} rate={num(f.win_rate)} low={test || !range ? null : Number(range[1]) / 100}
         high={test || !range ? null : Number(range[2]) / 100} other={num(f.rest_win_rate)} max={test ? 0.3 : undefined} /></span>
       <span className="pe-fig"><b>{f.rest_win_rate}</b><span>{test ? "Held back" : "The rest"}</span></span>
-      <span className="pe-fig"><b>{Number(f.opportunities).toLocaleString("en-US")}</b><span>{test ? "Accounts" : "Deals"}</span></span>
+      <span className="pe-fig"><b>{Number(f.opportunities).toLocaleString("en-US")}</b><span>{test ? "Accounts worked" : "Deals"}</span></span>
       {f.top_loss ? <span className="pe-fig"><b>{f.top_loss[0].toUpperCase() + f.top_loss.slice(1)}</b><span>Top loss</span></span> : null}
     </div>
   );
@@ -59,6 +61,12 @@ export function Changes() {
           onClick={() => run(async () => { const r = await api<any>("/api/proposals/draft", { method: "POST", body: { ids: picked } }); setPicked([]); navigate(`/profile?sheet=version:${r.version}`); }, "Draft made.")}>
           Make a draft{picked.length ? ` of ${picked.length}` : ""}</button> : null}
       </div>
+      <div className="range-key" aria-label="How to read a change">
+        <span><i className="key-band" />Band: where the true rate likely sits</span>
+        <span><i className="key-tick" />Tick: the rate measured</span>
+        <span><i className="key-ring" />Ring: every other deal, or the held-back accounts</span>
+        {revops ? <span>A draft is a new ICP version: tick the changes to put in it, then Make a draft</span> : null}
+      </div>
       <Section title="Open" count={data.open.length} icon={Lightbulb}>
         {data.open.length ? (
           <div className="props">
@@ -75,8 +83,10 @@ export function Changes() {
                 <Evidence p={p} />
                 <div className="prop-foot">
                   {p.findings.map((f: any) => p.finding_ids.length ? (
-                    <button key={f.id} className="link small" onClick={() => openSheet("finding", f.id)}>{f.verdict}, see the evidence</button>
-                  ) : <button key={f.test_id} className="link small" onClick={() => openSheet("test", p.test_ids[0])}>See the test</button>)}
+                    <span key={f.id} className="actions"><Verdict v={VERDICT_CODE[f.verdict] || f.verdict} />
+                      <button className="btn quiet sm" onClick={() => openSheet("finding", f.id)}>Evidence</button></span>
+                  ) : <span key={f.test_id} className="actions"><Status kind="ok">Clear difference</Status>
+                      <button className="btn quiet sm" onClick={() => openSheet("test", p.test_ids[0])}>Test</button></span>)}
                   <span className="grow" />
                   {dismissing === p.id ? (
                     <span className="actions">

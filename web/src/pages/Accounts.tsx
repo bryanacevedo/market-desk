@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import { Books, MagnifyingGlass } from "@phosphor-icons/react";
 import { Logo } from "../marks";
-import { Empty, Failed, Fig, Loading, Section, Status, n0, navigate, pct, useData, usePath, withParam, T } from "../lib";
+import { Empty, Failed, Fig, Loading, Section, Status, n0, navigate, pct, useData, usePath, withParam, T, Tip } from "../lib";
 import { FitBand, Hours, Tier } from "../parts";
 import { openSheet } from "../sheets";
+import { TIPS } from "../tips";
 
 const REASON: Record<string, string> = {
   rule: "Territory rule", test: "Segment test", existing_owner: "Customer", open_deal: "Open deal", customer_team: "Customer team",
@@ -27,7 +28,7 @@ export function Accounts() {
   const cols = "28px minmax(0,1.4fr) minmax(0,1fr) 70px 70px minmax(0,0.9fr) 92px";
   return (
     <div className="page">
-      <div className="head"><h1>Accounts</h1>{data ? <span className="mute">{n0(data.total)}</span> : null}</div>
+      <div className="head"><h1>Accounts</h1>{data ? <span className="mute"><Tip tip={TIPS["Accounts in the plan's regions"]}>{n0(data.total)} companies</Tip></span> : null}</div>
       <div className="toolbar">
         <div className="search"><MagnifyingGlass size={16} className="mute" /><input className="input" placeholder="Name or domain" aria-label="Search accounts" value={q} onChange={(e) => setQ(e.target.value)} /></div>
         <div className="actions">
@@ -49,7 +50,7 @@ export function Accounts() {
         <>
           <div className="ledger wrap-names accounts">
             <div className="row head" style={{ gridTemplateColumns: cols }}>
-              <span /><span>Company</span><span>Segment</span><T num>Tier</T><T num>Data known</T><span>Owner</span><span className="num">Last result</span>
+              <span /><span>Company</span><span>Segment</span><T num>Tier</T><T num>Data known</T><T>Owner</T><T num>Last result</T>
             </div>
             {data.rows.map((r: any) => (
               <button key={r.id} className="row" style={{ gridTemplateColumns: cols }} onClick={() => openSheet("company", r.id)}>
@@ -89,7 +90,7 @@ export function MyBook() {
         <Fig value={n0(by("B").length)} label="Tier B" />
         <Fig value={n0(by("X").length)} label="Customers and open deals" />
       </div>
-      {data.capacity ? <div style={{ maxWidth: 420 }}><Hours used={data.capacity.hours_required} of={data.capacity.hours_available} /></div> : null}
+      {data.capacity ? <div style={{ maxWidth: 420 }}><Tip tip={TIPS["Hours a month"]}><Hours used={data.capacity.hours_required} of={data.capacity.hours_available} /></Tip></div> : null}
       {data.rows.length ? ["A", "B", "C", "X"].map((t) => by(t).length ? (
         <Section key={t} title={t === "X" ? "Customers and open deals" : `Tier ${t}`} count={by(t).length} icon={Books}>
           <div className="ledger wrap-names">
@@ -98,7 +99,7 @@ export function MyBook() {
               <button key={r.id} className="row" style={{ gridTemplateColumns: "28px minmax(0,1.4fr) minmax(120px,0.9fr) minmax(0,1fr) minmax(0,1fr)" }} onClick={() => openSheet("company", r.id)}>
                 <Logo domain={r.primary_domain} name={r.name} />
                 <span className="cell-main"><span className="t">{r.name}</span><span className="s">{r.industry}</span></span>
-                <span data-label="Score"><FitBand score={r.score} a={data.tiers?.A ?? 85} b={data.tiers?.B ?? 65} /></span>
+                <span data-label="Score">{r.tier === "X" ? <span className="mute small">{r.reason_code === "test" ? "Test account, deal open" : r.reason_code === "rule" ? "Opened a deal since the plan" : reasonWord(r.reason_code)}</span> : <FitBand score={r.score} a={data.tiers?.A ?? 85} b={data.tiers?.B ?? 65} />}</span>
                 <span className="clip mute">{r.segment_label}</span>
                 <span className="clip mute">{r.reason_code === "rule" ? "" : r.note || reasonWord(r.reason_code)}</span>
               </button>

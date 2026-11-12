@@ -1,6 +1,7 @@
-import { Failed, Fig, Loading, Seg, Status, T, n0, navigate, pct, useData, usePath, withParam } from "../lib";
+import { Failed, Fig, Loading, Seg, Status, T, n0, navigate, pct, useData, usePath, withParam, Tip } from "../lib";
 import { MarketField, Nest, NestAxis, RangeLine, RateAxis, TierMix, moneyRange, moneyScale } from "../parts";
 import { openSheet } from "../sheets";
+import { TIPS } from "../tips";
 
 type Row = {
   key: string; label: string; universe_count: number; fit_a: number; fit_b: number; fit_c: number; fit_x: number; not_judged: number;
@@ -57,7 +58,7 @@ export function Market() {
       </section>
       <section className="range-key" aria-label="How to read the ranges">
         <span><i className="key-band" />Band: from the low estimate to the high one</span>
-        <span><i className="key-tick" />Tick: the win rate measured</span>
+        {seg ? <span><i className="key-tick" />Tick: the win rate measured</span> : null}
         <span><i className="key-decade" />Marks: each one is ten times the last</span>
       </section>
       <div className="ledger market" role="table" aria-label={seg ? "Segments" : "Regions"}>
@@ -69,7 +70,7 @@ export function Market() {
         {data.rows.map((r) => (
           <button key={r.key} className="row" role="row" style={{ gridTemplateColumns: cols }} onClick={() => open(r.key)}>
             <span className="cell-main"><span className="t">{r.label}</span>
-              <span className="s">{r.coverage_share === null ? "No public count" : `${pct(Math.min(r.coverage_share, 1))} of public count`}</span></span>
+              <span className="s">{r.coverage_share === null ? "No public count" : <>{pct(Math.min(r.coverage_share, 1))} <Tip tip={TIPS["of public count"]}>of public count</Tip></>}</span></span>
             <span className="num" data-label="Companies">{n0(r.universe_count)}</span>
             <span className="num" data-label="Reachable">{n0(r.sam_count)}</span>
             <TierMix a={r.fit_a} b={r.fit_b} c={r.fit_c} x={r.fit_x} nj={r.not_judged} />

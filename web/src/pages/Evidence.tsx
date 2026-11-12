@@ -53,7 +53,7 @@ export function Evidence() {
               <span className="cell-main"><span className="t">{r.value}</span><span className="s">{r.trait_label}</span></span>
               <span className="num" data-label="Deals">{n0(r.opps)}</span>
               <span data-label="Win rate"><RangeLine rate={r.rate} low={r.low} high={r.high} other={r.rest_rate} spell /></span>
-              <span className="num" data-label="Won-deal cycle">{r.cycle ? `${Math.round(r.cycle.median)} days` : <span className="faint">Too few</span>}</span>
+              <span className="num" data-label="Won-deal cycle">{r.cycle ? `${Math.round(r.cycle.median)} days` : <span className="faint">Too few wins</span>}</span>
               <span className="num" data-label={me?.money ? "Deal size" : undefined}>{me?.money ? money(r.acv_median) : ""}</span>
               <Verdict v={r.verdict} />
             </button>

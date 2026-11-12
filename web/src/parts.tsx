@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { Status, money, pct, type Glyph } from "./lib";
+import { Status, Tip, money, pct, type Glyph } from "./lib";
+import { TIPS } from "./tips";
 
 // Parts this desk adds to Account Desk's shared set, in the same language: a rate with its range, a verdict, a tier,
 // the tier mix of a group. Listed for Bryan in PROJECT-STATUS as new kinds of element.
@@ -119,12 +120,12 @@ export function Nest({ rows, floor, ceil }: { rows: [string, number | undefined,
       {rows.map(([k, lo, hi]) => lo === undefined || hi === undefined ? null : (
         <span key={k} className="nest-row" role="img" aria-label={hi > 0 ? `${k} between ${moneyRange(lo, hi)}` : `${k}: no capacity`}
           title={hi > 0 ? `${k} between ${moneyRange(lo, hi).replace(" to ", " and ")}` : `${k}: no capacity`}>
-          <b>{k}</b>
+          <b><Tip tip={TIPS[k] || k}>{k}</Tip></b>
           <span className="range-line" aria-hidden="true">
             {decades(floor, ceil).map((d) => <i key={d} className="decade" style={{ left: `${logPos(d, floor, ceil)}%` }} />)}
             {hi > 0 ? <i className="range-band" style={{ left: `${logPos(Math.max(lo, floor), floor, ceil)}%`, width: `${Math.max(1.5, logPos(hi, floor, ceil) - logPos(Math.max(lo, floor), floor, ceil))}%` }} /> : null}
           </span>
-          <span className="range-val">{hi > 0 ? moneyRange(lo, hi) : k === "SOM" ? "No capacity" : "None"}</span>
+          <span className="range-val">{hi > 0 ? moneyRange(lo, hi) : k === "SOM" ? "No one works it" : k === "SAM" ? "Outside our regions" : "None"}</span>
         </span>
       ))}
     </span>
@@ -151,13 +152,14 @@ export function MarketField({ tiles, onPick, smaller }: { tiles: { key: string; 
           style={{ flex: `${t.weight / total} 1 0`, ["--tone" as any]: t.muted ? 0 : tone(t.aShare), animationDelay: `${i * 40}ms` }}>
           <span className="tile-name">{t.weight / total < 0.08 ? t.label.split(", ").map((w, k) => <span key={k} style={{ display: "block" }}>{w}</span>) : t.label}</span>
           <span className="tile-val">{t.value}</span>
-          {!t.muted ? <span className="tile-a">A {Math.round(100 * t.aShare)}%</span> : null}
+          {!t.muted ? <span className="tile-a">{Math.round(100 * t.aShare)}% tier A</span> : null}
         </button>
       ))}
       {small.length ? (
         <span role="listitem" className="tile smaller" style={{ flex: `${small.reduce((s, t) => s + t.weight, 0) / total} 1 0` }}
-          title={`${smaller}: ${small.map((t) => `${t.label}, ${t.value}`).join("; ")}`}>
-          <span className="tile-name">+{small.length}</span>
+          title={`${smaller}: ${small.map((t) => `${t.label}, ${t.value}`).join("; ")}`}
+          aria-label={`${small.length} ${smaller.toLowerCase()}: ${small.map((t) => t.label).join(", ")}`}>
+          <span className="tile-name">+{small.length}</span><span className="tile-a">smaller</span>
         </span>
       ) : null}
     </div>
@@ -255,7 +257,7 @@ export function NestAxis({ floor, ceil }: { floor: number; ceil: number }) {
   return (
     <span className="nest-row axis" aria-hidden="true">
       <b />
-      <span className="axis-line">{decades(floor, ceil).slice(-3).map((d) => (
+      <span className="axis-line">{decades(floor, ceil).slice(-4).map((d) => (
         <small key={d} style={{ left: `${logPos(d, floor, ceil)}%` }}>{short(d)}</small>
       ))}</span>
       <span />
@@ -264,10 +266,11 @@ export function NestAxis({ floor, ceil }: { floor: number; ceil: number }) {
 }
 
 /** The rate scale named, for a column head, laid out like a RangeLine. */
-export function RateAxis({ max = RATE_MAX }: { max?: number }) {
-  const marks = [0, 0.2, 0.4, 0.6].filter((m) => m <= max);
+export function RateAxis({ max = RATE_MAX, pair }: { max?: number; pair?: boolean }) {
+  const step = max <= 0.2 ? 0.05 : max <= 0.3 ? 0.1 : 0.2;
+  const marks = Array.from({ length: Math.round(max / step) + 1 }, (_, i) => Math.round(i * step * 100) / 100);
   return (
-    <span className="range axis" aria-hidden="true">
+    <span className={`range axis${pair ? " pair-axis" : ""}`} aria-hidden="true">
       <span />
       <span className="axis-line">{marks.map((m) => <small key={m} style={{ left: `${(100 * m) / max}%` }}>{Math.round(m * 100)}%</small>)}</span>
     </span>

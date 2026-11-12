@@ -42,6 +42,7 @@ export function Moves({ id }: { id: number }) {
           {data.moves.slice(0, 8).map((m: any) => <Bar key={`${m.from}${m.to}`} label={`${m.from} to ${m.to}`} value={m.count} of={max} />)}
         </div>
         <div className="ledger" style={{ marginTop: 12 }}>
+          <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) auto" }}><T>By segment</T><T num>Companies changing tier</T></div>
           {data.by_segment.slice(0, 6).map((s: any) => (
             <div key={s.segment} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) auto" }}><span>{s.label}</span><span className="num">{n0(s.count)}</span></div>
           ))}
@@ -49,7 +50,7 @@ export function Moves({ id }: { id: number }) {
       </Section>
       <Section title="Tier mix by group">
         <div className="ledger">
-          <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) 64px repeat(3, 52px)" }}><T>Group</T><T num>A now</T><T num>A</T><T num>B</T><T num>C or X</T></div>
+          <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) 64px repeat(3, 52px)" }}><T>Group</T><T num>A now</T><T num>Draft A</T><T num>B</T><T num>C or X</T></div>
           {data.backtest.map((g: any) => {
             const t = Math.max(1, g.n);
             const s = (k: number) => `${Math.round((100 * k) / t)}%`;
