@@ -4,7 +4,7 @@ The rules the Market Desk screens are held to, copied from Account Desk's checkl
 
 Two automated gates exist: `tests/test_screen_copy.py` fails on any sentence a screen can show that is not in `docs/SCREEN-COPY.txt`, and `scripts/layout-1b.js` (pasted into a browser) checks that figure labels sit centred under their figures on one baseline with equal gaps. Everything else is checked by eye, at 1440 and 375 wide.
 
-The pages are Market, Evidence, ICP, Accounts, Territories (with a Capacity tab), Tests, Changes, Handoffs, Sources and Settings. RevOps sees all; a manager and the go-to-market leader see all but Sources and Settings. Reps do not use Market Desk; their books go to Account Desk.
+The pages are Market, Evidence, Profile, Accounts, Territories (with a Capacity tab), Tests, Changes, Handoffs, Sources, My book and Settings. RevOps sees all but My book; a manager sees all but Sources, Settings and My book; AEs see My book and Accounts. SDRs do not use Market Desk; their books go to Account Desk.
 
 ## Spirit
 
@@ -62,8 +62,8 @@ Three desks, one family. Each has its own spirit on the same bones.
 - [ ] One layer at a time. Replace, don't add: new information takes a weaker thing's place.
 - [ ] Separate jobs live on separate pages. Drafts to approve live on Approvals; replies and what to do about them on Replies; who is in which sequence on In flight; the ranked list of accounts on Accounts.
 - [ ] A page or tab with decisions waiting shows how many, as the menu does beside Today, Approvals and Replies.
-- [ ] The menu follows the person's job: only RevOps sees Sources and Settings, and nobody sees a page that would be empty for them.
-- [ ] Only RevOps, managers and the go-to-market leader use Market Desk, and all three see company money. Reps never sign in here.
+- [ ] The menu follows the person's job: AEs do not see Sources or Settings, and nobody sees a page that would be empty for them.
+- [ ] Company money (deal sizes, TAM, SAM, SOM, expected value, pipeline, costs) shows only to RevOps and managers, on every screen and every read. AEs never see it.
 - [ ] Work belongs to someone: each page says whether it shows your work or the team's (Mine and Team on In flight), and one owner is named, never two.
 - [ ] Everything that names a segment, a finding, a company, a person, a profile version, a test, a proposal, a book or a source opens it.
 

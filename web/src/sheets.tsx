@@ -340,7 +340,7 @@ function PersonSheet({ id }: { id: string }) {
   return (
     <Wrap kind="person" path={`/api/people/${id}`}>{(p) => (
       <Frame kind="person" crumb={p.name}>
-        <Title sub={`${({ revops: "RevOps", manager: "Manager", gtm: "GTM leader", sdr: "SDR", ae: "AE" } as Record<string, string>)[p.role]}, ${new Date(p.started_on) > new Date() ? "starts" : "since"} ${day(p.started_on)}`}>{p.name}</Title>
+        <Title sub={`${p.role === "ae" ? "AE" : p.role === "sdr" ? "SDR" : p.role === "revops" ? "RevOps" : "Manager"}, ${new Date(p.started_on) > new Date() ? "starts" : "since"} ${day(p.started_on)}`}>{p.name}</Title>
         {p.capacity ? (
           <>
             <div className="figs">

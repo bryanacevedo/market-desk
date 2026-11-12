@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from "react";
 import {
-  ArrowsLeftRight, CaretRight, ChartPieSlice, Database, DotsThree, Flask, GearSix, Lightbulb, ListChecks, MapTrifold,
+  ArrowsLeftRight, Books, CaretRight, ChartPieSlice, Database, DotsThree, Flask, GearSix, Lightbulb, ListChecks, MapTrifold,
   Scales, Target,
 } from "@phosphor-icons/react";
 import { setActingAs } from "./api";
@@ -9,7 +9,7 @@ import { SheetHost } from "./sheets";
 import { Market } from "./pages/Market";
 import { Evidence } from "./pages/Evidence";
 import { Profile } from "./pages/Profile";
-import { Accounts } from "./pages/Accounts";
+import { Accounts, MyBook } from "./pages/Accounts";
 import { Territories } from "./pages/Territories";
 import { Tests } from "./pages/Tests";
 import { Changes } from "./pages/Changes";
@@ -20,10 +20,11 @@ export type Me = { user: { id: number; name: string; role: string }; users: { id
   counts: Record<string, number>; money: boolean; now: string; simulated: boolean; public_demo: boolean; seller: string };
 
 type Route = { path: string; label: string; icon: ReactNode; page: () => JSX.Element; roles: string[]; count?: string; group?: string; bar?: boolean };
-const LEAD = ["revops", "manager", "gtm"];
+const LEAD = ["revops", "manager"];
 const ROUTES: Route[] = [
   { path: "/", label: "Market", icon: <ChartPieSlice size={18} />, page: Market, roles: LEAD, bar: true },
-  { path: "/accounts", label: "Accounts", icon: <Target size={18} />, page: Accounts, roles: LEAD, bar: true },
+  { path: "/my-book", label: "My book", icon: <Books size={18} />, page: MyBook, roles: ["ae"], bar: true },
+  { path: "/accounts", label: "Accounts", icon: <Target size={18} />, page: Accounts, roles: ["revops", "manager", "ae"], bar: true },
   { path: "/changes", label: "Changes", icon: <Lightbulb size={18} />, page: Changes, roles: LEAD, count: "changes", bar: true },
   { path: "/evidence", label: "Evidence", icon: <Scales size={18} />, page: Evidence, roles: LEAD, group: "ICP" },
   { path: "/profile", label: "ICP", icon: <ListChecks size={18} />, page: Profile, roles: LEAD, count: "icp" },
@@ -34,7 +35,7 @@ const ROUTES: Route[] = [
   { path: "/settings", label: "Settings", icon: <GearSix size={18} />, page: Settings, roles: ["revops"] },
 ];
 
-const ROLE: Record<string, string> = { revops: "RevOps", manager: "Manager", gtm: "GTM leader" };
+const ROLE: Record<string, string> = { revops: "RevOps", manager: "Manager", ae: "AE" };
 
 export function App() {
   const [path] = usePath();

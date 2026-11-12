@@ -74,7 +74,7 @@ export function Settings() {
         <div className="ledger">
           {data.team.map((u: any) => (
             <button key={u.id} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) 90px 120px 110px" }} onClick={() => openSheet("person", u.id)}>
-              <span className="t">{u.name}</span><span className="mute">{({ revops: "RevOps", manager: "Manager", gtm: "GTM leader", sdr: "SDR", ae: "AE" } as Record<string, string>)[u.role]}</span>
+              <span className="t">{u.name}</span><span className="mute">{u.role === "revops" ? "RevOps" : u.role === "ae" ? "AE" : u.role === "sdr" ? "SDR" : "Manager"}</span>
               <span className="mute">{new Date(u.started_on) > new Date() ? "Starts " : "Since "}{day(u.started_on)}</span><span className="num">{u.selling_hours_month} h</span>
             </button>
           ))}

@@ -24,7 +24,7 @@
 
 Market Desk learns the ideal customer profile from every deal won, lost and churned, with each rule's win rate, range and verdict; it sizes every segment as ranges, counting only buyers the team can reach and accounts it can actually work in a year; it tiers every company and gives it to someone with hours to work it; it hands that book to [Account Desk](https://github.com/bryanacevedo/account-desk) and [Events Desk](https://github.com/bryanacevedo/events-desk), the two desks that reach out to the accounts; and it proposes changes to the profile only when their results say it was wrong, for a manager to publish.
 
-Pick who you are acting as in the demo's sidebar: RevOps, the sales manager, or the go-to-market leader, who reads every page and changes nothing. A visitor who has not chosen is the go-to-market leader. SDRs and AEs do not use Market Desk: each rep's book goes to Account Desk, where they work it. If it has been idle, Render takes up to a minute to wake it.
+Pick who you are acting as in the demo's sidebar: RevOps, the sales manager, or an AE. SDRs do not use Market Desk: each rep's book goes to Account Desk, where they work it. If it has been idle, Render takes up to a minute to wake it.
 
 <p align="center">
 <img src="docs/screens/evidence-desktop.png" alt="Evidence: each trait's win rate drawn as a range against the others, with a plain verdict" width="49%">
@@ -178,8 +178,7 @@ The world was adjusted until the rules found the planted effects; the rules were
 | Expected value | Shrunk segment win rate times segment median deal size times fit score |
 | Hiring gap | Tier A and B companies in our regions that nobody has hours for |
 | Book | A versioned file set sent to another desk |
-| Acting as | The demo's menu for choosing who you are: RevOps, the manager, or the go-to-market leader |
-| GTM leader | The go-to-market leader (a VP of Sales or CRO): sees every page and the money, changes nothing |
+| Acting as | The demo's menu for choosing which team member you are: RevOps, the manager or an AE |
 | Rep's book | The accounts a plan gives one SDR or AE; it goes to Account Desk as a file, and to the CRM as owners |
 
 ## Licence

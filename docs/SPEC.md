@@ -20,10 +20,10 @@ Python 3.13 with uv, FastAPI, psycopg 3, Postgres 18, plain SQL migrations appli
 |---|---|---|
 | `revops` | Sam Kowalski | Own the profile, sources, settings and plans; draft profile versions and plans; move an account by hand in a draft plan, with a note; make a proposal a draft; dismiss proposals; start and decide segment tests; create target books; erase a team member or a company's notes. |
 | `manager` | Elena Duarte | Publish a profile version she did not author (only a manager publishes, and the database refuses anyone else); activate a plan she did not author; dismiss proposals; decide segment tests; erase a team member or a company's notes. She reviews a plan and does not move accounts in it. |
-| `gtm` | Jordan Ellis | Read every page, the money included; change nothing. A visitor who has not chosen reads as GTM. |
-| `sdr`, `ae` | Maya Okafor, Daniel Reyes, Priya Natarajan, Tom Whitaker, Nadia Haddad (starts 2026-12-01); Grace Lindqvist, Omar Bello, Hannah Mercer | People in the plan, not users of Market Desk: the API refuses them. Each rep's book goes to Account Desk (and owners to the CRM), where they work it. |
+| `sdr` | Maya Okafor, Daniel Reyes, Priya Natarajan, Tom Whitaker, Nadia Haddad (starts 2026-12-01) | People in the plan, not users of Market Desk: the API refuses them and the demo does not offer them. Each SDR's book goes to Account Desk (and owners to the CRM), where they work it. |
+| `ae` | Grace Lindqvist, Omar Bello, Hannah Mercer | See My book and Accounts filtered to their own, and a segment's story, quotes and roles; not its planning figures, and not which group of a running test an account is in. A visitor who has not chosen reads as the first AE. |
 
-Every user of Market Desk (`revops`, `manager`, `gtm`) sees company money. Reps never sign in here, so no view is trimmed for them; the MCP server still leaves money out of what it returns.
+Company money (deal sizes, TAM, SAM, SOM in dollars, expected value, costs) is returned by the API only to `revops` and `manager`. For other roles the API leaves those keys out; hiding in the browser is not the control.
 
 ## 4. Data model
 
@@ -155,7 +155,7 @@ Written by an agent that never sees `src/`: 60 classify, 80 loss_code, 20 segmen
 
 ## 12. Pages and side sheets
 
-Pages: Market, Evidence, ICP, Accounts, Territories (tab Capacity), Tests, Changes, Handoffs, Sources, Settings. Sheets: Segment, Finding, Company, Person, Profile version, Plan move, Test, Proposal, Book, Source. Everything that names a thing opens it; a sheet opened from another shows the way back; Esc, outside click, back and the close button close it. Phone (375): bottom bar Market, Accounts, Changes, More. Every sentence a screen can show is in `docs/SCREEN-COPY.txt`; a test fails on a new one.
+Pages: Market, Evidence, Profile, Accounts, Territories (tab Capacity), Tests, Changes, Handoffs, Sources, My book, Settings. Sheets: Segment, Finding, Company, Person, Profile version, Plan move, Test, Proposal, Book, Source. Everything that names a thing opens it; a sheet opened from another shows the way back; Esc, outside click, back and the close button close it. Phone (375): bottom bar Market, Accounts, Changes, More (RevOps and managers); My book, Accounts, More (AEs). Every sentence a screen can show is in `docs/SCREEN-COPY.txt`; a test fails on a new one.
 
 ## 13. Security and compliance
 

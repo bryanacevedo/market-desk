@@ -83,9 +83,11 @@ Median size of won new-business deals in the last two years, with the middle hal
 Meeting rate, worked vs held back
 Meetings booked with these accounts.
 Months an account is worked
+No accounts in your book
 No evidence behind this rule yet.
 No results back from Account Desk yet
 Not sent to Account Desk
+Opened a deal since the plan
 Our tool that plans events and who to meet there. It receives the ICP as a document from here.
 Our tool where reps research and work their accounts. Each rep's book of accounts, and the ICP, go there from here.
 Overdue by # ##
