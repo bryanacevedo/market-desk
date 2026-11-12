@@ -1,4 +1,10 @@
-"""Small, exact statistics for the results pages. No dependencies.
+"""Small, exact statistics. No dependencies.
+
+Copied from Account Desk's src/outbound/stats.py (wilson, newcombe, n_per_arm, lift_report, fisher_greater,
+within_reach; their intervals default to 90%), then extended here with a two-sided Fisher exact test, Holm's
+step-down correction, the Mantel-Haenszel odds ratio across strata and a distribution-free median interval.
+Evidence about the profile passes conf=0.95 explicitly (docs/DECISIONS.md 8).
+
 
 - Wilson score interval for one proportion.
 - Newcombe's hybrid score interval (method 10) for a difference of two proportions.
@@ -89,3 +95,94 @@ def within_reach(lift: dict, room: int) -> dict:
     lift["room"] = room
     lift["out_of_reach"] = (not lift["enough"]) and need > room
     return lift
+
+
+# ---------------------------------------------------------------- added in Market Desk
+
+def fisher_two_sided(a: int, b: int, c: int, d: int) -> float:
+    """Fisher exact test, two-sided, for the table [[a, b], [c, d]]: the sum of the probabilities of every table with
+    the same margins that is no more likely than the observed one (relative tolerance 1e-7, as R's fisher.test)."""
+    if min(a, b, c, d) < 0:
+        raise ValueError("not a 2x2 table")
+    r1, r2, c1 = a + b, c + d, a + c
+    n = r1 + r2
+    lo, hi = max(0, c1 - r2), min(c1, r1)
+    denom = math.comb(n, c1)
+
+    def prob(x: int) -> float:
+        return math.comb(r1, x) * math.comb(r2, c1 - x) / denom
+
+    p_obs = prob(a)
+    return min(1.0, sum(p for x in range(lo, hi + 1) if (p := prob(x)) <= p_obs * (1 + 1e-7)))
+
+
+def holm(pvalues: list[float], alpha: float = 0.05) -> list[bool]:
+    """Holm's step-down procedure. Returns, for each p in the order given, whether it is rejected at family level alpha."""
+    m = len(pvalues)
+    order = sorted(range(m), key=lambda i: pvalues[i])
+    out = [False] * m
+    for rank, i in enumerate(order):
+        if pvalues[i] <= alpha / (m - rank):
+            out[i] = True
+        else:
+            break
+    return out
+
+
+def mantel_haenszel(strata: list[tuple[int, int, int, int]], conf: float = 0.95) -> tuple[float, float, float] | None:
+    """Common odds ratio across 2x2 strata [[a, b], [c, d]] (a = wins with the trait, b = losses with it, c = wins
+    without, d = losses without), with the Robins, Breslow and Greenland variance of its log. Strata where either
+    side has no observations are skipped. Returns (or, low, high), or None when it cannot be computed."""
+    zz = z(conf)
+    R = S = PR = PSQ = QS = 0.0
+    for a, b, c, d in strata:
+        n = a + b + c + d
+        if a + b == 0 or c + d == 0 or n == 0:
+            continue
+        r, s_ = a * d / n, b * c / n
+        p, q = (a + d) / n, (b + c) / n
+        R += r
+        S += s_
+        PR += p * r
+        PSQ += p * s_ + q * r
+        QS += q * s_
+    if R == 0 or S == 0:
+        return None
+    or_ = R / S
+    var = PR / (2 * R * R) + PSQ / (2 * R * S) + QS / (2 * S * S)
+    se = math.sqrt(var)
+    return (or_, math.exp(math.log(or_) - zz * se), math.exp(math.log(or_) + zz * se))
+
+
+def median_ci(values: list[float], conf: float = 0.95) -> tuple[float, float, float] | None:
+    """Median with a distribution-free interval from binomial order statistics: the widest symmetric pair of order
+    statistics (j, n - j + 1) whose binomial(n, 1/2) coverage is at least conf. Returns (median, low, high), or None
+    under 6 values, where no pair reaches 95%."""
+    xs = sorted(values)
+    n = len(xs)
+    if n == 0:
+        return None
+    med = xs[n // 2] if n % 2 else (xs[n // 2 - 1] + xs[n // 2]) / 2
+    if n < 6:
+        return None
+    best = None
+    for j in range(1, n // 2 + 1):
+        cover = sum(math.comb(n, i) for i in range(j, n - j + 1)) / 2 ** n
+        if cover >= conf:
+            best = j
+        else:
+            break
+    if best is None:
+        return None
+    return (med, xs[best - 1], xs[n - best])
+
+
+def quantile(values: list[float], q: float) -> float | None:
+    """Linear interpolation between order statistics (numpy's default)."""
+    xs = sorted(values)
+    if not xs:
+        return None
+    pos = (len(xs) - 1) * q
+    lo = math.floor(pos)
+    hi = min(lo + 1, len(xs) - 1)
+    return xs[lo] + (xs[hi] - xs[lo]) * (pos - lo)
