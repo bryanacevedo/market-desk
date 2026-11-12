@@ -1,0 +1,3 @@
+crm_id,domain,kind,created_at,closed_at,stage,outcome,amount,loss_reason,competitor,source,owner_email,roles
+OPP-1001,northwind.example,new,2025-03-04,2025-05-29,Closed won,won,41000,,,outbound,grace.lindqvist@lumenledger.example,cfo:signer;controller:champion;revops
+OPP-1002,kestrelpay.example,new,2025-06-10,2025-08-02,Closed lost,lost,36000,went with Billform on price,Billform,inbound,hannah.mercer@lumenledger.example,controller;data

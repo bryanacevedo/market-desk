@@ -1,0 +1,3 @@
+name,domain,parent_domain,industry,employees,country,revenue_band,pricing_model,tech,hq_city,founded_year
+Northwind Billing,northwind.example,,Software,340,US,$20M-$100M,usage,Snowflake;Stripe,Brookhaven City,2016
+Kestrel Pay,kestrelpay.example,,Fintech,210,GB,$20M-$100M,transaction,Salesforce;NetSuite,Kingsbridge,2018

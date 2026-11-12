@@ -1,0 +1,13 @@
+{
+  "seller": "Your company",
+  "users": [
+    {"name": "A RevOps lead", "email": "revops@yourcompany.example", "role": "revops", "started_on": "2024-01-01"},
+    {"name": "A sales manager", "email": "manager@yourcompany.example", "role": "manager", "started_on": "2024-01-01"},
+    {"name": "An SDR", "email": "sdr@yourcompany.example", "role": "sdr", "started_on": "2025-02-01", "selling_hours_month": 100}
+  ],
+  "sources": [
+    {"key": "crm", "label": "CRM", "kind": "crm", "adapter": "live", "paid": false, "licence_note": "Your own data.", "cadence_hours": 6},
+    {"key": "susb", "label": "Census SUSB", "kind": "public_counts", "adapter": "live", "paid": false, "licence_note": "US government data, public domain.", "cadence_hours": 8760}
+  ],
+  "note": "A contract for a real install. No live adapter exists yet; the demo simulates every source."
+}

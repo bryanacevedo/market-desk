@@ -52,3 +52,30 @@ Numbered. Each says what was decided, why, and what it costs.
 
 ## 17. Hours per account cut to a quarter of the plan's defaults
 **What:** A 1.0, B 0.4, C 0.1 hours a month per worked account, and an account is worked for one quarter (four turns a year), instead of the plan's A 4.0, B 1.5, C 0.25 held all year. **Why:** at the plan's figures four SDRs hold 25 A accounts each, which contradicts the plan's own demo (about 1,100 accounts in Account Desk's last two books) and made the hiring gap read as hundreds of people and SOM as about $100,000 a year. Account Desk does the research and the drafting, so an SDR's hours per account are closer to an hour a month. Plan section 13 Q10 already marks these as invented assumptions for RevOps to edit. **Cost:** still invented; a real team measures its own hours per account.
+
+## 18. Brazil shows as a country, not as a pair of traits
+**What:** evidence tests single traits; Brazil's 9 deals (all marketplaces, 5 won) show as the country Brazil, Too few to tell, and its sheet lists the marketplaces behind it. **Why:** testing every pair of traits would multiply the values tested by a hundred and leave the correction nothing to find. **Cost:** a real effect that lives only in a pair of traits is found only if one trait carries it.
+
+## 19. Sizing by region as well as by segment
+**What:** sizing rows exist for each segment, each region group and the whole market. **Why:** reachability differs by region (P6, DACH), and a segment row cannot show that. **Cost:** two tables to read on Market, behind one switch.
+
+## 20. A rule explained by size is proposed for removal
+**What:** a rule of the published profile whose own finding is Not clear or Explained by size, with at least 60 deals, becomes a drop proposal. The plan named only Not clear. **Why:** a rule that only travels with size double counts the size rule. **Cost:** more proposals; the region rule's drop proposal is dismissed in the demo with the reason a sales leader would give.
+
+## 21. Expected value
+**What:** shrunk segment win rate times the segment's median won deal times the fit score over 100. **Why:** the plan said "shrunk win rate times ACV for the account's segment and tier"; tiers within a segment have too few deals to carry their own rates, so the score stands in for the tier. **Cost:** expected value ranks accounts; it is not a forecast.
+
+## 22. The buyer's own words are what the note puts in quotation marks
+**What:** quotes are the spans a call note puts in quotation marks; a won deal gives reasons to buy, a lost one objections, a competitor's name makes it a competitor quote. **Why:** the plan has no extraction task among its four, and a quote must be verbatim. **Cost:** notes without quotation marks give no quotes.
+
+## 23. The demo's AI is a stand-in; live answers are in the evals
+**What:** the demo builds with deterministic stand-ins written in code (`src/market/sim_llm.py`); live Claude answers exist only in the eval recordings. **Why:** the image is built without keys, and the same seed must build the same rows. **Cost:** the words on the demo's screens were written by code that imitates the shape of the model's answers, not by Claude; README says so.
+
+## 24. A running test's accounts are worked however full the book
+**What:** when a test starts, its worked accounts join the active plan with their territory's lead, and a new draft plan keeps them, even past 100% of hours. **Why:** dropping them would end the test; a test is a deliberate spend. **Cost:** Tom and Priya read over capacity on the Capacity tab while the data infrastructure test runs.
+
+## 25. Recently worked accounts are not test material
+**What:** a test excludes companies in an Account Desk book of the last 180 days. Found by the rules-against-data audit: 18 companies held back in the October test had been in July's book. **Why:** an account already worked is neither a clean worked account nor a clean comparison. **Cost:** fewer eligible companies; the demo world has more data infrastructure companies so its test still fits.
+
+## 26. The held-back meeting rate in the finished tests is 10.6%
+**What:** the world gives the finished tests' held-back groups 11 meetings out of 104 rather than 10. **Why:** Account Desk's reading recomputes the sample it needs from the held-back rate it sees; at 9.6% it asks for 107 held-back accounts and the 520-account test could not be read. Gate 0 predicted this. The world was tuned, not the rule. **Cost:** a test that lands just under its design rate reads as needing more accounts.
