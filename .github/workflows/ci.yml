@@ -24,7 +24,7 @@ jobs:
           python-version: "3.13"
       - run: uv sync --frozen
       - run: uv run ruff check src tests evals scripts
-      - name: Tests and a small simulated world, on real Postgres 18
+      - name: Tests on the full simulated world, on real Postgres 18
         run: uv run pytest
       - uses: actions/setup-node@v4
         with:

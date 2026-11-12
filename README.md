@@ -4,7 +4,7 @@
 
 [![ci](https://github.com/bryanacevedo/market-desk/actions/workflows/ci.yml/badge.svg)](https://github.com/bryanacevedo/market-desk/actions/workflows/ci.yml)
 
-Market Desk decides who a B2B team sells to. It learns the ideal customer profile from every deal won, lost and churned, with each rule's win rate, range and verdict; it sizes every segment as ranges, counting only buyers the team can reach and accounts it can actually work in a year; it tiers every company and gives it to someone with hours to work it; it hands that book to [Account Desk](https://github.com/bryanacevedo/account-desk) and Events Desk; and it proposes changes to the profile only when their results say it was wrong, for a second person to publish.
+Market Desk decides who a B2B team sells to. It learns the ideal customer profile from every deal won, lost and churned, with each rule's win rate, range and verdict; it sizes every segment as ranges, counting only buyers the team can reach and accounts it can actually work in a year; it tiers every company and gives it to someone with hours to work it; it hands that book to [Account Desk](https://github.com/bryanacevedo/account-desk) and Events Desk; and it proposes changes to the profile only when their results say it was wrong, for a manager to publish.
 
 **[Try the live demo](https://market-desk-3kou.onrender.com).** Pick who you are acting as in the sidebar (RevOps, the sales manager, an SDR or an AE). The company, its market, its deals and its sources are invented and simulated. If it has been idle, Render takes up to a minute to wake it. Read "What is real and what is simulated" before trusting any number in it.
 
@@ -12,8 +12,8 @@ Market Desk decides who a B2B team sells to. It learns the ideal customer profil
 
 | Who decides | What |
 |---|---|
-| **People** | Publish a profile version (never its author), activate a territory plan (a manager, never its author), turn proposals into a draft, dismiss a proposal (with a reason), start and decide a segment test, move an account by hand (with a note). |
-| **AI** | Reads a company description when a vendor gave no industry or pricing model, codes a loss reason, says why a segment buys, words a proposal. Each answer is checked by code; a second failed check withholds it and the screen shows figures only. |
+| **People** | Publish a profile version (a manager, never its author), activate a territory plan (a manager, never its author), turn proposals into a draft, dismiss a proposal (with a reason), start and decide a segment test, move an account by hand (with a note). |
+| **AI** | Reads a company description when a vendor gave no industry or pricing model, codes a loss reason, says why a segment buys, words a proposal. Each answer is checked by code. Written answers get one rewrite, and a second failed check withholds them so the screen shows figures only; a loss code that fails becomes Other. |
 | **Code** | Every number: win rates and their ranges, verdicts, the size check, fit and tiers, sizing, capacity, assignment, which proposals exist, what Account Desk can and cannot read. |
 
 ## What it does
@@ -59,7 +59,7 @@ The simulated world here is meant to become the one universe all three desks loa
 | `tiers.csv` | `company_world_id, icp_version, score, tier, segment, owner_email` |
 | `manifest.json` | format version, seller (Lumen Ledger), seed, row counts, sha256 of each file |
 
-A company's `world_id` is `co_` and the first 12 hex characters of sha256 of its domain, so it does not depend on database ids and survives a rebuild. People are invented from the seed and the company's `world_id` at export time, two to six for each tier A and B company; they exist only in the export and never in this desk's database (decision 1). A test builds the export twice and requires identical files. Account Desk and Events Desk do not read it yet.
+A company's `world_id` is `co_` and the first 12 hex characters of sha256 of its domain, so it does not depend on database ids and survives a rebuild. People are invented from the seed and the company's `world_id` at export time, two to six for each judged tier A and B company that is not a competitor; they exist only in the export and never in this desk's database (decision 1). A test exports twice from one database and requires identical files; the world itself rebuilds identically from its seed. Account Desk and Events Desk do not read it yet.
 
 ## Run it
 
@@ -84,11 +84,11 @@ Four tasks, 180 cases written by an agent that never saw the code (`evals/CASES.
 | Say why a segment buys | 20 | judged faithful / numbers match / no names | 85% / 100% / 100% | 80% / 100% / 100% |
 | Word a proposal | 20 | judged faithful / numbers match / change matches | 90% / 100% / 100% | 85% / 100% / 100% |
 
-Three live runs cost $1.92 in all against a $15 cap. The first run judged only 35% of segment stories and 55% of proposals faithful; the stories ranked objections, gave advice and spoke for a whole segment from one quote, and the judge had not been told what a proposal is. The prompts and the judge's context were fixed and those tasks rerun (`evals/REPORT.md` has every run). The demo's own words come from stand-ins, not from these runs (see below).
+Three live runs cost $1.92 in all against a $15 cap. The first run judged only 35% of segment stories and 55% of proposals faithful; the stories ranked objections, gave advice and spoke for a whole segment from one quote, and the judge had not been told what a proposal is. The prompts and the judge's context were fixed and those tasks rerun (`evals/REPORT.md` has every run). The floors other than the safety ones were set after these results, a little under them: they catch a regression, they do not prove the result. Twenty cases is a small sample; 17 of 20 faithful is consistent with anything from about 64% to 95%. The demo's own words come from stand-ins, not from these runs (see below).
 
 ## What is real and what is simulated
 
-**Real:** erasure of a team member or of a company's notes, the statistics (each checked against a published value in `tests/test_stats.py`), the evidence analysis and its size check, the fit formula (Account Desk's, ported from its code), sizing, capacity, assignment and balancing, the two-person rules (enforced by the database), the held-back rule (a database trigger refuses a held-back company in an Account Desk book), the handoff files (a test scores every exported company with a copy of Account Desk's formula and gets the same tier), the redaction of call notes, the AI gates, and the evals above.
+**Real:** erasure of a team member or of a company's notes, the statistics (each checked in `tests/test_stats.py` against a published value or, for Mantel-Haenszel, a value computed once with statsmodels), the evidence analysis and its size check, the fit formula (Account Desk's, ported from its code), sizing, capacity, assignment and balancing, the two-person rules (enforced by the database), the held-back rule (a database trigger refuses a held-back company in an Account Desk book), the handoff files (a test scores every exported company whose exported fields are all known, most of each book, with a copy of Account Desk's formula and gets the same tier), the redaction of call notes, the AI gates, and the evals above.
 
 **Simulated:** the seller (Lumen Ledger, the same invented company Account Desk sells for), its team, 18,005 companies (with `.example` domains), 1,647 new-business and 166 expansion deals over three years, 286 customers (35 of them churned), 2,248 call notes on 900 deals, every vendor and source, the public counts, the results from the other desks, and the three segment tests. The demo's AI answers come from deterministic stand-ins written in code, not from Claude; the segment story stand-in is written to fail its check on the Enterprise segment so the withheld state shows. Live Claude answers exist only in the eval recordings.
 
@@ -99,13 +99,13 @@ Three live runs cost $1.92 in all against a $15 cap. The first run judged only 3
 | P1 | Usage-based pricing wins far more often, independent of size and region | Clearly higher: 114 of 321 deals (36%) against 15% for other known pricing models; proposed as a rule; listed as a rule Account Desk cannot read |
 | P2 | 2,000 to 4,999 employees rarely close and take longer | Clearly lower: 10 of 168 (6%), won-deal cycle 220 days; proposed as a penalty |
 | P3 | Healthcare software loses on compliance | Clearly lower: 16 of 189; compliance is 61% of its losses; proposed as an exclude |
-| P4 | Salesforce users win more only because they are the right size | Explained by size: 27% against 10% overall, and the difference goes away within size bands |
+| P4 | Salesforce users win more only because they are the right size | Explained by size: 27% against 10% for deals without it, and the difference goes away within size bands |
 | P5 | Brazil: 9 opportunities, all marketplaces, 5 won | Too few to tell; never a rule |
 | P6 | Buying roles in DACH are hard to find (about 40% against 85%) | DACH's SAM is $9.1M to $19.5M against a TAM of $24.3M to $51.5M |
 | P7 | Two finished segment tests: fintech 120 to 499 books meetings at 22% worked against 11% held back; developer tools at 11% against 11% | A clear difference and an open proposal to expand fintech; no clear difference for developer tools |
 | P8 | HQ city and founding year carry no effect | Not one of them is clear |
 
-The world was tuned until the rules found what was planted; the rules were not tuned to the world (`docs/DECISIONS.md`). Other figures that hold up to a look: a 21% win rate on closed new business, an 81-day median won-deal cycle, a $38,655 median deal. Not like the plan: 15% of new-business deals are open (the plan said about 5%; the desks' results opened deals in the last weeks), and the public counts hold 991 cells, not about 1,200.
+The world was tuned until the rules found what was planted; the rules were not tuned to the world (`docs/DECISIONS.md`). Other figures that hold up to a look, over all three years: a 21% win rate on closed new business, an 81-day median won-deal cycle, a $38,655 median deal. Not like the plan: 15% of new-business deals are open (the plan said about 5%; the desks' results opened deals in the last weeks), and the public counts hold 991 cells, not about 1,200.
 
 ## Not yet proven
 

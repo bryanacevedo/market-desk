@@ -1,4 +1,4 @@
-"""Capacity, territories and assignment (docs/SPEC.md 9.1). Capacity is throughput x window x seats (L-016): hours a
+"""Capacity, territories and assignment (docs/SPEC.md 9.1). Capacity is throughput x window x seats: hours a
 month each account needs by tier, against each person's selling hours times their effective FTE."""
 from __future__ import annotations
 

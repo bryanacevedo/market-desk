@@ -1,6 +1,6 @@
 # Market Desk: project status
 
-**Updated:** 2026-11-12. **Name:** Market Desk (Bryan's kickoff). **Plan:** `~/Developer/upstream-desk-plan/PLAN.md`; spec `docs/SPEC.md` (section 15 holds the gate 0 corrections and wins where they differ); decisions `docs/DECISIONS.md` 1 to 26.
+**Updated:** 2026-11-12. **Spec:** `docs/SPEC.md` (section 15 holds the gate 0 corrections and wins where they differ); decisions `docs/DECISIONS.md` 1 to 30.
 
 ## Where it stands
 
@@ -11,7 +11,7 @@ Built end to end on a simulated world, overnight 2026-11-11 to 12. Public at htt
 Checked by running, on the demo database built from seed 7:
 - 18,005 companies; 1,647 new-business and 166 expansion deals over 36 months; 286 customers, 35 of them churned; 2,248 call notes on 900 deals; 1,163 deals in the 24-month evidence window, 79 trait values tested; 53 tests passing; 45 rules-against-data checks passing.
 - Every planted relationship P1 to P8 found by the desk's own rules (`docs/SCENARIO-COVERAGE.md`).
-- The demo builds in about 35 seconds locally, in date order from 2024 to 11 November 2026.
+- The demo builds in about 35 seconds locally, in date order from November 2023 to 11 November 2026.
 
 ## Review gates
 
@@ -33,7 +33,7 @@ Every gate was run by a fresh agent that had not seen the build (never a fork), 
 
 ## Proven and not proven
 
-Proven by tests on real Postgres 18: statistics against published values; the size check; fit reproduces from stored inputs; two-person publish and activate; the held-back trigger; Account Desk equivalence on every exported company with its fields known; the Events Desk document's headings, numbers and tiers; 50 planted names never reach the database; the AI gates on failing fixtures; the shared world export is identical across two builds; two world builds write identical rows.
+Proven by tests on real Postgres 18: statistics against published values; the size check; fit reproduces from stored inputs; two-person publish and activate; the held-back trigger; Account Desk equivalence on every exported company with its fields known; the Events Desk document's headings, numbers and tiers; 50 planted names never reach the database; the AI gates on failing fixtures; exporting the shared world twice from one database gives identical files; two builds of the world from its seed write identical rows (checked on a 1,500-company world without the story).
 
 Not proven: anything against a real CRM, vendor or public count; Account Desk or Events Desk importing these files; header auth through Cloudflare Access.
 
@@ -43,6 +43,7 @@ Nothing from the plan's cut list so far. The MCP server is built (4 read-only to
 
 ## Next
 
-- Account Desk change (plan Q6): accept pricing model and segment, so usage pricing stops being a dropped rule.
+- An Account Desk change: accept pricing model and segment, so usage pricing stops being a dropped rule.
 - Have Account Desk and Events Desk load the shared world export.
-- A walkthrough video (plan Q9).
+- A walkthrough video.
+- Publishing a profile version does not redraw the plan; RevOps drafts a new plan after it (worth automating as a draft).

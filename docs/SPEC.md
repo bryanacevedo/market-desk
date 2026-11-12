@@ -1,6 +1,6 @@
 # Market Desk: specification
 
-**Written:** 2026-11-11 from `PLAN.md` (in `~/Developer/upstream-desk-plan`). Corrected by the gate 0 review (section 15). Where this spec and the plan differ, this spec wins and the difference is in `docs/DECISIONS.md`.
+**Written:** 2026-11-11 from the build plan and its research (kept outside this repo). Corrected by the gate 0 review (section 15). Where this spec and the plan differ, this spec wins and the difference is in `docs/DECISIONS.md`.
 
 Market Desk decides who a B2B team sells to. It learns the ideal customer profile from every deal won, lost and churned; sizes each segment the team can reach and work; tiers every company and assigns it to someone with room to work it; hands that book to Account Desk and Events Desk; and proposes profile changes when their results say the profile was wrong. It stores companies and roles, never named prospects.
 
@@ -29,7 +29,7 @@ Company money (deal sizes, TAM, SAM, SOM in dollars, expected value, costs) is r
 
 One migration `0001_core.sql`; later fixes are new numbered files. Money is integer cents. Tables people change carry `created_at` and `created_by`. `app_now()` reads the desk clock (`sim_clock`), which the demo sets to 2026-11-11 12:00 UTC.
 
-Tables, as in PLAN section 3, with these columns added or settled:
+Tables (see `migrations/0001_core.sql`), with these columns settled:
 
 - `companies` adds `hq_city text`, `founded_year int`, `country text` (ISO 2), `region_group text` (`North America` (US, CA, MX, as Account Desk's `region_of`), `UK and Ireland`, `DACH`, `France and Benelux`, `Nordics`, `Southern Europe`, `Latin America` (BR, AR), `Asia Pacific`), `sole_trader bool`. `region` is Account Desk's `setup_desk.region_of(country)` copied exactly.
 - `sources` adds `cadence_hours int` and `no_redistribution bool`.
@@ -65,7 +65,7 @@ The demo opens on 2026-11-11 with profile v3 published (Account Desk's ICP with 
 
 ### 5.1 The shared world export
 
-The simulated world is meant to become the shared universe for all three desks later (Bryan, 2026-11-11). `python -m market world-export DIR` writes, from the demo database and the fixed seed:
+The simulated world is meant to become the shared universe for all three desks later (the owner's direction, 2026-11-11). `python -m market world-export DIR` writes, from the demo database and the fixed seed:
 
 - `companies.csv`: `world_id,name,domain,parent_domain,industry,employees,country,region,region_group,revenue_band,pricing_model,tech,lifecycle,hq_city,founded_year`. `world_id` is `co_` plus the first 12 hex characters of sha256 of the domain, so it is stable across builds and does not depend on database ids.
 - `people.csv`: `world_id,company_world_id,first_name,last_name,title,persona,seniority,email`. Invented people, generated from the seed and the company's `world_id` only (never from the database), 2 to 6 per company for tier A and B companies of the published profile. They are written to the export file only; Market Desk never stores them in its database (decision 1). `world_id` is `pe_` plus 12 hex characters of sha256 of company world id and the person's index.
@@ -155,7 +155,7 @@ Written by an agent that never sees `src/`: 60 classify, 80 loss_code, 20 segmen
 
 ## 12. Pages and side sheets
 
-As PLAN section 10. Pages: Market, Evidence, Profile, Accounts, Territories (tab Capacity), Tests, Changes, Handoffs, Sources, My book, Settings. Sheets: Segment, Finding, Company, Person, Profile version, Plan move, Test, Proposal, Book, Source. Everything that names a thing opens it; a sheet opened from another shows the way back; Esc, outside click, back and the close button close it. Phone (375): bottom bar Market, Accounts, Changes, More (RevOps and managers); My book, Accounts, More (SDRs and AEs). Every sentence a screen can show is in `docs/SCREEN-COPY.txt`; a test fails on a new one.
+Pages: Market, Evidence, Profile, Accounts, Territories (tab Capacity), Tests, Changes, Handoffs, Sources, My book, Settings. Sheets: Segment, Finding, Company, Person, Profile version, Plan move, Test, Proposal, Book, Source. Everything that names a thing opens it; a sheet opened from another shows the way back; Esc, outside click, back and the close button close it. Phone (375): bottom bar Market, Accounts, Changes, More (RevOps and managers); My book, Accounts, More (SDRs and AEs). Every sentence a screen can show is in `docs/SCREEN-COPY.txt`; a test fails on a new one.
 
 ## 13. Security and compliance
 
@@ -163,7 +163,16 @@ SQL parameters everywhere; roles checked in the API for every write and every mo
 
 ## 14. Definition of done
 
-PLAN section 12 "Definition of done", items 1 to 10.
+1. PROJECT-STATUS lists gates 0 to 10 with a date and a result for each, and what was cut.
+2. `make setup && make demo` builds the world and serves it at http://localhost:8800, or the live URL opens.
+3. Market shows TAM, SAM and SOM as ranges, and DACH's SAM far below its TAM.
+4. Evidence shows usage pricing as Clearly higher, 2,000 to 4,999 employees as Clearly lower, Salesforce as Explained by size, Brazil as Too few to tell, and nothing for HQ city.
+5. Profile's draft v4 shows what moves before publish, and its author cannot publish it.
+6. Territories shows hours against capacity per person and the hiring gap; the Q1 draft can be activated by Elena, not by Sam.
+7. Handoffs offers an Account Desk CSV and ICP that list usage pricing as a dropped rule (from the draft), and an Events Desk document in its format.
+8. `make test` passes on Postgres 18, including scenario coverage, rules against data, screen copy and statistics against known values.
+9. README's "What is real and what is simulated" names P1 to P8, and the AI table shows real numbers or says "not run live".
+10. No em or en dash anywhere in the repo.
 
 ## 14a. Corrections from gates 1 to 6 (2026-11-12)
 
