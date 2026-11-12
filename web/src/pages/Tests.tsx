@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Flask } from "@phosphor-icons/react";
 import { api } from "../api";
 import { Empty, Failed, Loading, Section, Status, day, n0, pct, useBusy, useData } from "../lib";
+import { RangeLine } from "../parts";
 import { openSheet } from "../sheets";
 
 const DECISION: Record<string, string> = { expand: "Expanded", drop: "Dropped", extend: "Extended" };
@@ -38,21 +39,20 @@ export function Tests() {
   if (error) return <div className="page"><Failed error={error} retry={reload} /></div>;
   if (!data) return <div className="page"><div className="head"><h1>Tests</h1></div><Loading /></div>;
   const chosen = data.segments.find((s: any) => s.key === segment);
-  const cols = "minmax(0,1.2fr) 110px 120px 120px minmax(170px,1fr)";
+  const cols = "minmax(0,1.2fr) 110px minmax(200px,1.4fr) minmax(170px,1fr)";
   return (
     <div className="page">
       <div className="head"><h1>Tests</h1></div>
       {data.rows.length ? (
         <div className="ledger">
-          <div className="row head" style={{ gridTemplateColumns: cols }}><span>Segment</span><span>Started</span><span className="num">Worked, met</span><span className="num">Held back, met</span><span>Result</span></div>
+          <div className="row head" style={{ gridTemplateColumns: cols }}><span>Segment</span><span>Started</span><span>Worked met, ring: held back</span><span>Result</span></div>
           {data.rows.map((t: any) => {
             const [g, w] = testState(t);
             return (
               <button key={t.id} className="row" style={{ gridTemplateColumns: cols }} onClick={() => openSheet("test", t.id)}>
                 <span className="cell-main"><span className="t">{t.segment_label}</span><span className="s">{n0(t.members)} accounts</span></span>
                 <span className="mute">{t.started_on ? day(t.started_on) : "Not started"}</span>
-                <span className="num">{pct(t.report.treated.rate)}</span>
-                <span className="num">{pct(t.report.holdout.rate)}</span>
+                <span data-label="Worked, ring: held back"><RangeLine rate={t.report.treated.rate} other={t.report.holdout.rate} max={0.3} /></span>
                 <span className="cell-main"><Status kind={g}>{w}</Status>{t.decision ? <span className="s">{DECISION[t.decision]}</span> : null}</span>
               </button>
             );

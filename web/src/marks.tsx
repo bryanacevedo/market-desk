@@ -5,8 +5,9 @@ import { initials } from "./lib";
 // Every company in the demo is invented, so each gets an invented mark: a geometric glyph on a brand colour,
 // chosen from its domain so the same company always wears the same logo.
 
-const COLORS = ["#1D3A8A", "#0F766E", "#9A3412", "#1F2937", "#047857", "#9D174D", "#0E7490", "#B45309", "#3F3F9C",
-  "#BE123C", "#166534", "#334155", "#C2410C", "#155E75", "#6D28D9", "#A16207"];
+// Market Desk's marks are one earthy family (umber, slate, olive, ink, ochre), like inks on a survey map.
+const COLORS = ["#6B4A2B", "#3E5566", "#5C6B3A", "#2A2F36", "#8A5A2B", "#4F5D57", "#7A4E3A", "#35505E", "#6F6A3E",
+  "#4A3F35", "#556B6E", "#7C5C36", "#3D4A3A", "#5A4A5E", "#6E5A3C", "#3B4B58"];
 
 function hash(s: string): number {
   let h = 2166136261;

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { CheckSquare, Lightbulb } from "@phosphor-icons/react";
 import { api } from "../api";
 import { Empty, Failed, Loading, Section, Status, navigate, useBusy, useData } from "../lib";
+import { RangeLine } from "../parts";
 import { openSheet } from "../sheets";
 
 export const KIND: Record<string, string> = {
@@ -17,6 +18,24 @@ export function ProposalWords({ p }: { p: any }) {
     <dl className="kv small">
       <dt>Change</dt><dd>{p.change.field_label}: {p.change.value_label}</dd>
       {f ? <><dt>Win rate</dt><dd>{f.win_rate} ({f.range})</dd><dt>Others</dt><dd>{f.rest_win_rate}</dd><dt>Deals</dt><dd>{Number(f.opportunities).toLocaleString("en-US")}</dd></> : null}
+    </dl>
+  );
+}
+
+/** The evidence behind a proposal, drawn: the win rate (or, for a test, the meeting rate) against the others. */
+function Evidence({ p }: { p: any }) {
+  const f = p.findings[0];
+  if (!f) return null;
+  const num = (x: string) => (x ? Number(String(x).replace("%", "")) / 100 : null);
+  const range = String(f.range || "").match(/(\d+)% to (\d+)%/);
+  const test = !p.finding_ids.length;
+  return (
+    <dl className="kv prop-ev">
+      <dt>{test ? "Worked, met" : "Win rate"}</dt>
+      <dd><RangeLine rate={num(f.win_rate)} low={test || !range ? null : Number(range[1]) / 100} high={test || !range ? null : Number(range[2]) / 100}
+        other={num(f.rest_win_rate)} /></dd>
+      <dt>{test ? "Accounts" : "Deals"}</dt><dd>{Number(f.opportunities).toLocaleString("en-US")}</dd>
+      {f.top_loss ? <><dt>Top loss</dt><dd>{f.top_loss[0].toUpperCase() + f.top_loss.slice(1)}</dd></> : null}
     </dl>
   );
 }
@@ -46,7 +65,7 @@ export function Changes() {
             {data.open.map((p: any, i: number) => (
               <div key={p.id} className={`prop${i === 0 ? " halo" : ""}`}>
                 <div className="prop-top">
-                  {revops ? <input type="checkbox" aria-label="Choose for a draft" checked={picked.includes(p.id)} onChange={() => toggle(p.id)} /> : null}
+                  {revops ? <label><input type="checkbox" aria-label="Choose for a draft" checked={picked.includes(p.id)} onChange={() => toggle(p.id)} /></label> : null}
                   <button className="link-row" onClick={() => openSheet("proposal", p.id)}>
                     <span className="t prop-kind">{KIND[p.kind]}: {p.change.value_label}</span>
                   </button>
@@ -54,6 +73,7 @@ export function Changes() {
                   {p.text_status === "withheld" ? <Status kind="none">Withheld</Status> : null}
                 </div>
                 <ProposalWords p={p} />
+                <Evidence p={p} />
                 <div className="prop-foot">
                   {p.findings.map((f: any) => p.finding_ids.length ? (
                     <button key={f.id} className="link small" onClick={() => openSheet("finding", f.id)}>{f.value}: {f.verdict}</button>

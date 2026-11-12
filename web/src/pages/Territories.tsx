@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { MapTrifold, UsersThree } from "@phosphor-icons/react";
 import { api } from "../api";
 import { Empty, Failed, Fig, Loading, Section, Seg, Status, day, money, n0, navigate, useBusy, useData, usePath, withParam } from "../lib";
@@ -16,6 +17,11 @@ export function Territories() {
   const plan = data.plan;
   if (!plan) return <div className="page"><div className="head"><h1>Territories</h1></div><Empty title="No plan yet" /></div>;
   const canActivate = plan.status === "draft" && me?.user.role === "manager" && me?.user.id !== plan.author_id;
+  const activateButton = <div className="actions">
+            <button className="btn" disabled={busy || !canActivate}
+              title={canActivate ? undefined : "A manager other than the author activates it"}
+              onClick={() => run(() => api(`/api/plans/${plan.id}/activate`, { method: "POST" }), "Activated. Owners moved.")}>Activate</button>
+  </div>;
   return (
     <div className="page">
       <div className="head">
@@ -26,19 +32,15 @@ export function Territories() {
         <Seg label="Plan" value={String(plan.id)} options={data.plans.filter((p: any) => p.status !== "retired").map((p: any) => [String(p.id), `${p.name}${p.status === "draft" ? ", draft" : ""}`])}
           onChange={(v) => navigate(withParam("plan", v), true)} />
         {plan.status === "draft" ? (
-          <div className="actions">
-            <button className="btn" disabled={busy || !canActivate}
-              title={canActivate ? undefined : "A manager other than the author activates it"}
-              onClick={() => run(() => api(`/api/plans/${plan.id}/activate`, { method: "POST" }), "Activated. Owners moved.")}>Activate</button>
-          </div>
+          <span className="small mute">{canActivate ? "Ready to activate" : "Waiting for a manager"}</span>
         ) : <span className="mute small">Active since {day(plan.activated_at)}, by {plan.activated_by}</span>}
       </div>
-      {tab === "plan" ? <PlanView data={data} money={!!me?.money} /> : <CapacityView data={data} />}
+      {tab === "plan" ? <PlanView data={data} money={!!me?.money} activate={plan.status === "draft" ? activateButton : null} /> : <CapacityView data={data} />}
     </div>
   );
 }
 
-function PlanView({ data, money: showMoney }: { data: any; money: boolean }) {
+function PlanView({ data, money: showMoney, activate }: { data: any; money: boolean; activate: ReactNode }) {
   const plan = data.plan;
   const cols = "minmax(0,1.1fr) minmax(0,1.1fr) 58px 58px minmax(160px,1.1fr)" + (showMoney ? " 110px 110px" : "");
   return (
@@ -65,6 +67,7 @@ function PlanView({ data, money: showMoney }: { data: any; money: boolean }) {
       </Section>
       <Section title="Territories" icon={MapTrifold}>
         <div className="ledger">
+          <div className="row head" style={{ gridTemplateColumns: "minmax(0,1.2fr) minmax(0,1fr) 80px 130px" }}><span>Territory</span><span>People</span><span className="num">A and B</span><span /></div>
           {data.territories.map((t: any) => (
             <div key={t.id} className="row" style={{ gridTemplateColumns: "minmax(0,1.2fr) minmax(0,1fr) 80px 130px" }}>
               <span className="cell-main"><span className="t">{t.label}</span><span className="s">{t.segments.join(", ")}</span></span>
@@ -76,7 +79,7 @@ function PlanView({ data, money: showMoney }: { data: any; money: boolean }) {
         </div>
       </Section>
       {plan.status === "draft" && data.changes ? (
-        <div className="halo"><Section title="What changes" count={data.changes.changes}>
+        <div className="halo"><Section title="What changes" count={data.changes.changes} right={activate}>
           {data.changes.crossing ? <Status kind="stop">{`${n0(data.changes.crossing)} open deals would leave their owner`}</Status> : null}
           <div className="ledger">
             <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) 80px 80px 80px" }}><span>Person</span><span className="num">Gains</span><span className="num">Losses</span><span className="num">Net</span></div>

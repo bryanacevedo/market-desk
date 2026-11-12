@@ -43,14 +43,17 @@ export function Tier({ tier, judged = true }: { tier: string; judged?: boolean |
   return <span className={`tier tier-${tier.toLowerCase()}`}>{tier}</span>;
 }
 
-/** Used of allowed, as a bar with the numbers on it: "88 of 100 hours". */
+/** Used of allowed, as a bar with the numbers on it: "88 of 100 hours". Over 100% the bar runs past a tick at the
+ *  allowance and the word Over says so, in ink, not in a status colour. */
 export function Hours({ used, of }: { used: number; of: number }) {
   const over = used > of + 0.05;
-  const w = of > 0 ? Math.min(1, used / of) : used > 0 ? 1 : 0;
+  const scale = Math.max(of, used, 1);
+  const w = used / scale;
   return (
     <span className={`hours${over ? " over" : ""}`}>
-      <span className="track"><i style={{ width: `${(w * 100).toFixed(1)}%` }} /></span>
-      <span className="val">{Math.round(used)} of {Math.round(of)} hours</span>
+      <span className="track"><i style={{ width: `${(w * 100).toFixed(1)}%` }} />
+        {over ? <b className="hours-tick" style={{ left: `${((of / scale) * 100).toFixed(1)}%` }} /> : null}</span>
+      <span className="val">{over ? <strong>Over </strong> : null}{Math.round(used)} of {Math.round(of)} hours</span>
     </span>
   );
 }
@@ -63,21 +66,25 @@ export const SEG_LABEL = (s: string | null | undefined, labels?: Record<string, 
 
 // ---------------------------------------------------------------- the signature: ranges as intervals
 
+/** One scale for every win rate on every screen, so the same rate sits in the same place everywhere. */
+export const RATE_MAX = 0.6;
+
 /** A rate drawn as an interval on a 0 to `max` scale: the band from low to high, a tick at the point, a hollow ring
- *  at the comparison. The number is written beside it. */
-export function RangeLine({ rate, low, high, other, max = 1, label }: { rate: number | null | undefined; low?: number | null;
-  high?: number | null; other?: number | null; max?: number; label?: string }) {
+ *  at the comparison. The number is written beside it; the band's ends are written under it when asked. */
+export function RangeLine({ rate, low, high, other, max = RATE_MAX, label, ends }: { rate: number | null | undefined; low?: number | null;
+  high?: number | null; other?: number | null; max?: number; label?: string; ends?: boolean }) {
   if (rate === null || rate === undefined) return <span className="faint">None</span>;
   const x = (v: number) => `${Math.max(0, Math.min(100, (100 * v) / max))}%`;
   const lo = low ?? rate;
   const hi = high ?? rate;
   return (
-    <span className="range" role="img" aria-label={`${label ?? ""}${pct(rate)}, ${pct(lo)} to ${pct(hi)}${other !== null && other !== undefined ? `, others ${pct(other)}` : ""}`}>
+    <span className={`range${ends ? " with-ends" : ""}`} role="img" aria-label={`${label ?? ""}${pct(rate)}, ${pct(lo)} to ${pct(hi)}${other !== null && other !== undefined ? `, others ${pct(other)}` : ""}`}>
       <span className="range-val">{pct(rate)}</span>
       <span className="range-line" aria-hidden="true">
         <i className="range-band" style={{ left: x(lo), width: `calc(${x(hi)} - ${x(lo)})` }} />
         {other !== null && other !== undefined ? <i className="range-other" style={{ left: x(other) }} /> : null}
         <i className="range-point" style={{ left: x(rate) }} />
+        {ends ? <><small className="range-end" style={{ left: x(lo) }}>{pct(lo)}</small><small className="range-end hi" style={{ left: x(hi) }}>{pct(hi)}</small></> : null}
       </span>
     </span>
   );
@@ -88,7 +95,16 @@ const logPos = (v: number, lo: number, hi: number) => {
   return Math.max(0, Math.min(100, (100 * (a - b)) / (c - b)));
 };
 
-/** TAM, SAM and SOM drawn on one money scale (log), each a band from its low to its high, with its range written. */
+/** The floor and ceiling of a log money scale for a set of ranges: a little under the smallest low end above zero. */
+export function moneyScale(values: (number | undefined)[]): [number, number] {
+  const pos = values.filter((v): v is number => !!v && v > 0);
+  const ceil = Math.max(...pos, 1);
+  const floor = Math.max(Math.min(...pos, ceil) / 2, 1);
+  return [floor, ceil];
+}
+
+/** TAM, SAM and SOM drawn on one log money scale, each a band from its low to its high, with its range written.
+ *  A range of zero is the word None, with no mark. */
 export function Nest({ rows, floor, ceil }: { rows: [string, number | undefined, number | undefined][]; floor: number; ceil: number }) {
   return (
     <span className="nest">
@@ -96,29 +112,42 @@ export function Nest({ rows, floor, ceil }: { rows: [string, number | undefined,
         <span key={k} className="nest-row">
           <b>{k}</b>
           <span className="range-line" aria-hidden="true">
-            <i className="range-band" style={{ left: `${logPos(Math.max(lo, 1), floor, ceil)}%`, width: `${Math.max(1.5, logPos(Math.max(hi, 1), floor, ceil) - logPos(Math.max(lo, 1), floor, ceil))}%` }} />
+            {hi > 0 ? <i className="range-band" style={{ left: `${logPos(Math.max(lo, floor), floor, ceil)}%`, width: `${Math.max(1.5, logPos(hi, floor, ceil) - logPos(Math.max(lo, floor), floor, ceil))}%` }} /> : null}
           </span>
-          <span className="range-val">{moneyRange(lo, hi)}</span>
+          <span className="range-val">{hi > 0 ? moneyRange(lo, hi) : "None"}</span>
         </span>
       ))}
     </span>
   );
 }
 
-/** The market as a field: one tile per segment, as wide as its reachable market, toned by its share of tier A. */
-export function MarketField({ tiles, onPick }: { tiles: { key: string; label: string; weight: number; tone: number; value: string; muted?: boolean }[]; onPick: (k: string) => void }) {
-  const total = tiles.reduce((s, t) => s + t.weight, 0) || 1;
+/** The market as a field: one tile per segment, drawn exactly as wide as its reachable market (SAM, high end).
+ *  Segments too small to draw are gathered into one tile that says so; a segment with none is left out. Each tile
+ *  writes its share at tier A, which also sets its shade. */
+export function MarketField({ tiles, onPick, smaller }: { tiles: { key: string; label: string; weight: number; aShare: number; value: string; muted?: boolean }[];
+  onPick: (k: string) => void; smaller: string }) {
+  const live = tiles.filter((t) => t.weight > 0);
+  const total = live.reduce((s, t) => s + t.weight, 0) || 1;
+  const big = live.filter((t) => t.weight / total >= 0.04);
+  const small = live.filter((t) => t.weight / total < 0.04);
   return (
-    <div className="field" role="list" aria-label="Segments by reachable market">
-      {tiles.map((t, i) => (
-        <button key={t.key} role="listitem" type="button" onClick={() => onPick(t.key)}
-          title={`${t.label}, ${t.value}`}
-          className={`tile${t.muted ? " muted" : t.tone > 55 ? " dark" : ""}${t.weight / total < 0.08 ? " narrow" : ""}`}
-          style={{ flex: `${Math.max(t.weight / total, 0.045)} 1 0`, ["--tone" as any]: t.muted ? 0 : Math.round(t.tone), animationDelay: `${i * 40}ms` }}>
+    <div className="field" role="list" aria-label="SAM by segment">
+      {big.map((t, i) => (
+        <button key={t.key} role="listitem" type="button" onClick={() => onPick(t.key)} title={`${t.label}, ${t.value}`}
+          className={`tile${t.muted ? " muted" : ""}${t.weight / total < 0.08 ? " narrow" : ""}`}
+          style={{ flex: `${t.weight / total} 1 0`, ["--tone" as any]: t.muted ? 0 : Math.round(8 + 34 * t.aShare), animationDelay: `${i * 40}ms` }}>
           <span className="tile-name">{t.label}</span>
           <span className="tile-val">{t.value}</span>
+          {!t.muted ? <span className="tile-a">A {Math.round(100 * t.aShare)}%</span> : null}
         </button>
       ))}
+      {small.length ? (
+        <span role="listitem" className="tile smaller" style={{ flex: `${small.reduce((s, t) => s + t.weight, 0) / total} 1 0` }}
+          title={small.map((t) => `${t.label}, ${t.value}`).join("; ")}>
+          <span className="tile-name">{smaller}</span>
+          <span className="tile-val">{small.length}</span>
+        </span>
+      ) : null}
     </div>
   );
 }

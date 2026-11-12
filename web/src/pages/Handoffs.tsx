@@ -12,7 +12,7 @@ export function Handoffs() {
   if (error) return <div className="page"><Failed error={error} retry={reload} /></div>;
   if (!data) return <div className="page"><div className="head"><h1>Handoffs</h1></div><Loading /></div>;
   const revops = me?.user.role === "revops";
-  const cols = "minmax(0,1.2fr) 70px 70px 70px 80px 80px minmax(0,1fr)";
+  const cols = "minmax(0,1.2fr) 70px 70px 80px 90px 100px minmax(0,1fr)";
   return (
     <div className="page">
       <div className="head">

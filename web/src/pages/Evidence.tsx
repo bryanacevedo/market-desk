@@ -24,7 +24,7 @@ export function Evidence() {
         <h1>Evidence</h1>
       </div>
       <div className="figs">
-        <Fig value={`${monthsBetween(data.run.window_start, data.run.window_end)}`} unit=" months" label="Closed in the last" />
+        <Fig value={`${monthsBetween(data.run.window_start, data.run.window_end)}`} unit=" months" label="Window" />
         <Fig value={n0(data.run.deals)} label="Deals" />
         <Fig value={n0(data.run.tested)} label="Values tested" />
         <Fig value={clear} label="Clear" />
@@ -47,7 +47,7 @@ export function Evidence() {
             <button key={r.id} className="row" style={{ gridTemplateColumns: cols }} onClick={() => openSheet("finding", r.id)}>
               <span className="cell-main"><span className="t">{r.value}</span><span className="s">{r.trait_label}</span></span>
               <span className="num" data-label="Deals">{n0(r.opps)}</span>
-              <span data-label="Win rate"><RangeLine rate={r.rate} low={r.low} high={r.high} other={r.rest_rate} max={0.7} /></span>
+              <span data-label="Win rate"><RangeLine rate={r.rate} low={r.low} high={r.high} other={r.rest_rate} /></span>
               <span className="num" data-label="Won-deal cycle">{r.cycle ? `${Math.round(r.cycle.median)} days` : <span className="faint">Too few</span>}</span>
               <span className="num" data-label={me?.money ? "Deal size" : undefined}>{me?.money ? money(r.acv_median) : ""}</span>
               <Verdict v={r.verdict} />

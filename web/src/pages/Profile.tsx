@@ -91,7 +91,8 @@ export function Profile() {
               title={d.can_publish ? undefined : "A manager other than the author publishes"}
               onClick={() => run(() => api(`/api/profile/versions/${d.id}/publish`, { method: "POST" }), "Published. Every company is being rescored.")}>Publish</button>
           </div>}>
-          <div className="small mute">{d.author}, {day(d.created_at)}. {d.note}</div>
+          <div className="small mute">{d.note}</div>
+          {!d.can_publish ? <div className="small">A manager other than {d.author} publishes</div> : null}
           <Moves id={d.id} />
         </Section></div>
       ))}

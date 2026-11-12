@@ -5,7 +5,7 @@ import {
 import { api } from "./api";
 import { Logo } from "./marks";
 import { Bar, Empty, Failed, Fig, Loading, Section, Status, day, money, n0, navigate, pct, useBusy, useData } from "./lib";
-import { Hours, Nest, RangeLine, Tier, TierMix, Verdict } from "./parts";
+import { Hours, Nest, RangeLine, Tier, TierMix, Verdict, moneyScale } from "./parts";
 
 // ---------------------------------------------------------------- the sheet frame (Account Desk's, with this desk's kinds)
 
@@ -141,12 +141,12 @@ function SegmentSheet({ id }: { id: string }) {
             <Section title="Sizing">
               <dl className="kv">
               </dl>
-              <Nest floor={Math.max(z.tam_high / 100_000, 100_000)} ceil={Math.max(z.tam_high, 1)}
+              <Nest floor={moneyScale([z.tam_high, z.som_low, z.som_high])[0]} ceil={moneyScale([z.tam_high, z.som_low, z.som_high])[1]}
                 rows={[["TAM", z.tam_low, z.tam_high], ["SAM", z.sam_low, z.sam_high], ["SOM", z.som_low, z.som_high]]} />
               <dl className="kv">
                 <dt>Deal size</dt><dd>{money(z.acv_basis.p25)} to {money(z.acv_basis.p75)}{z.acv_basis.from === "overall" ? <span className="mute">, all segments</span> : null}</dd>
-                <dt>Win rate range for sizing</dt><dd>{pct(z.win_rate_basis.low)} to {pct(z.win_rate_basis.high)}</dd>
-                <dt>Worked accounts that became deals</dt><dd>{pct(z.capacity_basis.opp_low)} to {pct(z.capacity_basis.opp_high)}</dd>
+                <dt>Win rate used</dt><dd><RangeLine rate={z.win_rate_basis.shrunk} low={z.win_rate_basis.low} high={z.win_rate_basis.high} ends /></dd>
+                <dt>Became deals</dt><dd><RangeLine rate={z.capacity_basis.opp_rate} low={z.capacity_basis.opp_low} high={z.capacity_basis.opp_high} max={0.2} ends /></dd>
                 <dt>Accounts the plan can work</dt><dd>{n0(z.capacity_basis.capacity_accounts)}</dd>
               </dl>
             </Section>
@@ -191,8 +191,8 @@ function FindingSheet({ id }: { id: string }) {
           {f.cycle ? <Fig sm value={`${Math.round(f.cycle.median)}`} unit=" days" label="Won-deal cycle" /> : null}
         </div>
         <dl className="kv">
-          <dt>Win rate range</dt><dd><RangeLine rate={f.rate} low={f.low} high={f.high} other={f.rest_rate} max={0.7} /></dd>
-          <dt>Others</dt><dd>{n0(f.rest_opps)} deals</dd>
+          <dt>Range</dt><dd><RangeLine rate={f.rate} low={f.low} high={f.high} other={f.rest_rate} ends /></dd>
+          <dt>Other deals</dt><dd>{n0(f.rest_opps)}</dd>
           {f.cycle ? <><dt>Cycle range</dt><dd>{Math.round(f.cycle.low)} to {Math.round(f.cycle.high)} days</dd></> : null}
           {f.acv_median !== undefined && f.acv_median !== null ? <><dt>Deal size</dt><dd>{money(f.acv_median)} ({money(f.acv_p25)} to {money(f.acv_p75)})</dd></> : null}
           {f.churn !== null ? <><dt>Left within a year</dt><dd>{pct(f.churn)} of {n0(f.churn_n)}</dd></> : null}
@@ -219,7 +219,7 @@ function FindingSheet({ id }: { id: string }) {
               <button key={d.id} className="row" style={{ gridTemplateColumns: "24px minmax(0,1fr) 90px 80px" }} onClick={() => openSheet("company", d.company)}>
                 <Logo domain={d.primary_domain} name={d.name} size={24} />
                 <span className="cell-main"><span className="t">{d.name}</span><span className="s">{day(d.closed_at)}{d.loss_code ? `, ${LOSS[d.loss_code].toLowerCase()}` : ""}</span></span>
-                <Status kind={d.outcome === "won" ? "ok" : "off"}>{d.outcome === "won" ? "Won" : "Lost"}</Status>
+                <Status kind={d.outcome === "won" ? "ok" : "stop"}>{d.outcome === "won" ? "Won" : "Lost"}</Status>
                 <span className="num">{money(d.amount_cents)}</span>
               </button>
             ))}

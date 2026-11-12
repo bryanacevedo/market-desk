@@ -119,3 +119,44 @@ h1 { font-size: 30px; line-height: 36px; font-weight: 560; letter-spacing: -0.01
   .ledger.market .row > :nth-child(2), .ledger.market .row > :nth-child(3) { display: none; }
 }
 .nest-row .range-val { min-width: 0; white-space: nowrap; }
+
+/* ------------------------------------------------------------------ after the three-desk review */
+
+/* Tiles carry ink text on every shade (the darkest shade stays light enough for 4.5:1), their share at tier A, and a
+   gathered tile for segments too small to draw. */
+.tile, .tile.dark { color: var(--ink); }
+.tile-a { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.tile.narrow .tile-a { display: none; }
+.tile.smaller { cursor: default; background: var(--ground); box-shadow: inset 0 0 0 1px var(--line); color: var(--mute); }
+.tile.smaller:hover { transform: none; }
+
+/* A range's ends, written under the band when the reader needs the numbers. */
+.range.with-ends .range-line { height: 30px; }
+.range-end { position: absolute; top: 16px; transform: translateX(-50%); font-size: 11px; color: var(--mute); white-space: nowrap; }
+
+/* Over the allowance: the bar runs past a tick at 100%, in ink, and the word Over says it. */
+.hours.over .track i { background: var(--ink); }
+.hours-tick { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--ground); box-shadow: 0 0 0 1px var(--ink-2); }
+.hours.over .val strong { font-weight: 650; }
+
+/* The halo is a ring and a wash, no blur. Motion settles without overshoot. */
+:root { --halo: 0 0 0 4px var(--accent-wash), 0 0 0 5px color-mix(in srgb, var(--accent) 26%, transparent); }
+.kind-mark, .empty-icon, .nav .n, .toast { animation-timing-function: var(--ease) !important; }
+
+@media (max-width: 900px) {
+  .ledger.market .row { grid-template-columns: minmax(0, 1fr) !important; }
+  .nest { width: 100%; }
+  .nest .range-line { min-width: 120px; }
+  .nest-row { grid-template-columns: 38px minmax(120px, 1fr) auto; }
+  .field { gap: 6px; }
+  .tile { flex: 1 1 calc(50% - 6px) !important; }
+  .tile.narrow .tile-val, .tile.narrow .tile-a { display: block; }
+  .field-key span:first-child { display: none; }
+  .fig b { font-size: 21px; line-height: 26px; }
+  /* Accounts on a phone: the name, one line under it, and the tier. */
+  .ledger.accounts .row > :nth-child(3), .ledger.accounts .row > :nth-child(5), .ledger.accounts .row > :nth-child(7) { display: none; }
+  .prop-top { min-height: 44px; }
+  .prop-top label { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; }
+}
+
+@media (max-width: 900px) { .ledger.market .tiermix { width: 100%; } }

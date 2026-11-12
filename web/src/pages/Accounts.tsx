@@ -47,7 +47,7 @@ export function Accounts() {
       </div>
       {error ? <Failed error={error} retry={reload} /> : !data ? <Loading /> : data.rows.length ? (
         <>
-          <div className="ledger wrap-names">
+          <div className="ledger wrap-names accounts">
             <div className="row head" style={{ gridTemplateColumns: cols }}>
               <span /><span>Company</span><span>Segment</span><span className="num">Tier</span><span className="num">Scored on</span><span>Owner</span><span className="num">Last result</span>
             </div>

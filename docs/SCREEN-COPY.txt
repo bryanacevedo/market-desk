@@ -1,5 +1,4 @@
 # eligible, # needed
-# of # hours
 # to # days
 Account Desk cannot read this rule
 Accounts the plan can work
@@ -20,12 +19,12 @@ Pull toward the overall win rate, in deals
 Rule Account Desk cannot read
 Share held back in a test
 Share of worked accounts that become deals, before any results
+TAM, SAM and SOM, log scale
 That did not go through.
 The difference could be chance.
 The difference goes away within each company size band.
 The wording failed its check twice, so only the figures show.
 Too few accounts to read a difference yet.
-Win rate range for sizing
 Wins less often than the rest, beyond chance across every value tested.
 Wins more often than the rest, beyond chance across every value tested.
-Worked accounts that became deals
+Worked met, ring: held back
