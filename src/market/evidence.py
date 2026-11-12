@@ -129,7 +129,7 @@ def run(cur) -> int:
         ids = {d["id"] for d in ds}
         if trait == "rule":
             rf = rule_fields[value]
-            rest = [d for d in deals if d["id"] not in ids and (rf == "tech" or bool(d["snapshot"].get(rf)) and d["snapshot"].get(rf) != "unknown")]
+            rest = [d for d in deals if d["id"] not in ids and (rf in ("tech", "segment") or bool(d["snapshot"].get(rf)) and d["snapshot"].get(rf) != "unknown")]
         else:
             rest = [d for d in deals if d["id"] not in ids and _known(trait, d["snapshot"], d["source"])]
         opps, wins = len(ds), sum(d["outcome"] == "won" for d in ds)

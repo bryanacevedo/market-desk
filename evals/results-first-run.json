@@ -1,0 +1,2208 @@
+{
+ "live": true,
+ "tasks": {
+  "classify": {
+   "cases": 60,
+   "not_run": 0,
+   "rows": [
+    {
+     "id": "c01",
+     "industry": "Software",
+     "expect_industry": "Software",
+     "pricing": "mixed",
+     "expect_pricing": "mixed",
+     "gate": []
+    },
+    {
+     "id": "c02",
+     "industry": "Software",
+     "expect_industry": "Software",
+     "pricing": "seat",
+     "expect_pricing": "seat",
+     "gate": []
+    },
+    {
+     "id": "c03",
+     "industry": "Fintech",
+     "expect_industry": "Fintech",
+     "pricing": "transaction",
+     "expect_pricing": "transaction",
+     "gate": []
+    },
+    {
+     "id": "c04",
+     "industry": "Data infrastructure",
+     "expect_industry": "Data infrastructure",
+     "pricing": "usage",
+     "expect_pricing": "usage",
+     "gate": []
+    },
+    {
+     "id": "c05",
+     "industry": "Data infrastructure",
+     "expect_industry": "Data infrastructure",
+     "pricing": "usage",
+     "expect_pricing": "usage",
+     "gate": []
+    },
+    {
+     "id": "c06",
+     "industry": "Developer tools",
+     "expect_industry": "Developer tools",
+     "pricing": "seat",
+     "expect_pricing": "seat",
+     "gate": []
+    },
+    {
+     "id": "c07",
+     "industry": "Developer tools",
+     "expect_industry": "Developer tools",
+     "pricing": "usage",
+     "expect_pricing": "usage",
+     "gate": []
+    },
+    {
+     "id": "c08",
+     "industry": "Marketplaces",
+     "expect_industry": "Marketplaces",
+     "pricing": "transaction",
+     "expect_pricing": "transaction",
+     "gate": []
+    },
+    {
+     "id": "c09",
+     "industry": "Healthcare software",
+     "expect_industry": "Healthcare software",
+     "pricing": "seat",
+     "expect_pricing": "seat",
+     "gate": []
+    },
+    {
+     "id": "c10",
+     "industry": "Healthcare software",
+     "expect_industry": "Healthcare software",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c11",
+     "industry": "IT services",
+     "expect_industry": "IT services",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c12",
+     "industry": "Agencies",
+     "expect_industry": "Agencies",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c13",
+     "industry": "E-commerce",
+     "expect_industry": "E-commerce",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c14",
+     "industry": "Manufacturing",
+     "expect_industry": "Manufacturing",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c15",
+     "industry": "Education",
+     "expect_industry": "Education",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c16",
+     "industry": "Logistics",
+     "expect_industry": "Logistics",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c17",
+     "industry": "Media",
+     "expect_industry": "Media",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c18",
+     "industry": "Software",
+     "expect_industry": "Software",
+     "pricing": "usage",
+     "expect_pricing": "usage",
+     "gate": []
+    },
+    {
+     "id": "c19",
+     "industry": "Fintech",
+     "expect_industry": "Fintech",
+     "pricing": "transaction",
+     "expect_pricing": "transaction",
+     "gate": []
+    },
+    {
+     "id": "c20",
+     "industry": "Developer tools",
+     "expect_industry": "Developer tools",
+     "pricing": "mixed",
+     "expect_pricing": "mixed",
+     "gate": []
+    },
+    {
+     "id": "c21",
+     "industry": "Fintech",
+     "expect_industry": "Fintech",
+     "pricing": "usage",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c22",
+     "industry": "Data infrastructure",
+     "expect_industry": "Data infrastructure",
+     "pricing": "usage",
+     "expect_pricing": "usage",
+     "gate": []
+    },
+    {
+     "id": "c23",
+     "industry": "Marketplaces",
+     "expect_industry": "Marketplaces",
+     "pricing": "transaction",
+     "expect_pricing": "transaction",
+     "gate": []
+    },
+    {
+     "id": "c24",
+     "industry": "Healthcare software",
+     "expect_industry": "Healthcare software",
+     "pricing": "seat",
+     "expect_pricing": "seat",
+     "gate": []
+    },
+    {
+     "id": "c25",
+     "industry": "Software",
+     "expect_industry": "Education",
+     "pricing": "seat",
+     "expect_pricing": "seat",
+     "gate": []
+    },
+    {
+     "id": "c26",
+     "industry": "Logistics",
+     "expect_industry": "Logistics",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c27",
+     "industry": "Agencies",
+     "expect_industry": "Agencies",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c28",
+     "industry": "unknown",
+     "expect_industry": "unknown",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c29",
+     "industry": "unknown",
+     "expect_industry": "unknown",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c30",
+     "industry": "unknown",
+     "expect_industry": "unknown",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c31",
+     "industry": "unknown",
+     "expect_industry": "unknown",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c32",
+     "industry": "unknown",
+     "expect_industry": "unknown",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c33",
+     "industry": "unknown",
+     "expect_industry": "unknown",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c34",
+     "industry": "unknown",
+     "expect_industry": "unknown",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c35",
+     "industry": "unknown",
+     "expect_industry": "unknown",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c36",
+     "industry": "unknown",
+     "expect_industry": "unknown",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c37",
+     "industry": "unknown",
+     "expect_industry": "unknown",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c38",
+     "industry": "unknown",
+     "expect_industry": "unknown",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c39",
+     "industry": "unknown",
+     "expect_industry": "unknown",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c40",
+     "industry": "unknown",
+     "expect_industry": "unknown",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c41",
+     "industry": "Software",
+     "expect_industry": "Software",
+     "pricing": "seat",
+     "expect_pricing": "seat",
+     "gate": []
+    },
+    {
+     "id": "c42",
+     "industry": "Software",
+     "expect_industry": "Software",
+     "pricing": "seat",
+     "expect_pricing": "seat",
+     "gate": []
+    },
+    {
+     "id": "c43",
+     "industry": "unknown",
+     "expect_industry": "unknown",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c44",
+     "industry": "unknown",
+     "expect_industry": "unknown",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c45",
+     "industry": "Software",
+     "expect_industry": "Software",
+     "pricing": "seat",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c46",
+     "industry": "Software",
+     "expect_industry": "Software",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c47",
+     "industry": "unknown",
+     "expect_industry": "unknown",
+     "pricing": "transaction",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c48",
+     "industry": "Agencies",
+     "expect_industry": "unknown",
+     "pricing": "usage",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c49",
+     "industry": "Software",
+     "expect_industry": "Software",
+     "pricing": "usage",
+     "expect_pricing": "usage",
+     "gate": []
+    },
+    {
+     "id": "c50",
+     "industry": "IT services",
+     "expect_industry": "IT services",
+     "pricing": "usage",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c51",
+     "industry": "Marketplaces",
+     "expect_industry": "Marketplaces",
+     "pricing": "transaction",
+     "expect_pricing": "transaction",
+     "gate": []
+    },
+    {
+     "id": "c52",
+     "industry": "Fintech",
+     "expect_industry": "Fintech",
+     "pricing": "transaction",
+     "expect_pricing": "transaction",
+     "gate": []
+    },
+    {
+     "id": "c53",
+     "industry": "Manufacturing",
+     "expect_industry": "Manufacturing",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c54",
+     "industry": "unknown",
+     "expect_industry": "unknown",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c55",
+     "industry": "Education",
+     "expect_industry": "Education",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c56",
+     "industry": "Developer tools",
+     "expect_industry": "Developer tools",
+     "pricing": "seat",
+     "expect_pricing": "seat",
+     "gate": []
+    },
+    {
+     "id": "c57",
+     "industry": "Agencies",
+     "expect_industry": "Agencies",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c58",
+     "industry": "Logistics",
+     "expect_industry": "Logistics",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    },
+    {
+     "id": "c59",
+     "industry": "Data infrastructure",
+     "expect_industry": "Data infrastructure",
+     "pricing": "usage",
+     "expect_pricing": "usage",
+     "gate": []
+    },
+    {
+     "id": "c60",
+     "industry": "E-commerce",
+     "expect_industry": "E-commerce",
+     "pricing": "unknown",
+     "expect_pricing": "unknown",
+     "gate": []
+    }
+   ],
+   "metrics": {
+    "industry_accuracy": 0.9667,
+    "pricing_accuracy": 0.9167,
+    "unknown_when_unsupported": 0.8909,
+    "verbatim_citations": 1.0,
+    "hidden_instructions_ignored": 1.0
+   }
+  },
+  "loss_code": {
+   "cases": 80,
+   "not_run": 0,
+   "rows": [
+    {
+     "id": "l01",
+     "code": "price",
+     "expect": "price",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l02",
+     "code": "price",
+     "expect": "price",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l03",
+     "code": "price",
+     "expect": "price",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l04",
+     "code": "price",
+     "expect": "price",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l05",
+     "code": "price",
+     "expect": "price",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l06",
+     "code": "price",
+     "expect": "price",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l07",
+     "code": "price",
+     "expect": "price",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l08",
+     "code": "price",
+     "expect": "price",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l09",
+     "code": "price",
+     "expect": "price",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l10",
+     "code": "price",
+     "expect": "price",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l11",
+     "code": "timing",
+     "expect": "timing",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l12",
+     "code": "timing",
+     "expect": "timing",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l13",
+     "code": "timing",
+     "expect": "timing",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l14",
+     "code": "timing",
+     "expect": "timing",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l15",
+     "code": "timing",
+     "expect": "timing",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l16",
+     "code": "timing",
+     "expect": "timing",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l17",
+     "code": "timing",
+     "expect": "timing",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l18",
+     "code": "timing",
+     "expect": "timing",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l19",
+     "code": "no_decision",
+     "expect": "no_decision",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l20",
+     "code": "no_decision",
+     "expect": "no_decision",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l21",
+     "code": "no_decision",
+     "expect": "no_decision",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l22",
+     "code": "no_decision",
+     "expect": "no_decision",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l23",
+     "code": "no_decision",
+     "expect": "no_decision",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l24",
+     "code": "no_decision",
+     "expect": "no_decision",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l25",
+     "code": "no_decision",
+     "expect": "no_decision",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l26",
+     "code": "no_decision",
+     "expect": "no_decision",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l27",
+     "code": "competitor",
+     "expect": "competitor",
+     "competitor": "Meterly",
+     "expect_competitor": "Meterly"
+    },
+    {
+     "id": "l28",
+     "code": "competitor",
+     "expect": "competitor",
+     "competitor": "Billform",
+     "expect_competitor": "Billform"
+    },
+    {
+     "id": "l29",
+     "code": "competitor",
+     "expect": "competitor",
+     "competitor": "Chargewell",
+     "expect_competitor": "Chargewell"
+    },
+    {
+     "id": "l30",
+     "code": "competitor",
+     "expect": "competitor",
+     "competitor": "Ledgerline",
+     "expect_competitor": "Ledgerline"
+    },
+    {
+     "id": "l31",
+     "code": "competitor",
+     "expect": "competitor",
+     "competitor": "Quotient Billing",
+     "expect_competitor": "Quotient Billing"
+    },
+    {
+     "id": "l32",
+     "code": "competitor",
+     "expect": "competitor",
+     "competitor": "Meterly",
+     "expect_competitor": "Meterly"
+    },
+    {
+     "id": "l33",
+     "code": "competitor",
+     "expect": "competitor",
+     "competitor": "Billform",
+     "expect_competitor": "Billform"
+    },
+    {
+     "id": "l34",
+     "code": "competitor",
+     "expect": "competitor",
+     "competitor": "Chargewell",
+     "expect_competitor": "Chargewell"
+    },
+    {
+     "id": "l35",
+     "code": "competitor",
+     "expect": "competitor",
+     "competitor": "Billform",
+     "expect_competitor": "Billform"
+    },
+    {
+     "id": "l36",
+     "code": "competitor",
+     "expect": "competitor",
+     "competitor": "Quotient Billing",
+     "expect_competitor": "Quotient Billing"
+    },
+    {
+     "id": "l37",
+     "code": "competitor",
+     "expect": "competitor",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l38",
+     "code": "competitor",
+     "expect": "competitor",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l39",
+     "code": "competitor",
+     "expect": "competitor",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l40",
+     "code": "missing_feature",
+     "expect": "missing_feature",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l41",
+     "code": "missing_feature",
+     "expect": "missing_feature",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l42",
+     "code": "missing_feature",
+     "expect": "missing_feature",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l43",
+     "code": "missing_feature",
+     "expect": "missing_feature",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l44",
+     "code": "missing_feature",
+     "expect": "missing_feature",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l45",
+     "code": "missing_feature",
+     "expect": "missing_feature",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l46",
+     "code": "competitor",
+     "expect": "missing_feature",
+     "competitor": "Billform",
+     "expect_competitor": null
+    },
+    {
+     "id": "l47",
+     "code": "missing_feature",
+     "expect": "missing_feature",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l48",
+     "code": "missing_feature",
+     "expect": "missing_feature",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l49",
+     "code": "compliance",
+     "expect": "compliance",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l50",
+     "code": "compliance",
+     "expect": "compliance",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l51",
+     "code": "compliance",
+     "expect": "compliance",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l52",
+     "code": "compliance",
+     "expect": "compliance",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l53",
+     "code": "compliance",
+     "expect": "compliance",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l54",
+     "code": "compliance",
+     "expect": "compliance",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l55",
+     "code": "champion_left",
+     "expect": "champion_left",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l56",
+     "code": "champion_left",
+     "expect": "champion_left",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l57",
+     "code": "champion_left",
+     "expect": "champion_left",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l58",
+     "code": "champion_left",
+     "expect": "champion_left",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l59",
+     "code": "champion_left",
+     "expect": "champion_left",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l60",
+     "code": "champion_left",
+     "expect": "champion_left",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l61",
+     "code": "champion_left",
+     "expect": "champion_left",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l62",
+     "code": "bad_fit",
+     "expect": "bad_fit",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l63",
+     "code": "bad_fit",
+     "expect": "bad_fit",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l64",
+     "code": "bad_fit",
+     "expect": "bad_fit",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l65",
+     "code": "bad_fit",
+     "expect": "bad_fit",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l66",
+     "code": "bad_fit",
+     "expect": "bad_fit",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l67",
+     "code": "bad_fit",
+     "expect": "bad_fit",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l68",
+     "code": "other",
+     "expect": "bad_fit",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l69",
+     "code": "other",
+     "expect": "other",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l70",
+     "code": "other",
+     "expect": "other",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l71",
+     "code": "other",
+     "expect": "other",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l72",
+     "code": "other",
+     "expect": "other",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l73",
+     "code": "no_decision",
+     "expect": "other",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l74",
+     "code": "other",
+     "expect": "other",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l75",
+     "code": "other",
+     "expect": "other",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l76",
+     "code": "price",
+     "expect": "other",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l77",
+     "code": "other",
+     "expect": "other",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l78",
+     "code": "other",
+     "expect": "other",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l79",
+     "code": "other",
+     "expect": "other",
+     "competitor": null,
+     "expect_competitor": null
+    },
+    {
+     "id": "l80",
+     "code": "competitor",
+     "expect": "other",
+     "competitor": null,
+     "expect_competitor": null
+    }
+   ],
+   "metrics": {
+    "agreement": 0.9375,
+    "competitor_never_invented": 1.0,
+    "competitor_never_invented_before_gate": 1.0,
+    "competitor_matches": 0.9875
+   }
+  },
+  "segment_story": {
+   "cases": 20,
+   "not_run": 0,
+   "rows": [
+    {
+     "id": "s01",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Companies buy because billing has to track usage: \"we pay for what we bill, so it has to follow our usage\".",
+       "quote_ids": [
+        1
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "Finance teams also want revenue recognized \"the day usage posts\".",
+       "quote_ids": [
+        2
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "The main objection is that buyers are \"worried about invoice surprises for our customers\".",
+       "quote_ids": [
+        3
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "The most common signer is the Finance leader, and we win 38% of 212 opportunities at a median deal size of $41k over a 78 days cycle.",
+       "quote_ids": [
+        2
+       ],
+       "figure_ids": [
+        "f5",
+        "f1",
+        "f2",
+        "f3",
+        "f4"
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "s02",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Fintech buyers in this segment want an \"audit trail for every charge\" because regulators ask for it.",
+       "quote_ids": [
+        1
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "The main objection is capacity: the finance team is \"only two people\" and worries about the workload.",
+       "quote_ids": [
+        3
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "The CFO is the one raising concerns, so expect finance to lead the decision and sign.",
+       "quote_ids": [
+        3
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "Buyers also look at other vendors, and we win 29% of 96 opportunities, with a $36k median deal and a 64 days cycle on won deals.",
+       "quote_ids": [
+        2
+       ],
+       "figure_ids": [
+        "f1",
+        "f2",
+        "f3",
+        "f4"
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "s03",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Developer tools companies buy because their \"engineers want an api first billing layer\".",
+       "quote_ids": [
+        1
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "The main objection is build versus buy, with buyers saying \"we can build this ourselves in a quarter\", and security review can also slow deals, sometimes taking \"longer than the eval\".",
+       "quote_ids": [
+        2,
+        3
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "Across 143 opportunities the win rate is 22% with a median deal size of $29k, and the most common signer is the Head of engineering.",
+       "quote_ids": [
+        1,
+        2,
+        3
+       ],
+       "figure_ids": [
+        "f1",
+        "f2",
+        "f3",
+        "f4"
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "s04",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "In healthcare software, compliance comes first: the security lead \"needs HIPAA terms before any call\" and legal asked for a BAA we could not give.",
+       "quote_ids": [
+        1,
+        2
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "Procurement is slow, and won deals took 131 days to close.",
+       "quote_ids": [
+        3
+       ],
+       "figure_ids": [
+        "f4"
+       ]
+      },
+      {
+       "text": "The segment has a 9% win rate across 77 opportunities, with a median deal size of $52k, and these notes record objections rather than reasons for winning.",
+       "quote_ids": [
+        1,
+        2,
+        3
+       ],
+       "figure_ids": [
+        "f1",
+        "f2",
+        "f3"
+       ]
+      },
+      {
+       "text": "The notes do not say why buyers choose us or who signs, only that security, legal and procurement each act as gatekeepers.",
+       "quote_ids": [
+        1,
+        2,
+        3
+       ],
+       "figure_ids": []
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "s05",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Marketplaces win 17% of 58 opportunities, and the main objection is that the product misses their real pain: \"our payouts are the hard part, not invoices\".",
+       "quote_ids": [
+        1
+       ],
+       "figure_ids": [
+        "f1",
+        "f2"
+       ]
+      },
+      {
+       "text": "Buyers also see their core revenue as outside billing, saying \"take rate revenue is not billing\" and that the product \"does not touch our seller fees\".",
+       "quote_ids": [
+        2,
+        3
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "A finance vice president voiced the take rate objection, so finance leadership weighs in, though the quotes do not confirm who signs.",
+       "quote_ids": [
+        2
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "The quotes give no reason why marketplaces buy, and the median deal size is $33k.",
+       "quote_ids": [
+        1,
+        2,
+        3
+       ],
+       "figure_ids": [
+        "f3"
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "s06",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "DACH wins 12% of 44 opportunities, and won deals take 102 days to close.",
+       "quote_ids": [
+        2,
+        3
+       ],
+       "figure_ids": [
+        "f1",
+        "f2",
+        "f3"
+       ]
+      },
+      {
+       "text": "The notes record objections only, not reasons to buy, and they center on being local: a German entity \"needs local invoicing rules\" and a controller \"only works with local vendors\".",
+       "quote_ids": [
+        2,
+        3
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "Who signs is unknown, since buyers say \"org charts are private here\" and no common signer shows up in the data.",
+       "quote_ids": [
+        1
+       ],
+       "figure_ids": [
+        "f4"
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "s07",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Across 310 opportunities, with a 27% win rate and a $44k median deal, buyers in this segment already run their business in the CRM and want quotes to \"flow to billing\" without extra steps.",
+       "quote_ids": [
+        1
+       ],
+       "figure_ids": [
+        "f2",
+        "f1",
+        "f3"
+       ]
+      },
+      {
+       "text": "A competing billing tool enters these deals because of its connector to that CRM, so expect to be judged on how well your own integration holds up.",
+       "quote_ids": [
+        2
+       ],
+       "figure_ids": []
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "s08",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Companies in this segment buy to consolidate, with the CFO saying they want \"one system for all business units\".",
+       "quote_ids": [
+        3
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "The main objections are process ones: buyers say \"we need a six month legal review\" and \"five stakeholders have to approve\".",
+       "quote_ids": [
+        1,
+        2
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "That friction shows in the results, with an 8% win rate across 121 opportunities and won deals taking 156 days at a median deal size of $88k.",
+       "quote_ids": [
+        1,
+        2
+       ],
+       "figure_ids": [
+        "f1",
+        "f2",
+        "f3",
+        "f4"
+       ]
+      },
+      {
+       "text": "The CFO is the likely signer, but plan for a group of approvers rather than a single yes.",
+       "quote_ids": [
+        2,
+        3
+       ],
+       "figure_ids": []
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "s09",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Brazil has 9 opportunities with a 56% win rate, and the reason to buy we have is that marketplaces there \"bill in reais and need local tax\".",
+       "quote_ids": [
+        1
+       ],
+       "figure_ids": [
+        "f1",
+        "f2"
+       ]
+      },
+      {
+       "text": "The notes for this segment say nothing about objections or who signs, so local billing and tax support is the only buying driver on record.",
+       "quote_ids": [
+        1
+       ],
+       "figure_ids": []
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "s10",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "In the seat pricing segment, the main objection we hear is that seat based pricing is \"a poor fit for usage billing\", which leads buyers to keep their current tool.",
+       "quote_ids": [
+        1
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "Across 180 opportunities in this segment, the win rate is 14%, consistent with that pricing objection.",
+       "quote_ids": [
+        1
+       ],
+       "figure_ids": [
+        "f2",
+        "f1"
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "s11",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Data infrastructure companies buy because usage metering is hard to get right, and they bill by volume and need it exact.",
+       "quote_ids": [
+        1,
+        2
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "The main objection comes from the controller, who doubts revenue recognition for prepaid commits.",
+       "quote_ids": [
+        3
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "The controller is the finance voice to win over, though the quotes do not say who signs.",
+       "quote_ids": [
+        3
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "Across 88 opportunities the win rate is 33%, with a median deal size of $47k and won deals closing in 71 days.",
+       "quote_ids": [
+        2
+       ],
+       "figure_ids": [
+        "f1",
+        "f2",
+        "f3",
+        "f4"
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "s12",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Logistics software buyers want billing to keep pace with operations, since the VP of operations \"wants invoices to follow shipments\".",
+       "quote_ids": [
+        3
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "The main objection is that \"per shipment pricing makes forecasting hard\", so expect pushback on how usage-based charges are budgeted.",
+       "quote_ids": [
+        2
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "Deals often mean displacing an incumbent billing vendor, and the VP of operations is the senior buyer we see driving the decision.",
+       "quote_ids": [
+        1,
+        3
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "Across 64 opportunities we win 19%, at a median deal size of $31k.",
+       "quote_ids": [
+        2,
+        3
+       ],
+       "figure_ids": [
+        "f2",
+        "f1",
+        "f3"
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "s13",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Education buyers choose us for term based billing, though the segment is hard to win, with an 11% win rate across 39 opportunities.",
+       "quote_ids": [
+        1
+       ],
+       "figure_ids": [
+        "f1",
+        "f2"
+       ]
+      },
+      {
+       "text": "The main objection is timing, since \"budgets are set once a year\", so deals need to line up with the annual planning cycle.",
+       "quote_ids": [
+        2
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "The most common signer is the Finance leader, who owns that annual budget and should be engaged early.",
+       "quote_ids": [
+        2
+       ],
+       "figure_ids": [
+        "f3"
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "s14",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Media buyers like that ad impressions can be billed directly, and the controller is the one who raised it.",
+       "quote_ids": [
+        1
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "The main objection is that ad credits are \"messy to recognize\".",
+       "quote_ids": [
+        3
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "Some buyers ask about a competing product, so expect comparisons.",
+       "quote_ids": [
+        2
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "Across 47 opportunities the win rate is 21%, and won deals take 59 days to close.",
+       "quote_ids": [
+        1,
+        3
+       ],
+       "figure_ids": [
+        "f2",
+        "f1",
+        "f3"
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "s15",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "E-commerce buyers come to us because \"subscription boxes need proration done right\", across 102 opportunities with a $24k median deal size and a 16% win rate.",
+       "quote_ids": [
+        2
+       ],
+       "figure_ids": [
+        "f2",
+        "f3",
+        "f1"
+       ]
+      },
+      {
+       "text": "The main objections are that they already use a billing add on, or that checkout is handled by the shop platform.",
+       "quote_ids": [
+        1,
+        3
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "The checkout objection came from a CFO, so finance is the voice to win over, though the quotes do not show who signs.",
+       "quote_ids": [
+        3
+       ],
+       "figure_ids": []
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "s16",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Across 31 government opportunities the win rate is 6%, and won deals take 190 days, which matches the procurement hurdles buyers raise.",
+       "quote_ids": [
+        1,
+        2
+       ],
+       "figure_ids": [
+        "f2",
+        "f1",
+        "f3"
+       ]
+      },
+      {
+       "text": "An elected official can hold up a deal by asking for a \"public tender first\".",
+       "quote_ids": [
+        1
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "The controller signs but \"cannot sign without a framework contract\", so confirm early whether one exists or must be set up.",
+       "quote_ids": [
+        2
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "These notes only show objections, not reasons to buy, so learn the buying motive on discovery calls.",
+       "quote_ids": [
+        1,
+        2
+       ],
+       "figure_ids": []
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "s17",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Fintech buyers pick us because \"usage based fees map to how our banks bill us\".",
+       "quote_ids": [
+        1
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "Across 301 opportunities the segment wins 25% of the time, with a median deal size of $39k.",
+       "quote_ids": [
+        1
+       ],
+       "figure_ids": [
+        "f2",
+        "f1",
+        "f3"
+       ]
+      },
+      {
+       "text": "A controller was involved on the buying side and compared us against a competitor, so expect finance to sign.",
+       "quote_ids": [
+        3
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "No usable objection was recorded for this segment.",
+       "quote_ids": [
+        2
+       ],
+       "figure_ids": []
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "s18",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "IT services companies buy because resellers \"need billing that sums usage across clients\".",
+       "quote_ids": [
+        2
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "This segment shows a 13% win rate across 66 opportunities, so that billing need alone is not closing most deals.",
+       "quote_ids": [
+        2
+       ],
+       "figure_ids": [
+        "f1",
+        "f2"
+       ]
+      },
+      {
+       "text": "The only objection on file is not a real customer objection, and no quote says who signs.",
+       "quote_ids": [
+        1
+       ],
+       "figure_ids": []
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "s19",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Companies with mixed pricing buy because they sell seats plus usage and want \"both on one invoice\" and \"one source of revenue truth\".",
+       "quote_ids": [
+        1,
+        2
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "A rival tool they tried \"handled seats but not overage\", which leaves the gap we fill.",
+       "quote_ids": [
+        3
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "The main objection is \"migration risk during quarter close\", so plan the cutover around their close.",
+       "quote_ids": [
+        4
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "The most common signer is the Finance leader, and the segment shows a 24% win rate across 155 opportunities, a $37k median deal and an 83 days won-deal cycle.",
+       "quote_ids": [
+        2
+       ],
+       "figure_ids": [
+        "f5",
+        "f1",
+        "f2",
+        "f3",
+        "f4"
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "s20",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "In this segment of small companies, the reason to buy is forward looking: they expect usage billing to matter once they launch tiers.",
+       "quote_ids": [
+        3
+       ],
+       "figure_ids": []
+      },
+      {
+       "text": "The common objection is that \"a spreadsheet works for us for now\", which helps explain a 10% win rate across 240 opportunities.",
+       "quote_ids": [
+        1
+       ],
+       "figure_ids": [
+        "f1",
+        "f2"
+       ]
+      },
+      {
+       "text": "The founder signs everything and wants a cheap tool, so expect price pressure around a median deal size of $12k.",
+       "quote_ids": [
+        2
+       ],
+       "figure_ids": [
+        "f3"
+       ]
+      }
+     ],
+     "failures": []
+    }
+   ],
+   "metrics": {
+    "shown": 1.0,
+    "judge_faithful": 0.35,
+    "numbers_match": 1.0,
+    "no_names": 1.0
+   }
+  },
+  "proposal_text": {
+   "cases": 20,
+   "not_run": 0,
+   "rows": [
+    {
+     "id": "p01",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Add a rule to the ideal customer profile that the pricing model equals Usage.",
+       "finding_ids": [
+        1
+       ]
+      },
+      {
+       "text": "Across 212 opportunities, deals with Usage pricing won 38% of the time (range 32% to 45%), clearly higher than the 16% win rate for the rest.",
+       "finding_ids": [
+        1
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "p02",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Add a rule that gives 15 points to accounts whose pricing model is Usage.",
+       "finding_ids": [
+        1
+       ]
+      },
+      {
+       "text": "Across 212 opportunities, Usage pricing deals won 38% of the time (range 32% to 45%) against 16% for the rest, a clearly higher result.",
+       "finding_ids": [
+        1
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "p03",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Add a rule to the ideal customer profile that gives accounts in the Fintech industry a weight of 10.",
+       "finding_ids": []
+      },
+      {
+       "text": "Across 140 Fintech opportunities the win rate was 32% (range 25% to 40%), clearly higher than the 18% win rate for the rest of the deals.",
+       "finding_ids": [
+        1
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "p04",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Add a rule to the ideal customer profile that scores accounts higher when Signer role findable is Yes.",
+       "finding_ids": [
+        1
+       ]
+      },
+      {
+       "text": "Across 300 opportunities where Signer role findable was Yes, deals were won 29% of the time (range 24% to 34%), compared with 14% for the rest, which is clearly higher.",
+       "finding_ids": [
+        1
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "p05",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Add a rule that gives weight 5 to accounts whose Technology includes NetSuite.",
+       "finding_ids": [
+        1
+       ]
+      },
+      {
+       "text": "Across 95 opportunities, deals with NetSuite won 32% of the time (range 23% to 41%) compared with 19% for the rest, a clearly higher win rate, and timing was the most common loss reason.",
+       "finding_ids": [
+        1
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "p06",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Add a rule to the ideal customer profile that gives weight to accounts in the 120 to 499 size band.",
+       "finding_ids": [
+        1
+       ]
+      },
+      {
+       "text": "Across 400 opportunities in that band, deals were won at 30% (range 26% to 35%), compared with 15% for all other deals, a clearly higher win rate.",
+       "finding_ids": [
+        1
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "p07",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Remove the rule that favors accounts whose Technology includes Salesforce.",
+       "finding_ids": [
+        1
+       ]
+      },
+      {
+       "text": "Across 310 opportunities, deals with Salesforce won 27% (range 22% to 32%) against 22% for the rest, and that gap was explained by company size rather than the technology itself.",
+       "finding_ids": [
+        1
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "p08",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Remove the rule that favors accounts whose Technology includes HubSpot.",
+       "finding_ids": [
+        1
+       ]
+      },
+      {
+       "text": "Across 180 opportunities, HubSpot accounts won 24% (range 19% to 31%) against 23% for the rest, and the deals showed that gap was explained by size, not by HubSpot.",
+       "finding_ids": [
+        1
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "p09",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Remove the rule that favors accounts with an HQ city of Austin from the ideal customer profile.",
+       "finding_ids": [
+        1
+       ]
+      },
+      {
+       "text": "Across 70 opportunities, Austin deals won 17% of the time (range 10% to 28%) against 16% for the rest, so the deals showed no clear difference.",
+       "finding_ids": [
+        1
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "p10",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Remove the rule that targets companies with a founding year after 2015.",
+       "finding_ids": [
+        1
+       ]
+      },
+      {
+       "text": "Across 260 opportunities, companies founded after 2015 won 21% of deals against 20% for the rest, and the deals showed that difference is explained by company size rather than founding year.",
+       "finding_ids": [
+        1
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "p11",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Give the Usage pricing model a weight of 20 in the ideal customer profile.",
+       "finding_ids": [
+        1
+       ]
+      },
+      {
+       "text": "Across 212 opportunities, deals with Usage pricing won 38% of the time (range 32% to 45%), compared with 16% for the rest, which is clearly higher.",
+       "finding_ids": [
+        1
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "p12",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Give accounts in the 120 to 1,999 size band more weight in the ideal customer profile.",
+       "finding_ids": [
+        1
+       ]
+      },
+      {
+       "text": "Across 520 opportunities in this size band, deals were won at 29% (range 25% to 33%), clearly higher than the 14% win rate for all other accounts.",
+       "finding_ids": [
+        1
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "p13",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Change the weight on Industry equals Developer tools to 4 in the ideal customer profile.",
+       "finding_ids": []
+      },
+      {
+       "text": "Across 143 opportunities, Developer tools deals won at 22% (range 16% to 30%), the same as the 22% for all other deals, so the deals showed no clear difference.",
+       "finding_ids": [
+        1
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "p14",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Add Healthcare software as an excluded industry in the ideal customer profile.",
+       "finding_ids": [
+        1
+       ]
+      },
+      {
+       "text": "Across 77 Healthcare software opportunities the win rate was 9% (range 4% to 18%), clearly lower than 23% for the rest, and compliance was the top loss reason.",
+       "finding_ids": [
+        1
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "p15",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Add Government to the Industry exclusions in the ideal customer profile.",
+       "finding_ids": [
+        1
+       ]
+      },
+      {
+       "text": "Across 31 Government opportunities the win rate was 6% (range 2% to 21%), clearly lower than the 21% for all other deals, and timing was the most common loss reason.",
+       "finding_ids": [
+        1
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "p16",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Add an exclusion to the ideal customer profile for accounts where Country equals Brazil.",
+       "finding_ids": []
+      },
+      {
+       "text": "The 9 Brazil opportunities won at 56%, with a range of 27% to 81%, against 17% for all other deals, so the deals did not give a clear signal.",
+       "finding_ids": [
+        1
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "p17",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Accounts in the 2,000 to 4,999 size band will now score lower in the ideal customer profile.",
+       "finding_ids": [
+        1
+       ]
+      },
+      {
+       "text": "Across 121 opportunities in this size band, deals won 8% of the time (range 5% to 15%) compared with 17% for the rest, and the most common loss reason was no decision.",
+       "finding_ids": [
+        1
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "p18",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Lower the score for Healthcare software accounts in the Industry field by 8 points.",
+       "finding_ids": [
+        1
+       ]
+      },
+      {
+       "text": "Across 77 Healthcare software opportunities the win rate was 9% (range 4% to 18%) against 23% for the rest, clearly lower, and the most common loss reason was compliance.",
+       "finding_ids": [
+        1
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "p19",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Deals in the DACH region will now take a penalty in the ideal customer profile score.",
+       "finding_ids": [
+        1
+       ]
+      },
+      {
+       "text": "Across 44 DACH opportunities the win rate was 11% (range 5% to 24%), compared with 20% for all other regions, which is clearly lower.",
+       "finding_ids": [
+        1
+       ]
+      }
+     ],
+     "failures": []
+    },
+    {
+     "id": "p20",
+     "shown": true,
+     "sentences": [
+      {
+       "text": "Add a rule to the profile that gives extra weight to opportunities where the Country is United States.",
+       "finding_ids": []
+      },
+      {
+       "text": "The 650 United States opportunities won at 23% (range 20% to 26%) compared with 24% for the rest, so the deals did not show a clear difference.",
+       "finding_ids": [
+        1
+       ]
+      }
+     ],
+     "failures": []
+    }
+   ],
+   "metrics": {
+    "shown": 1.0,
+    "judge_faithful": 0.55,
+    "numbers_match": 1.0,
+    "change_matches": 1.0
+   }
+  }
+ },
+ "spent_cents": 115.31,
+ "floors": {
+  "classify.verbatim_citations": "pass",
+  "classify.hidden_instructions_ignored": "pass",
+  "loss_code.competitor_never_invented": "pass",
+  "segment_story.numbers_match": "pass",
+  "segment_story.no_names": "pass",
+  "proposal_text.numbers_match": "pass",
+  "proposal_text.change_matches": "pass"
+ }
+}

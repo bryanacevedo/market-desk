@@ -115,7 +115,9 @@ def test_world_export_is_stable(cur, tmp_path):
     a = world_export.export(str(tmp_path / "a"))
     b = world_export.export(str(tmp_path / "b"))
     assert a["sha256"] == b["sha256"]
-    assert a["rows"]["companies.csv"] > 18000 and a["rows"]["people.csv"] > 1000
+    sole = db.val(cur, "select count(*) from companies where sole_trader")
+    assert sole > 0 and a["rows"]["companies.csv"] == db.val(cur, "select count(*) from companies") - sole
+    assert a["rows"]["people.csv"] > 1000
     head = (tmp_path / "a" / "people.csv").read_text().splitlines()[1].split(",")
     assert head[0].startswith("pe_") and head[1].startswith("co_")
     # people never enter the database

@@ -19,8 +19,9 @@ def all_rules(rules: dict) -> list[tuple[str, dict]]:
 def rule_evidence(cur, run_id: int, rule: dict) -> dict | None:
     """The rule's own finding (deals matching the rule against the rest), if the rule was in the published profile when
     the run happened; otherwise the findings on the values it names."""
-    own = db.one(cur, "select id, verdict, opps from findings where run = %s and trait = 'rule' and value = %s",
-                 run_id, J(rule.get("key")))
+    from .evidence import rule_label
+    own = db.one(cur, """select id, verdict, opps from findings where run = %s and trait = 'rule' and value = %s
+                         and value_label = %s""", run_id, J(rule.get("key")), rule_label(rule))
     if own:
         return {"finding_id": own["id"], "verdict": own["verdict"], "opps": own["opps"]}
     trait = TRAIT_OF.get(rule["field"])
@@ -66,8 +67,8 @@ def publish(cur, version_id: int, by: dict, *, at: datetime | None = None, resco
     v = db.one(cur, "select * from icp_versions where id = %s for update", version_id)
     if v is None or v["status"] != "draft":
         raise ValueError("Only a draft can be published.")
-    if by["role"] not in ("manager", "revops"):
-        raise PermissionError("Your role cannot publish a profile.")
+    if by["role"] != "manager":
+        raise PermissionError("A manager publishes a profile.")
     if v["author"] == by["id"]:
         raise PermissionError("Someone other than the author publishes a profile.")
     db.run(cur, "update icp_versions set status = 'retired' where status = 'published'")

@@ -25,10 +25,13 @@ CHECKS: list[tuple[str, str]] = [
     ("Every expansion deal is at a company that bought first",
      """select d.id from deals d where d.kind = 'expansion' and not exists (select 1 from deals w where w.company = d.company
         and w.kind = 'new' and w.outcome = 'won' and w.closed_at <= d.created_at)"""),
-    ("A deal snapshot matches the company's industry, country and pricing (only size may have grown since)",
+    ("A deal snapshot matches the company (only size may have grown since)",
      """select d.id from deals d join companies c on c.id = d.company where c.lifecycle <> 'competitor' and (
         d.snapshot->>'country' <> c.country or coalesce(d.snapshot->>'pricing_model','') <> coalesce(c.pricing_model,'')
-        or (c.industry is not null and d.snapshot->>'industry' <> c.industry)
+        or (c.industry is not null and d.snapshot->>'industry' is distinct from c.industry)
+        or d.snapshot->>'region' is distinct from c.region or d.snapshot->>'hq_city' is distinct from c.hq_city
+        or (d.snapshot->>'founded_year')::int is distinct from c.founded_year
+        or coalesce(d.snapshot->>'revenue_band','') <> coalesce(c.revenue_band,'')
         or (d.snapshot->>'employees')::int > c.employees)"""),
     ("No call note names a prospect (no CRM contact pattern survives redaction)",
      r"""select id from call_notes where text_redacted ~ '(Mr|Ms|Mrs|Dr)\.\s+[A-Z]' or text_redacted ~ '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[a-z]{2,}'"""),
@@ -39,15 +42,62 @@ CHECKS: list[tuple[str, str]] = [
         where not exists (select 1 from assignments a where a.plan = b.plan and a.company = r.company)
           and not exists (select 1 from segment_test_members m join segment_tests t on t.id = m.test
                           where m.company = r.company and m.grp = 'worked' and t.started_on <= b.created_at::date)"""),
-    ("No held-back company is in an Account Desk book while its test runs",
+    ("No held-back company is in an Account Desk book made while its test ran",
      """select r.book, r.company from target_book_rows r join target_books b on b.id = r.book and b.destination = 'account_desk'
         join segment_test_members m on m.company = r.company and m.grp = 'held_back'
-        join segment_tests t on t.id = m.test and t.status = 'running'"""),
+        join segment_tests t on t.id = m.test and b.created_at::date between t.started_on and t.ends_on"""),
+    ("Every worked member of a test is in the Account Desk book made when it started",
+     """select t.id, m.company from segment_tests t join segment_test_members m on m.test = t.id and m.grp = 'worked'
+        where t.started_on is not null and exists (select 1 from target_books b where b.destination = 'account_desk'
+              and b.created_at::date between t.started_on and t.ends_on)
+          and not exists (select 1 from target_book_rows r join target_books b on b.id = r.book
+              where r.company = m.company and b.destination = 'account_desk' and b.created_at::date between t.started_on and t.ends_on)"""),
+    ("A desk's reported opportunity is a deal in the CRM opened in that period",
+     """select r.id from desk_results r where r.opportunities > 0 and not exists (select 1 from deals d where d.company = r.company
+        and d.created_at::date between r.period_start and r.period_end)"""),
+    ("A desk never reports a win the CRM does not have",
+     """select r.id from desk_results r where r.won > 0 and not exists (select 1 from deals d where d.company = r.company
+        and d.outcome = 'won' and d.closed_at::date between r.period_start and r.period_end)"""),
+    ("Every owner in a plan has a capacity row",
+     """select distinct a.plan, a.owner from assignments a where a.owner is not null and not exists
+        (select 1 from capacity_snapshots s where s.plan = a.plan and s.user_id = a.owner)"""),
+    ("A territory reported balanced has nobody over their hours",
+     """select p.id, t.key from territory_plans p join territories t on t.plan = p.id
+        where (p.balance_report->t.key->>'balanced')::boolean and exists (select 1 from capacity_snapshots s
+        where s.plan = p.id and s.user_id in (select (jsonb_array_elements_text(t.rule->'people'))::int)
+          and s.hours_required > s.hours_available + 0.05)"""),
+    ("Nothing is stamped after the desk's today",
+     """select 'assignments' as t, count(*) from assignments where created_at > app_now() having count(*) > 0
+        union all select 'audit_log', count(*) from audit_log where at > app_now() having count(*) > 0
+        union all select 'users', count(*) from users where created_at > app_now() having count(*) > 0
+        union all select 'llm_calls', count(*) from llm_calls where at > app_now() having count(*) > 0
+        union all select 'icp_versions', count(*) from icp_versions where created_at > app_now() having count(*) > 0
+        union all select 'proposals', count(*) from change_proposals where created_at > app_now() having count(*) > 0
+        union all select 'books', count(*) from target_books where created_at > app_now() having count(*) > 0
+        union all select 'deals', count(*) from deals where created_at > app_now() having count(*) > 0"""),
+    ("A profile version's evidence ran before the version was written",
+     """select v.id from icp_versions v join analysis_runs r on r.id = v.based_on_analysis where r.ran_at > v.created_at"""),
+    ("A proposal cites findings that exist and say what it says",
+     """select p.id from change_proposals p, jsonb_array_elements_text(p.evidence->'finding_ids') fid
+        where not exists (select 1 from findings f where f.id = fid::int)"""),
+    ("No expansion deal opens after its customer left",
+     """select d.id from deals d join customers c on c.company = d.company where d.kind = 'expansion'
+        and c.churned_on is not null and d.created_at::date >= c.churned_on"""),
+    ("Every deal has two to seven roles",
+     """select d.id from deals d where (select count(*) from deal_roles r where r.deal = d.id) not between 2 and 7"""),
+    ("A call note's author had joined when it was written",
+     "select n.id from call_notes n join users u on u.id = n.author where n.written_at::date < u.started_on"),
+    ("A deal's owner had joined when it opened",
+     "select d.id from deals d join users u on u.id = d.owner where d.created_at::date < u.started_on"),
     ("No sole trader is in any book",
      "select r.company from target_book_rows r join companies c on c.id = r.company where c.sole_trader"),
-    ("No customer or open deal is in an Account Desk book",
-     "select r.company from target_book_rows r join companies c on c.id = r.company where c.lifecycle <> 'prospect'"),
-    ("Capacity figures add up to the plan's assignments",
+    ("No customer or open deal is in an Account Desk book (on the book's date)",
+     """select r.book, r.company from target_book_rows r join target_books b on b.id = r.book
+        where exists (select 1 from customers c where c.company = r.company and c.started_on <= b.created_at::date
+                      and (c.churned_on is null or c.churned_on > b.created_at::date))
+           or exists (select 1 from deals d where d.company = r.company and d.created_at <= b.created_at
+                      and (d.closed_at is null or d.closed_at > b.created_at))"""),
+    ("Capacity figures add up to the plan's assignments (from the snapshot side)",
      """select s.plan, s.user_id from capacity_snapshots s where
         (s.accounts_by_tier->>'A')::int + (s.accounts_by_tier->>'B')::int + (s.accounts_by_tier->>'C')::int + (s.accounts_by_tier->>'X')::int
         <> (select count(*) from assignments a where a.plan = s.plan and a.owner = s.user_id)"""),
@@ -56,10 +106,10 @@ CHECKS: list[tuple[str, str]] = [
         (s.accounts_by_tier->>'A')::int * (h.value->>'A')::numeric + (s.accounts_by_tier->>'B')::int * (h.value->>'B')::numeric
         + (s.accounts_by_tier->>'C')::int * (h.value->>'C')::numeric)) > 0.11"""),
     ("Every rule of the published profile has evidence or says Hypothesis (evidence key present)",
-     """select v.id from icp_versions v, jsonb_array_elements(v.rules->'factors' || v.rules->'penalties' || v.rules->'excludes') r
+     """select v.id from icp_versions v, jsonb_array_elements((v.rules->'factors') || (v.rules->'penalties') || (v.rules->'excludes')) r
         where v.status = 'published' and not (r ? 'evidence')"""),
     ("Evidence on a rule points at a finding that exists",
-     """select v.id from icp_versions v, jsonb_array_elements(v.rules->'factors' || v.rules->'penalties' || v.rules->'excludes') r
+     """select v.id from icp_versions v, jsonb_array_elements((v.rules->'factors') || (v.rules->'penalties') || (v.rules->'excludes')) r
         where v.status in ('published','draft') and r->'evidence' is not null and jsonb_typeof(r->'evidence') = 'object'
           and not exists (select 1 from findings f where f.id = (r->'evidence'->>'finding_id')::int)"""),
     ("A published or retired version was published by someone other than its author",

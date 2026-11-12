@@ -161,6 +161,14 @@ def assign(cur, plan_id: int, *, on: date) -> dict:
         mean = sum(ev[p] for p in team) / len(team)
         ok = mean == 0 or all(abs(ev[p] - mean) <= band * mean for p in team)
         report[t["key"]] = {"balanced": ok, "moves": moves}
+    # Balanced means within the band and nobody over their hours (SPEC 9.1); otherwise the report says it cannot.
+    for t in terrs:
+        team = [p for p in t["rule"]["people"] if p in people]
+        over = [p for p in team if used[p] > avail[p] + 0.05]
+        rep = report.setdefault(t["key"], {"balanced": True, "moves": 0})
+        if over:
+            rep["balanced"] = False
+            rep["over_hours"] = len(over)
     with cur.copy("copy assignments (plan, company, territory, owner, reason_code, moved_from, created_by) from stdin") as cp:
         for cid, v in placed.items():
             cp.write_row((plan_id, cid, v[0], v[1], v[2], v[5] if len(v) > 5 else None, plan["author"]))
@@ -174,8 +182,9 @@ def snapshot(cur, plan_id: int) -> None:
     s = settings(cur)
     hours = s["hours_per_tier"]
     plan = db.one(cur, "select * from territory_plans where id = %s", plan_id)
-    terrs = db.all(cur, "select rule from territories where plan = %s", plan_id)
-    people = {u["id"]: u for u in _people(cur, sorted({p for t in terrs for p in t["rule"]["people"]}))}
+    terrs = db.all(cur, "select key, rule from territories where plan = %s", plan_id)
+    owners = {r["owner"] for r in db.all(cur, "select distinct owner from assignments where plan = %s and owner is not null", plan_id)}
+    people = {u["id"]: u for u in _people(cur, sorted({p for t in terrs for p in t["rule"]["people"]} | owners))}
     econ = segment_economics(cur)
     rows = db.all(cur, """select a.owner, f.tier, f.segment, f.score from assignments a
                           join account_fit f on f.company = a.company and f.icp_version = %s where a.plan = %s""",
@@ -194,6 +203,14 @@ def snapshot(cur, plan_id: int) -> None:
         db.run(cur, """insert into capacity_snapshots (plan, user_id, effective_fte, hours_available, hours_required,
                        accounts_by_tier, expected_value_cents) values (%s,%s,%s,%s,%s,%s,%s)""",
                plan_id, u, fte, round(float(user["selling_hours_month"]) * fte, 1), round(used[u], 1), J(count[u]), ev[u])
+    report = plan["balance_report"] or {}
+    for t in terrs:
+        over = [p for p in t["rule"]["people"] if p in people and used[p] > float(people[p]["selling_hours_month"]) * effective_fte(people[p], plan["effective_on"]) + 0.05]
+        rep = report.setdefault(t["key"], {"balanced": True, "moves": 0})
+        if over:
+            rep["balanced"] = False
+            rep["over_hours"] = len(over)
+    db.run(cur, "update territory_plans set balance_report = %s where id = %s", J(report), plan_id)
 
 
 def place_test_members(cur, test_id: int) -> int:
@@ -244,7 +261,7 @@ def what_changes(cur, plan_id: int) -> dict:
     """Accounts whose owner differs from the active plan, by person, and open deals that would cross owners."""
     active = db.val(cur, "select id from territory_plans where status = 'active'")
     rows = db.all(cur, """
-        select d.company, c.name, d.owner as to_owner, a.owner as from_owner, d.reason_code, d.note,
+        select d.company, c.name, d.owner as to_owner, a.owner as from_owner, d.reason_code, d.note, c.owner_id as crm_owner,
                exists (select 1 from deals x where x.company = d.company and x.outcome = 'open') as open_deal
         from assignments d join companies c on c.id = d.company
         left join assignments a on a.plan = %s and a.company = d.company
@@ -256,8 +273,9 @@ def what_changes(cur, plan_id: int) -> dict:
             gains[r["to_owner"]] = gains.get(r["to_owner"], 0) + 1
         if r["from_owner"]:
             losses[r["from_owner"]] = losses.get(r["from_owner"], 0) + 1
-    crossing = [r for r in rows if r["open_deal"] and r["from_owner"] and r["reason_code"] != "manual"]
-    return {"changes": len(rows), "gains": gains, "losses": losses, "crossing": crossing, "sample": rows[:200]}
+    # An open deal may follow its CRM owner; moving it to anyone else needs a manual move with a note.
+    crossing = [r for r in rows if r["open_deal"] and r["to_owner"] != r["crm_owner"] and r["reason_code"] != "manual"]
+    return {"changes": len(rows), "gains": gains, "losses": losses, "crossing": crossing, "sample": rows[:200], "all": rows}
 
 
 def activate(cur, plan_id: int, by: dict) -> None:
@@ -274,8 +292,9 @@ def activate(cur, plan_id: int, by: dict) -> None:
     db.run(cur, "update territory_plans set status = 'retired' where status = 'active'")
     db.run(cur, "update territory_plans set status = 'active', activated_by = %s, activated_at = app_now() where id = %s",
            by["id"], plan_id)
-    for r in ch["sample"] if ch["changes"] <= 200 else db.all(cur, "select company, owner as to_owner from assignments where plan = %s", plan_id):
-        audit.log(cur, by["name"], "owner_moved", "company", r["company"], {"plan": plan_id, "to": r["to_owner"]}, actor_id=by["id"])
+    for r in ch["all"]:
+        audit.log(cur, by["name"], "owner_moved", "company", r["company"], {"plan": plan_id, "from": r["from_owner"],
+                  "to": r["to_owner"]}, actor_id=by["id"])
     audit.log(cur, by["name"], "plan_activated", "plan", plan_id, {"changes": ch["changes"]}, actor_id=by["id"])
 
 

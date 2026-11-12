@@ -119,7 +119,7 @@ def decide(cur) -> list[dict]:
         if f and f["opps"] >= min_opps and f["verdict"] in ("not_clear", "explained_by_size") and kind != "excludes":
             out.append({"key": f"drop_rule:{r['key']}", "kind": "drop_rule", "finding": f, "rule": r, "from": kind})
     from . import tests_seg
-    for t in db.all(cur, "select * from segment_tests where status = 'read'"):
+    for t in db.all(cur, "select * from segment_tests where status = 'read' and decision = 'expand'"):
         rep = tests_seg.read(cur, t["id"])
         if rep["enough"] and rep["interval"] and rep["interval"][0] > 0:
             out.append({"key": f"segment_expand:{t['segment']}", "kind": "segment_expand", "finding": None, "test": t,

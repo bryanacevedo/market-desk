@@ -48,11 +48,26 @@ def run(cur) -> int:
     for d in won:
         acv_by_seg[segment_of({"segments": C.SEGMENTS}, d["snapshot"])].append(d["amount_cents"])
     all_acv = [d["amount_cents"] for d in won]
-    # Opportunities per worked account over 12 months, from the desks' results (worked groups only).
-    opp = db.one(cur, """select count(*) as n, count(*) filter (where opportunities > 0) as k from desk_results
-                         where worked and period_end > %s::date - 365""", now)
-    opp_rate = (opp["k"] / opp["n"]) if opp and opp["n"] else 0.1
-    opp_lo, opp_hi = stats.wilson(opp["k"], opp["n"], conf=0.95) if opp and opp["n"] else (0.05, 0.15)
+    # Opportunities per worked account over 12 months, from the desks' results (worked groups only): the segment's own
+    # rate from 100 worked accounts up, else the overall rate; with no results at all, the default in settings.
+    opp_rows = db.all(cur, """select f.segment, count(*) as n, count(*) filter (where r.opportunities > 0) as k
+                              from desk_results r join account_fit f on f.company = r.company and f.icp_version = %s
+                              where r.worked and r.period_end > %s::date - 365 group by f.segment""", vid, now)
+    opp_n = sum(r["n"] for r in opp_rows)
+    opp_k = sum(r["k"] for r in opp_rows)
+    default_rate = float(s_get(s, "opp_rate_default", 0.10))
+
+    def opp_basis(seg: str | None) -> tuple[float, float, float, str]:
+        row = next((r for r in opp_rows if r["segment"] == seg), None)
+        if row and row["n"] >= 100:
+            lo, hi = stats.wilson(row["k"], row["n"], conf=0.95)
+            return row["k"] / row["n"], lo, hi, "segment"
+        if opp_n:
+            lo, hi = stats.wilson(opp_k, opp_n, conf=0.95)
+            return opp_k / opp_n, lo, hi, "overall"
+        return default_rate, default_rate * 0.5, default_rate * 1.5, "assumption"
+
+    opp_rate = opp_basis(None)[0]
     cap_accounts = territories.capacity_accounts(cur, plan) if plan else 0.0
     rid = db.val(cur, "insert into sizing_runs (ran_at, icp_version, plan, settings) values (%s,%s,%s,%s) returning id",
                  now, vid, plan, J({"shrink_k": k, "opp_rate": opp_rate, "capacity_accounts": cap_accounts}))
@@ -62,7 +77,10 @@ def run(cur) -> int:
         groups[("segment", c["segment"])].append(c)
         groups[("region_group", c["region_group"])].append(c)
         groups[("total", "all")].append(c)
-    sam_total = sum(1 for c in comps if _in_sam(c, reach, signer_seg.get(c["segment"], signer_all)))
+    # Capacity is shared by segments in proportion to their tier A and B companies in SAM, so segment rows add up to
+    # the total; region rows use the overall signer (SPEC 15.11).
+    sam_total = sum(1 for c in comps if c["tier"] in ("A", "B") and c["judged"]
+                    and _in_sam(c, reach, signer_seg.get(c["segment"], signer_all)))
     rows = []
     for (dim, key), cs in groups.items():
         tiers = Counter(c["tier"] if c["judged"] else "NJ" for c in cs)
@@ -90,20 +108,22 @@ def run(cur) -> int:
         shrunk = (wins + k * overall) / (opps + k)
         wlo, whi = stats.wilson(round(wins + k * overall), round(opps + k), conf=0.95)
         raw_lo, raw_hi = stats.wilson(wins, opps, conf=0.95)
-        sam = [c for c in cs if _in_sam(c, reach, signer_seg.get(c["segment"], signer_all))]
+        signer_of = (lambda c: signer_all) if dim == "region_group" or key == "outside" else (lambda c: signer_seg.get(c["segment"], signer_all))
+        sam = [c for c in cs if _in_sam(c, reach, signer_of(c))]
         sam_judged = [c for c in sam if c["judged"]]
         sam_ab = sum(1 for c in sam_judged if c["tier"] in ("A", "B"))
         sam_nj = sum(1 for c in sam if not c["judged"])
         sam_fit = sam_ab / len(sam_judged) if sam_judged else 0
-        reachable = sum(1 for c in cs if reach[c["id"]].get(signer_seg.get(c["segment"], signer_all), False))
+        reachable = sum(1 for c in cs if reach[c["id"]].get(signer_of(c), False))
         tam_low, tam_high = ab_known * p25, int((ab_known + nj * fit_share) * p75)
         sam_low, sam_high = sam_ab * p25, int((sam_ab + sam_nj * sam_fit) * p75)
         sam_count = sam_ab
         share = (sam_count / sam_total) if sam_total else 0
         cap = cap_accounts * share if dim != "total" else cap_accounts
         workable = min(sam_count, cap)
-        som_low = int(workable * opp_lo * wlo * p25)
-        som_high = int(min(workable * opp_hi * whi * p75, sam_high))
+        o_rate, o_lo, o_hi, o_from = opp_basis(key if dim == "segment" else None)
+        som_low = int(workable * o_lo * wlo * p25)
+        som_high = int(min(workable * o_hi * whi * p75, sam_high))
         som_low = min(som_low, som_high)
         rows.append((rid, dim, key, len(cs), tiers.get("A", 0), tiers.get("B", 0), tiers.get("C", 0), tiers.get("X", 0), nj,
                      pub, coverage, reachable, sam_count, round(cap, 1), tam_low, tam_high, min(sam_low, tam_low),
@@ -111,7 +131,7 @@ def run(cur) -> int:
                      J({"p25": p25, "median": p50, "p75": p75, "from": acv_note, "won_deals": len(acvs)}),
                      J({"wins": wins, "opps": opps, "overall": overall, "shrunk": shrunk, "low": wlo, "high": whi,
                         "raw_low": raw_lo, "raw_high": raw_hi, "k": k}),
-                     J({"capacity_accounts": round(cap, 1), "opp_rate": opp_rate, "opp_low": opp_lo, "opp_high": opp_hi,
+                     J({"capacity_accounts": round(cap, 1), "opp_rate": o_rate, "opp_low": o_lo, "opp_high": o_hi, "opp_from": o_from,
                         "signer": signer_seg.get(key, signer_all) if dim == "segment" else signer_all})))
     with cur.copy("""copy segment_sizing (run, dimension, key, universe_count, fit_a, fit_b, fit_c, fit_x, not_judged,
                      public_count, coverage_share, reachable_count, sam_count, capacity_accounts, tam_low, tam_high,
@@ -119,6 +139,10 @@ def run(cur) -> int:
         for r in rows:
             cp.write_row(r)
     return rid
+
+
+def s_get(s: dict, key: str, default):
+    return s.get(key, default)
 
 
 def _in_sam(c: dict, reach: dict, signer: str) -> bool:

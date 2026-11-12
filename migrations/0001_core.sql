@@ -14,10 +14,10 @@ create table users (
   ramp_months int not null default 3 check (ramp_months >= 0),
   selling_hours_month numeric not null default 100 check (selling_hours_month >= 0),
   active boolean not null default true, erased boolean not null default false,
-  created_at timestamptz not null default now());
+  created_at timestamptz not null default app_now());
 
 create table settings (key text primary key, value jsonb not null, note text not null,
-                       updated_at timestamptz not null default now(), updated_by int references users(id));
+                       updated_at timestamptz not null default app_now(), updated_by int references users(id));
 
 -- ---------------------------------------------------------------- sources and the universe
 create table sources (
@@ -40,7 +40,7 @@ create table companies (
   tech text[] not null default '{}', description text,
   lifecycle text not null default 'prospect' check (lifecycle in ('prospect', 'customer', 'churned', 'open_opp', 'competitor', 'partner')),
   sole_trader boolean not null default false, crm_id text, owner_id int references users(id),
-  created_at timestamptz not null default now());
+  created_at timestamptz not null default app_now());
 create index companies_segment_fields on companies (industry, employees);
 create index companies_region_group on companies (region_group);
 
@@ -92,8 +92,9 @@ create table call_notes (
 create table icp_versions (
   id serial primary key, number int not null unique,
   status text not null check (status in ('draft', 'published', 'retired')), rules jsonb not null,
+  check (status = 'draft' or published_by is not null),
   based_on_analysis int, note text, author int not null references users(id), published_by int references users(id),
-  published_at timestamptz, created_at timestamptz not null default now());
+  published_at timestamptz, created_at timestamptz not null default app_now());
 create unique index one_published_profile on icp_versions ((true)) where status = 'published';
 
 create function icp_two_people() returns trigger language plpgsql as $$
@@ -164,8 +165,9 @@ create table territory_plans (
   id serial primary key, name text not null, status text not null check (status in ('draft', 'active', 'retired')),
   based_on int not null references icp_versions(id), author int not null references users(id),
   activated_by int references users(id), activated_at timestamptz, balance_report jsonb not null default '{}',
+  check (status <> 'active' or activated_by is not null),
   effective_on date not null default current_date,
-  created_at timestamptz not null default now());
+  created_at timestamptz not null default app_now());
 create unique index one_active_plan on territory_plans ((true)) where status = 'active';
 
 create function plan_two_people() returns trigger language plpgsql as $$
@@ -190,7 +192,7 @@ create table assignments (
   plan int not null references territory_plans(id) on delete cascade, company int not null references companies(id),
   territory int references territories(id), owner int references users(id),
   reason_code text not null check (reason_code in ('rule', 'existing_owner', 'open_deal', 'customer_team', 'balance_move', 'manual')),
-  note text, moved_from int references users(id), created_at timestamptz not null default now(), created_by int references users(id),
+  note text, moved_from int references users(id), created_at timestamptz not null default app_now(), created_by int references users(id),
   check (reason_code <> 'manual' or (note is not null and length(trim(note)) >= 3)),
   primary key (plan, company));
 create index assignments_owner on assignments (plan, owner);
@@ -214,7 +216,7 @@ create table segment_tests (
   held_back_share numeric not null default 0.2 check (held_back_share > 0 and held_back_share < 1),
   started_on date, ends_on date, status text not null check (status in ('draft', 'running', 'read', 'stopped')),
   decision text check (decision in ('expand', 'drop', 'extend')), decided_by int references users(id), decision_note text,
-  created_by int references users(id), created_at timestamptz not null default now(),
+  created_by int references users(id), created_at timestamptz not null default app_now(),
   check (ends_on is null or started_on is null or ends_on > started_on));
 create table segment_test_members (
   test int not null references segment_tests(id) on delete cascade, company int not null references companies(id),
@@ -259,27 +261,27 @@ create table change_proposals (
 create table jobs (
   id bigserial primary key, kind text not null, payload jsonb not null default '{}',
   status text not null default 'queued' check (status in ('queued', 'running', 'done', 'dead')),
-  run_at timestamptz not null default now(), attempts int not null default 0, max_attempts int not null default 5,
+  run_at timestamptz not null default app_now(), attempts int not null default 0, max_attempts int not null default 5,
   dedupe_key text, last_error text, locked_at timestamptz, locked_by text, finished_at timestamptz,
-  progress jsonb not null default '{}', created_at timestamptz not null default now());
+  progress jsonb not null default '{}', created_at timestamptz not null default app_now());
 create unique index jobs_dedupe on jobs (dedupe_key) where dedupe_key is not null and status in ('queued', 'running');
 create index jobs_ready on jobs (run_at) where status = 'queued';
 
 create table alerts (
   id serial primary key, kind text not null, severity text not null, title text not null, body text not null,
-  object_kind text, object_id text, dedup_key text unique, at timestamptz not null default now(), resolved_at timestamptz);
+  object_kind text, object_id text, dedup_key text unique, at timestamptz not null default app_now(), resolved_at timestamptz);
 
 create table audit_log (
-  id bigserial primary key, at timestamptz not null default now(), actor_id int references users(id), actor text not null,
+  id bigserial primary key, at timestamptz not null default app_now(), actor_id int references users(id), actor text not null,
   action text not null, object_kind text not null, object_id text, detail jsonb not null default '{}');
 
-create table spend_ledger (id serial primary key, at timestamptz not null default now(), source text not null,
+create table spend_ledger (id serial primary key, at timestamptz not null default app_now(), source text not null,
                            units numeric not null, cents numeric not null, assumption boolean not null default true, job bigint);
 
 create table llm_calls (
-  id serial primary key, at timestamptz not null default now(), task text not null, prompt_version text not null,
+  id serial primary key, at timestamptz not null default app_now(), task text not null, prompt_version text not null,
   model text not null, input_hash text not null, input_tokens int not null default 0, output_tokens int not null default 0,
   cost_cents numeric not null default 0, source text not null check (source in ('live', 'recorded', 'sim')), output jsonb);
 
-create table erasures (id serial primary key, kind text not null, subject text not null, at timestamptz not null default now(),
+create table erasures (id serial primary key, kind text not null, subject text not null, at timestamptz not null default app_now(),
                        by_user int references users(id));

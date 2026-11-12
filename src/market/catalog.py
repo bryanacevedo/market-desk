@@ -64,6 +64,7 @@ SETTINGS = {
     "family_alpha": (0.05, "Our default for the corrected test across every trait value."),
     "shrink_k": (20, "Our default: a segment's win rate is pulled toward the overall rate as if it had 20 more deals at it."),
     "hours_per_tier": ({"A": 1.0, "B": 0.4, "C": 0.1, "X": 0}, "Our assumption, not an industry figure: hours a month one account needs while it is worked, with Account Desk doing research and drafting."),
+    "opp_rate_default": (0.10, "Our assumption, used only before any desk has reported results: one worked account in ten becomes a deal."),
     "account_cycle_months": (3, "Our assumption: an account is worked for one quarter, so a seat works four books of accounts a year."),
     "balance_band": (0.15, "Our default: each person's expected value within this share of the territory mean."),
     "held_back_share": (0.2, "Same as Account Desk: one in five accounts in a segment test is held back."),

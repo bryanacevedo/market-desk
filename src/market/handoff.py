@@ -66,6 +66,11 @@ def book_rows(cur, plan_id: int, version_id: int) -> list[dict]:
         left join companies p on p.id = c.parent_id left join users u on u.id = ch.owner
         where f.tier in ('A','B') and c.lifecycle = 'prospect' and not c.sole_trader
           and c.id not in (select company from held)
+          -- on the book's own date: no deal open then, and not a customer then
+          and not exists (select 1 from deals d where d.company = c.id and d.created_at <= app_now()
+                          and (d.closed_at is null or d.closed_at > app_now()))
+          and not exists (select 1 from customers k where k.company = c.id and k.started_on <= app_now()::date
+                          and (k.churned_on is null or k.churned_on > app_now()::date))
         order by c.name""", plan_id, plan_id, version_id)
 
 
@@ -81,6 +86,12 @@ def exportable_values(cur, ids: list[int]) -> dict[int, dict]:
     return out
 
 
+def _cell(v) -> str:
+    """A spreadsheet runs a cell that starts with = + - or @ as a formula; such a value is written with a leading quote."""
+    t = "" if v is None else str(v)
+    return "'" + t if t[:1] in ("=", "+", "-", "@") else t
+
+
 def accounts_csv(cur, rows: list[dict]) -> tuple[bytes, int]:
     vals = exportable_values(cur, [r["id"] for r in rows])
     buf = io.StringIO()
@@ -90,9 +101,9 @@ def accounts_csv(cur, rows: list[dict]) -> tuple[bytes, int]:
     for r in rows:
         v = vals[r["id"]]
         blanks += sum(1 for k in ("industry", "employees", "revenue_band") if k not in v)
-        w.writerow([r["name"], r["primary_domain"], v.get("industry", ""), v.get("employees", ""), r["country"],
+        w.writerow([_cell(x) for x in (r["name"], r["primary_domain"], v.get("industry", ""), v.get("employees", ""), r["country"],
                     v.get("revenue_band", ""), ";".join(v.get("tech") or []), r["lifecycle"], r["owner_email"] or "",
-                    r["crm_id"] or "", r["parent_domain"] or ""])
+                    r["crm_id"] or "", r["parent_domain"] or "")])
     return buf.getvalue().encode(), blanks
 
 
@@ -103,7 +114,7 @@ def _tier_word(tier: str) -> str:
 def events_desk_md(cur, version: dict) -> bytes:
     """Lumen Ledger's ICP in Events Desk's format (samples/orrery-icp.md). A is tier 1, B is tier 2, C and X are tier 3."""
     rules = version["rules"]
-    owner = db.one(cur, "select name from users where id = %s", version["published_by"] or version["author"])
+    owner = db.one(cur, "select name from users where id = %s", version["author"])
     size = next((f for f in rules["factors"] if f["field"] == "employees"), None)
     ind = next((f for f in rules["factors"] if f["field"] == "industry"), None)
     run = db.val(cur, "select max(id) from analysis_runs")
@@ -124,7 +135,7 @@ def events_desk_md(cur, version: dict) -> bytes:
         lines.append(f"{', '.join(ind['value'][:-1])} and {ind['value'][-1]} companies are our strongest verticals.")
     for f in rules["factors"]:
         if f["field"] == "pricing_model":
-            lines.append("Companies that charge their own customers by usage close far more often.")
+            lines.append(f"Companies that charge their own customers {rule_label(f).split(': ', 1)[1].lower()} close far more often.")
     for ex in rules.get("excludes", []):
         lines.append(f"{rule_label(ex).split(': ', 1)[1]}: never a fit. {ex['reason']}.")
     heavy = sorted(rules["factors"], key=lambda f: -f["weight"])
@@ -146,19 +157,27 @@ def events_desk_md(cur, version: dict) -> bytes:
     lines.append(f"{', '.join(C.COMPETITORS)} are competitors and never get contacted. Current customers belong to the "
                  "account team.")
     lines += ["", "## Companies we know", ""]
+    # Named examples: never a sole trader, and only facts a vendor, the CRM or a person gave, from a source that may
+    # be passed on (the same rule as the Account Desk file).
     known = db.all(cur, """
-        select c.name, c.industry, c.employees, f.tier from companies c
+        select c.id, c.name, f.tier from companies c
         join account_fit f on f.company = c.id and f.icp_version = %s
-        where f.judged and f.tier in ('A','B') and c.lifecycle = 'prospect' and c.industry is not null
-        order by f.tier, md5(c.primary_domain) limit 5""", version["id"])
+        where f.judged and f.tier in ('A','B') and c.lifecycle = 'prospect' and not c.sole_trader
+        order by f.tier, md5(c.primary_domain) limit 40""", version["id"])
+    vals = exportable_values(cur, [k["id"] for k in known])
+    known = [k | {"industry": vals[k["id"]].get("industry"), "employees": vals[k["id"]].get("employees")} for k in known]
+    known = [k for k in known if k["industry"] and k["employees"]][:5]
     for k in known:
         lines.append(f"- {k['name']}: {_tier_word(k['tier'])}. {k['industry']}, about {k['employees']:,} people.")
     lines += ["", "## Looks right, is not", ""]
     look = db.all(cur, """
-        select c.name, c.industry, c.employees, f.tier, f.excluded from companies c
+        select c.id, c.name, f.tier, f.excluded from companies c
         join account_fit f on f.company = c.id and f.icp_version = %s
-        where f.judged and f.tier in ('C','X') and c.industry = any(%s) and c.lifecycle = 'prospect'
-        order by f.tier desc, md5(c.primary_domain) limit 4""", version["id"], C.PROFILE_INDUSTRIES)
+        where f.judged and f.tier in ('C','X') and c.industry = any(%s) and c.lifecycle = 'prospect' and not c.sole_trader
+        order by f.tier desc, md5(c.primary_domain) limit 40""", version["id"], C.PROFILE_INDUSTRIES)
+    vals = exportable_values(cur, [k["id"] for k in look])
+    look = [k | {"industry": vals[k["id"]].get("industry"), "employees": vals[k["id"]].get("employees")} for k in look]
+    look = [k for k in look if k["industry"] and k["employees"]][:4]
     for k in look:
         why = k["excluded"] or ("outside the size range" if size and not (size["value"][0] <= k["employees"] <= size["value"][1])
                                 else "it misses too many rules")

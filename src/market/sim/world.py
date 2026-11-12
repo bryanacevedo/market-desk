@@ -172,8 +172,15 @@ def build(cur, *, seed: int = 7, n_companies: int = 18_000) -> dict:
     # ---------------------------------------------------------------- team, settings, sources
     users = {}
     for name, email, role, tz, started, hours in C.USERS:
-        users[name.split()[0]] = db.val(cur, """insert into users (name, email, role, timezone, started_on, selling_hours_month)
-            values (%s,%s,%s,%s,%s,%s) returning id""", name, email, role, tz, started, hours)
+        users[name.split()[0]] = db.val(cur, """insert into users (name, email, role, timezone, started_on, selling_hours_month, created_at)
+            values (%s,%s,%s,%s,%s,%s,least(%s::date, '2026-10-15'::date)) returning id""", name, email, role, tz, started, hours, started)
+    started_on = {u: db.val(cur, "select started_on from users where id = %s", uid) for u, uid in users.items()}
+
+    def ae_for(region: str, at: datetime) -> int:
+        """The AE who owned the region on that day: one who had already started."""
+        pool = {"North America": ["Grace", "Omar"], "Europe": ["Hannah"]}.get(region, ["Omar"])
+        ok = [k for k in pool if started_on[k] <= at.date()] or [k for k in ("Grace", "Hannah", "Omar") if started_on[k] <= at.date()] or ["Grace"]
+        return users[rng.choice(ok)]
     for k, (v, note) in C.SETTINGS.items():
         db.run(cur, "insert into settings (key, value, note) values (%s,%s,%s)", k, J(v), note)
     sources = [
@@ -274,7 +281,6 @@ def build(cur, *, seed: int = 7, n_companies: int = 18_000) -> dict:
         deal_cos.extend(comps[i] for i in sorted(chosen))
     deal_cos.extend(br[:9])
 
-    team_ae = {"North America": users["Grace"], "Europe": users["Hannah"]}
     deals: list[dict] = []
     span = (NOW - HISTORY_START).days
 
@@ -309,8 +315,7 @@ def build(cur, *, seed: int = 7, n_companies: int = 18_000) -> dict:
                 loss_code = "compliance" if c["industry"] == "Healthcare software" and rng.random() < 0.6 else _pick(rng, LOSS_MIX)
             deals.append({"c": c, "kind": "new", "created": created, "closed": closed if closed < NOW else None,
                           "won": won, "acv": acv * 100, "source": source, "loss": loss_code,
-                          "owner": (users["Grace"] if rng.random() < 0.5 else users["Omar"]) if c["region"] == "North America"
-                          else team_ae.get(c["region"], users["Omar"])})
+                          "owner": ae_for(c["region"], created)})
             if won and closed < NOW:
                 break
 
@@ -350,7 +355,8 @@ def build(cur, *, seed: int = 7, n_companies: int = 18_000) -> dict:
             cp.write_row((c["id"], "employees", J(c["employees"]), "firmographics", obs, 0.9))
             if c["revenue_band_vendor"]:
                 cp.write_row((c["id"], "revenue_band", J(c["revenue_band"]), c["rev_source"], obs, 0.8))
-            cp.write_row((c["id"], "pricing_model", J(c["pricing"]), "firmographics", obs, 0.85))
+            if c["pricing"] != "unknown":
+                cp.write_row((c["id"], "pricing_model", J(c["pricing"]), "firmographics", obs, 0.85))
             cp.write_row((c["id"], "tech", J(c["tech"]), "technographics", NOW - timedelta(days=4), 0.8))
 
     # ---------------------------------------------------------------- write deals, roles, customers, notes
@@ -365,9 +371,9 @@ def build(cur, *, seed: int = 7, n_companies: int = 18_000) -> dict:
             d["loss"] = d["loss"] or _pick(rng, LOSS_MIX)
             if d["loss"] == "competitor":
                 comp = rng.choice(C.COMPETITORS)
-            loss_text = rng.choice(LOSS_TEXT[d["loss"]]).format(c=comp or rng.choice(C.COMPETITORS))
+            loss_text = redact(rng.choice(LOSS_TEXT[d["loss"]]).format(c=comp or rng.choice(C.COMPETITORS)), [])
         snap = {"industry": c["industry"], "employees": c["employees"], "region": c["region"],
-                "region_group": c["region_group"], "country": c["country"], "revenue_band": c["revenue_band"],
+                "region_group": c["region_group"], "country": c["country"], "revenue_band": c["revenue_band_vendor"],
                 "pricing_model": c["pricing"], "tech": c["tech"], "hq_city": c["hq_city"],
                 "founded_year": c["founded_year"]}
         stage = {"won": "Closed won", "lost": "Closed lost"}.get(outcome) or rng.choice(["Discovery", "Evaluation", "Proposal"])
@@ -379,6 +385,9 @@ def build(cur, *, seed: int = 7, n_companies: int = 18_000) -> dict:
         d["id"], d["outcome"] = did, outcome
         deal_rows.append(d)
         if d["kind"] != "new":
+            for p in ("cfo", "controller", rng.choice(["revops", "data"])):
+                db.run(cur, "insert into deal_roles (deal, persona, seniority, was_signer, was_champion) values (%s,%s,%s,%s,%s)",
+                       did, p, "c_suite" if p == "cfo" else "director", p == "cfo" and outcome == "won", p == "controller")
             continue
         # roles: personas on the deal, never names
         small = c["employees"] < 120
@@ -402,17 +411,15 @@ def build(cur, *, seed: int = 7, n_companies: int = 18_000) -> dict:
         if d["kind"] == "new" and d["outcome"] == "won":
             c = d["c"]
             start = d["closed"].date()
-            years = (NOW.date() - start).days / 365
-            churned = None
-            if rng.random() < 1 - (1 - 0.12) ** years:
-                churned = start + timedelta(days=int(rng.uniform(0.3, 1.0) * (NOW.date() - start).days))
-                churned = max(churned, start + timedelta(days=30))
-                if churned >= NOW.date():
-                    churned = None
+            # About 12% of customers leave each year: time to churn drawn from an exponential at that hazard.
+            t = rng.expovariate(-math.log(1 - 0.12)) * 365
+            churned = start + timedelta(days=max(30, int(t)))
+            if churned >= NOW.date():
+                churned = None
             customers[c["id"]] = (start, churned, d["acv"], d["owner"])
     for co, (start, churned, acv, owner) in customers.items():
         code = _pick(rng, {"price": 25, "competitor": 20, "missing_feature": 20, "champion_left": 15, "bad_fit": 12, "other": 8}) if churned else None
-        text = rng.choice(CHURN_TEXT[code]).format(c=rng.choice(C.COMPETITORS)) if code else None
+        text = redact(rng.choice(CHURN_TEXT[code]).format(c=rng.choice(C.COMPETITORS)), []) if code else None
         db.run(cur, """insert into customers (company, started_on, churned_on, churn_reason_text, arr_cents)
                        values (%s,%s,%s,%s,%s)""", co, start, churned, text, acv)
         db.run(cur, "update companies set lifecycle = %s, owner_id = %s, crm_id = %s where id = %s",
@@ -431,6 +438,11 @@ def build(cur, *, seed: int = 7, n_companies: int = 18_000) -> dict:
             grown = int(c["employees"] * rng.uniform(1.6, 6.5))
             db.run(cur, "update companies set employees = %s where id = %s", grown, co)
             db.run(cur, "update field_values set value = %s where company = %s and field = 'employees'", J(grown), co)
+    # No expansion deal opens after its customer left.
+    db.run(cur, """delete from deal_roles where deal in (select d.id from deals d join customers c on c.company = d.company
+                   where d.kind = 'expansion' and c.churned_on is not null and d.created_at::date >= c.churned_on)""")
+    db.run(cur, """delete from deals d using customers c where c.company = d.company and d.kind = 'expansion'
+                   and c.churned_on is not null and d.created_at::date >= c.churned_on""")
     # competitors and partners
     for j, name in enumerate(C.COMPETITORS):
         db.run(cur, """insert into companies (name, primary_domain, country, region, region_group, industry, employees,
@@ -442,6 +454,7 @@ def build(cur, *, seed: int = 7, n_companies: int = 18_000) -> dict:
     closed_new = [d for d in deal_rows if d["kind"] == "new" and d["outcome"] in ("won", "lost")]
     noted = rng.sample(closed_new, min(900, len(closed_new)))
     authors = [users[k] for k in ("Maya", "Daniel", "Priya", "Tom", "Grace", "Omar", "Hannah")]
+    author_start = {users[k]: started_on[k] for k in ("Maya", "Daniel", "Priya", "Tom", "Grace", "Omar", "Hannah")}
     note_count = 0
     for d in noted:
         contacts = []
@@ -467,7 +480,7 @@ def build(cur, *, seed: int = 7, n_companies: int = 18_000) -> dict:
             text = redact(raw, contacts)
             at = d["created"] + timedelta(days=min(k * 14 + rng.randint(1, 10), max(1, (d["closed"] - d["created"]).days)))
             db.run(cur, "insert into call_notes (deal, written_at, author, text_redacted) values (%s,%s,%s,%s)",
-                   d["id"], at, rng.choice(authors), text)
+                   d["id"], at, rng.choice([a for a in authors if author_start[a] <= at.date()] or [users["Grace"]]), text)
             note_count += 1
 
     # ---------------------------------------------------------------- coverage (P6) and public counts

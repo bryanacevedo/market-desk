@@ -61,8 +61,16 @@ CHECK_PROP = ("Checklist: 1. The first sentence describes exactly the change giv
               "only if all hold.")
 
 
-def judge(ask, checklist: str, material: dict, text: str) -> bool:
-    out = ask("judge", {"checklist": checklist, "material": material, "text": text})
+CONTEXT_STORY = ("The text tells a sales leader why companies in one segment of a B2B seller's market buy, what they "
+                 "object to and who signs, from call-note quotes and figures.")
+CONTEXT_PROP = ("Code decided a change to the seller's ideal customer profile (a weighted scoring of companies). The text "
+                "words that change in two sentences for a sales leader: what changes, then the evidence from closed deals. "
+                "add_rule adds a scoring rule, drop_rule removes one, penalty makes a value score lower, add_exclude makes "
+                "it never a fit, reweight changes a rule's weight.")
+
+
+def judge(ask, checklist: str, material: dict, text: str, context: str) -> bool:
+    out = ask("judge", {"context": context, "checklist": checklist, "material": material, "text": text})
     return bool(out["faithful"])
 
 
@@ -133,7 +141,7 @@ def run_story(ask) -> dict:
                 allowed = set().union(*[ai.numbers(f["value"]) for f in c["figures"]]) if c["figures"] else set()
                 nums.append(ai.numbers(text) <= allowed)
                 names.append(not any(re.search(rf"\b{re.escape(n)}\b", text) for n in c["forbidden_names"]))
-                faithful.append(judge(ask, CHECK_STORY, payload, text))
+                faithful.append(judge(ask, CHECK_STORY, payload, text, CONTEXT_STORY))
             res["rows"].append({"id": c["id"], "shown": sentences is not None, "sentences": sentences, "failures": fails})
         except Missing:
             res["not_run"] += 1
@@ -156,7 +164,7 @@ def run_proposal(ask) -> dict:
                                                "sentences": sentences})
                 nums.append(not any("numbers" in f for f in g))
                 change.append(not any("describes" in f or "does not name" in f for f in g))
-                faithful.append(judge(ask, CHECK_PROP, payload, text))
+                faithful.append(judge(ask, CHECK_PROP, payload, text, CONTEXT_PROP))
             res["rows"].append({"id": c["id"], "shown": sentences is not None, "sentences": sentences, "failures": fails})
         except Missing:
             res["not_run"] += 1
