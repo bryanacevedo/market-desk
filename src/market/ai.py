@@ -38,10 +38,11 @@ def classify_gate(description: str, out: dict) -> list[str]:
     return fails
 
 
-def classify(cur, name: str, description: str) -> dict | None:
+def classify(cur, name: str, description: str, ask=None) -> dict | None:
+    ask = ask or (lambda t, p: llm.run(cur, t, p))
     payload = classify_payload(name, description)
     for _attempt in range(2):
-        out = llm.run(cur, "classify", payload)
+        out = ask("classify", payload)
         fails = classify_gate(description, out)
         if not fails:
             return out
@@ -65,8 +66,9 @@ def loss_gate(text: str, out: dict) -> dict:
     return out
 
 
-def code_loss(cur, text: str, kind: str = "loss") -> dict:
-    return loss_gate(text, llm.run(cur, "loss_code", loss_payload(text, kind)))
+def code_loss(cur, text: str, kind: str = "loss", ask=None) -> dict:
+    ask = ask or (lambda t, p: llm.run(cur, t, p))
+    return loss_gate(text, ask("loss_code", loss_payload(text, kind)))
 
 
 # ---------------------------------------------------------------- segment_story
@@ -100,11 +102,12 @@ def story_gate(payload: dict, out: dict, forbidden: list[str]) -> list[str]:
     return fails
 
 
-def segment_story(cur, payload: dict, forbidden: list[str]) -> tuple[list[dict] | None, list[str]]:
+def segment_story(cur, payload: dict, forbidden: list[str], ask=None) -> tuple[list[dict] | None, list[str]]:
+    ask = ask or (lambda t, p: llm.run(cur, t, p))
     p = payload
     fails: list[str] = []
     for _attempt in range(2):
-        out = llm.run(cur, "segment_story", p)
+        out = ask("segment_story", p)
         fails = story_gate(payload, out, forbidden)
         if not fails:
             return out["sentences"], []
@@ -158,11 +161,12 @@ def proposal_gate(payload: dict, out: dict) -> list[str]:
     return fails
 
 
-def proposal_text(cur, payload: dict) -> tuple[list[dict] | None, list[str]]:
+def proposal_text(cur, payload: dict, ask=None) -> tuple[list[dict] | None, list[str]]:
+    ask = ask or (lambda t, p: llm.run(cur, t, p))
     p = payload
     fails: list[str] = []
     for _attempt in range(2):
-        out = llm.run(cur, "proposal_text", p)
+        out = ask("proposal_text", p)
         fails = proposal_gate(payload, out)
         if not fails:
             return out["sentences"], []

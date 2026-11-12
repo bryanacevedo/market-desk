@@ -121,7 +121,9 @@ def finding_row(f: dict) -> dict:
 
 def evidence(cur, allowed: bool) -> dict:
     run = db.one(cur, "select * from analysis_runs order by id desc limit 1")
-    rows = db.all(cur, "select * from findings where run = %s order by trait, opps desc", run["id"])
+    rows = db.all(cur, """select * from findings where run = %s order by case verdict when 'clear_higher' then 0
+                          when 'clear_lower' then 1 when 'explained_by_size' then 2 when 'not_clear' then 3 else 4 end,
+                          opps desc""", run["id"])
     prev = db.val(cur, "select max(id) from analysis_runs where id < %s", run["id"])
     changes = []
     if prev:
@@ -225,7 +227,7 @@ def version(cur, vid: int, u: dict) -> dict | None:
 PAGE = 50
 
 
-def accounts(cur, u: dict, *, q: str, tier: str, segment: str, owner: str, page: int) -> dict:
+def accounts(cur, u: dict, *, q: str, tier: str, segment: str, owner: str, page: int, region: str = "") -> dict:
     pub = _published(cur)
     plan = _active_plan(cur)
     where = ["c.lifecycle <> 'competitor'"]
@@ -249,6 +251,9 @@ def accounts(cur, u: dict, *, q: str, tier: str, segment: str, owner: str, page:
     if segment in C.SEGMENT_LABEL:
         where.append("f.segment = %s")
         args.append(segment)
+    if region in C.REGION_GROUPS:
+        where.append("c.region_group = %s")
+        args.append(region)
     sql = f"""
         from companies c join account_fit f on f.company = c.id and f.icp_version = %s
         left join assignments a on a.company = c.id and a.plan = %s left join users u on u.id = a.owner
@@ -434,7 +439,7 @@ def _proposal_row(cur, p: dict) -> dict:
     return {"id": p["id"], "kind": p["kind"], "status": p["status"], "created_at": p["created_at"],
             "change": ch, "findings": payload.get("findings", []), "sentences": p["text_sentences"],
             "text_status": p["text_status"], "reason": p["reason"], "decided_by": p.get("decided_by_name"),
-            "draft_number": p.get("draft_number"), "finding_ids": p["evidence"].get("finding_ids", []),
+            "draft_number": p.get("draft_number"), "draft_version": p.get("draft_version"), "finding_ids": p["evidence"].get("finding_ids", []),
             "test_ids": p["evidence"].get("test_ids", []), "diff": p["proposed_rules_diff"]}
 
 

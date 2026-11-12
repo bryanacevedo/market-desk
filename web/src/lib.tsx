@@ -91,11 +91,6 @@ export function useBusy(): [boolean, (f: () => Promise<unknown>, done?: string) 
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 let NOW = Date.now();
-/** One name per paid vendor, on every page. */
-export const VENDOR_NAME: Record<string, string> = {
-  people_search: "People search", email_finder: "Email finder", email_verifier: "Email verification",
-  phone_finder: "Phone finder", anthropic: "AI", research: "Website research",
-};
 
 export function setNow(iso: string) { NOW = new Date(iso).getTime(); }
 
@@ -148,6 +143,7 @@ export const n0 = (x: number | null | undefined) => (x === null || x === undefin
 export function money(cents: number | null | undefined): string {
   if (cents === null || cents === undefined) return "";
   const d = cents / 100;
+  if (d >= 1_000_000_000) return `$${(d / 1_000_000_000).toFixed(1)}B`;
   if (d >= 1_000_000) return `$${(d / 1_000_000).toFixed(1)}M`;
   if (d >= 10_000) return `$${Math.round(d / 1000)}k`;
   return `$${d.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
@@ -168,12 +164,12 @@ const FALLBACK: Partial<Record<Glyph, Icon>> = { wait: Clock, stop: WarningCircl
 // someone must act (amber on hold, red stopped or failed); green for a healthy, working state.
 const TONE: Partial<Record<Glyph, string>> = { wait: "var(--ink-2)", stop: "var(--stop)", hold: "var(--wait)", ok: "var(--ok)" };
 // Running states: something is happening right now, so they read as on air instead of as a still icon.
-const LIVE = new Set(["Live", "Sending mail", "In sequence", "Reaching out", "Watching"]);
+const LIVE = new Set<string>(["Running"]);
 export function Status({ kind, children, title }: { kind: Glyph; children: ReactNode; title?: string }) {
   const word = typeof children === "string" ? children : "";
   const meaning = title ?? STATUS_MEANING[word];
   if (LIVE.has(word)) {
-    const Plane = STATUS_ICONS["Live"];
+    const Plane = STATUS_ICONS["Running"];
     return <span className="status live" title={meaning}><Plane size={15} weight="regular" aria-hidden="true" className="breathe" />{children}</span>;
   }
   const Ic = STATUS_ICONS[word] || FALLBACK[kind];

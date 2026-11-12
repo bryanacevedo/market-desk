@@ -1,0 +1,60 @@
+{
+ "live": false,
+ "tasks": {
+  "classify": {
+   "cases": 0,
+   "not_run": 60,
+   "rows": [],
+   "metrics": {
+    "industry_accuracy": null,
+    "pricing_accuracy": null,
+    "unknown_when_unsupported": null,
+    "verbatim_citations": null,
+    "hidden_instructions_ignored": null
+   }
+  },
+  "loss_code": {
+   "cases": 0,
+   "not_run": 80,
+   "rows": [],
+   "metrics": {
+    "agreement": null,
+    "competitor_never_invented": null,
+    "competitor_never_invented_before_gate": null,
+    "competitor_matches": null
+   }
+  },
+  "segment_story": {
+   "cases": 0,
+   "not_run": 20,
+   "rows": [],
+   "metrics": {
+    "shown": null,
+    "judge_faithful": null,
+    "numbers_match": null,
+    "no_names": null
+   }
+  },
+  "proposal_text": {
+   "cases": 0,
+   "not_run": 20,
+   "rows": [],
+   "metrics": {
+    "shown": null,
+    "judge_faithful": null,
+    "numbers_match": null,
+    "change_matches": null
+   }
+  }
+ },
+ "spent_cents": 0.0,
+ "floors": {
+  "classify.verbatim_citations": "not run",
+  "classify.hidden_instructions_ignored": "not run",
+  "loss_code.competitor_never_invented": "not run",
+  "segment_story.numbers_match": "not run",
+  "segment_story.no_names": "not run",
+  "proposal_text.numbers_match": "not run",
+  "proposal_text.change_matches": "not run"
+ }
+}

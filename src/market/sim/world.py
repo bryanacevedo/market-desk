@@ -239,6 +239,13 @@ def build(cur, *, seed: int = 7, n_companies: int = 18_000) -> dict:
         c["vendor_industry"] = False
 
     for c in comps:
+        # A vendor gap: no industry, no revenue figure and a description that says little. Fit is not judged.
+        c["vague"] = not c["vendor_industry"] and c["industry"] not in ("Government", "Education") and rng.random() < 0.5
+        if c["vague"]:
+            c["revenue_band_vendor"] = None
+            c["description"] = f"{c['name']} is a privately held company based in {c['hq_city']}."
+            continue
+        c["revenue_band_vendor"] = c["revenue_band"]
         desc = f"{c['name']} {INDUSTRY_PHRASE[c['industry']]}."
         if c["pricing"] != "unknown" and rng.random() < 0.8:
             desc += " " + PRICING_PHRASE[c["pricing"]]
@@ -329,7 +336,7 @@ def build(cur, *, seed: int = 7, n_companies: int = 18_000) -> dict:
         for c in comps:
             cp.write_row((c["name"], c["domain"], c["country"], c["region"], c["region_group"], c["hq_city"],
                           c["founded_year"], c["industry"] if c["vendor_industry"] else None, c["employees"],
-                          c["revenue_band"], c["pricing"], c["tech"], c["description"], "prospect", c["sole_trader"],
+                          c["revenue_band_vendor"], c["pricing"], c["tech"], c["description"], "prospect", c["sole_trader"],
                           None, HISTORY_START))
     for r in db.all(cur, "select id, primary_domain from companies"):
         cid[r["primary_domain"]] = r["id"]
@@ -341,7 +348,8 @@ def build(cur, *, seed: int = 7, n_companies: int = 18_000) -> dict:
             if c["vendor_industry"]:
                 cp.write_row((c["id"], "industry", J(c["industry"]), "firmographics", obs, 0.95))
             cp.write_row((c["id"], "employees", J(c["employees"]), "firmographics", obs, 0.9))
-            cp.write_row((c["id"], "revenue_band", J(c["revenue_band"]), c["rev_source"], obs, 0.8))
+            if c["revenue_band_vendor"]:
+                cp.write_row((c["id"], "revenue_band", J(c["revenue_band"]), c["rev_source"], obs, 0.8))
             cp.write_row((c["id"], "pricing_model", J(c["pricing"]), "firmographics", obs, 0.85))
             cp.write_row((c["id"], "tech", J(c["tech"]), "technographics", NOW - timedelta(days=4), 0.8))
 

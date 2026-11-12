@@ -236,10 +236,11 @@ def moves(vid: int, u: dict = Depends(current_user)) -> dict:
 
 
 @app.get("/api/accounts")
-def accounts(q: str = "", tier: str = "", segment: str = "", owner: str = "", page: int = 1,
+def accounts(q: str = "", tier: str = "", segment: str = "", owner: str = "", page: int = 1, region: str = "",
              u: dict = Depends(current_user)) -> dict:
     with db.tx() as cur:
-        return views.accounts(cur, u, q=q[:80], tier=tier, segment=segment, owner=owner, page=max(1, min(page, 1000)))
+        return views.accounts(cur, u, q=q[:80], tier=tier, segment=segment, owner=owner, page=max(1, min(page, 1000)),
+                              region=region[:40])
 
 
 @app.get("/api/companies/{cid}")

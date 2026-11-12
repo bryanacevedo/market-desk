@@ -1,4 +1,4 @@
-/* Account Desk. An instrument, in the Instrument language: the data decides the layout, a worklist is a ledger,
+/* Market Desk, in Account Desk's Instrument language (copied from Account Desk's web/src/styles.css). An instrument, in the Instrument language: the data decides the layout, a worklist is a ledger,
    numbers are tabular and right-aligned, a status is a glyph and a word, one accent for interaction only.
    Cool white ground, near-black ink, cobalt for what can be pressed or is selected. Geist for everything. */
 
@@ -725,3 +725,83 @@ textarea.input { height: auto; padding: 10px 12px; line-height: 21px; resize: ve
 .mail { border-color: color-mix(in srgb, var(--accent) 38%, var(--line)); border-radius: var(--r-l); margin: 24px 6px 28px;
   box-shadow: 0 0 0 4px var(--accent-wash), 0 0 0 5px color-mix(in srgb, var(--accent) 14%, transparent),
               0 16px 52px -6px rgba(43, 71, 201, .48); }
+
+/* ================================================================== Market Desk additions, in the same language */
+
+/* The tier mix: one bar, a part per tier in ink tones (A darkest), counts written under it. */
+.tiermix { display: grid; gap: 4px; min-width: 0; }
+.tm-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--well); }
+.tm-bar i { display: block; height: 100%; }
+.tm-bar i + i { box-shadow: inset 1px 0 0 var(--ground); }
+.t-a { background: var(--ink); } .t-b { background: #5B6475; } .t-c { background: var(--line-2); } .t-x { background: var(--well-2); }
+.t-nj { background: repeating-linear-gradient(135deg, var(--line-2) 0 2px, var(--ground) 2px 4px); }
+.tm-key { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 11.5px; color: var(--mute); font-variant-numeric: tabular-nums; }
+.tm-key b { font-weight: 600; color: var(--ink-2); margin-right: 3px; }
+
+/* A rate with its range in small type. */
+.rate { white-space: nowrap; }
+.rate small { color: var(--mute); font-size: 11.5px; margin-left: 2px; }
+
+/* A tier is a letter, set plainly. */
+.tier { display: inline-block; min-width: 14px; font-weight: 620; color: var(--ink); text-align: center; }
+.tier-c, .tier-x { color: var(--mute); font-weight: 500; }
+
+/* Hours used of allowed: a bar with the numbers on it. */
+.hours { display: grid; grid-template-columns: minmax(40px, 1fr) auto; gap: 10px; align-items: center; min-width: 0; }
+.hours .track { height: 8px; border-radius: 4px; background: var(--well); position: relative; overflow: hidden; }
+.hours .track i { position: absolute; inset: 0 auto 0 0; background: var(--ink); border-radius: 4px; }
+.hours.over .track i { background: var(--wait); }
+.hours .val { font-size: 12.5px; color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hours.over .val { color: var(--ink); font-weight: 600; }
+
+/* Why a segment buys: our sentence, then the buyer's own words with the green mark. */
+.story { display: grid; gap: 14px; }
+.story-s { display: grid; gap: 6px; }
+.story-s p { margin: 0; line-height: 1.55; }
+.quotes { display: grid; gap: 8px; margin-top: 8px; }
+.quote.small { font-size: 13px; line-height: 19px; padding: 10px 14px 10px 36px; }
+.quote.small::before { font-size: 26px; left: 12px; top: 4px; }
+
+/* Proposals: a quiet card per open proposal. */
+.props { display: grid; gap: 12px; }
+.prop { display: grid; gap: 10px; padding: 14px 16px; border-radius: var(--r-l); box-shadow: inset 0 0 0 1px var(--line); }
+.prop-top, .prop-foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+.prop-top input { width: 18px; height: 18px; }
+.prop-kind { font-weight: 600; }
+.prop-words { display: grid; gap: 6px; }
+.prop-words p { margin: 0; line-height: 1.55; color: var(--ink-2); max-width: 72ch; }
+.grow { flex: 1; }
+
+/* Fields as label and value. */
+dl.kv { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 8px 16px; margin: 0; }
+dl.kv dt { color: var(--mute); }
+dl.kv dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+
+.search { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 200px; max-width: 360px; }
+.search .input { flex: 1; }
+.md-pre { white-space: pre-wrap; font: 12.5px/1.55 var(--mono); background: var(--well); padding: 14px 16px; border-radius: var(--r); margin: 0; overflow-wrap: anywhere; }
+.ledger button.row:disabled { cursor: default; color: inherit; opacity: 1; }
+.ledger button.row:disabled:hover { background: transparent; }
+.sub { color: var(--mute); margin-top: 4px; }
+
+/* Panel tints for this desk's sheets. */
+.sheet.kind-segment { --kind: #2F6B9E; --kind-soft: #E7EFF7; }
+.sheet.kind-finding { --kind: #5E4D86; --kind-soft: #EFECF6; }
+.sheet.kind-company { --kind: #5A5F69; --kind-soft: #EFEFF1; }
+.sheet.kind-person { --kind: #2F7A6E; --kind-soft: #E7F2EF; }
+.sheet.kind-version { --kind: #6B7A2F; --kind-soft: #F1F3E6; }
+.sheet.kind-move { --kind: #8A6A32; --kind-soft: #F5F0E6; }
+.sheet.kind-test { --kind: #9A3F5E; --kind-soft: #F7EAEF; }
+.sheet.kind-proposal { --kind: #A0553A; --kind-soft: #F7ECE7; }
+.sheet.kind-book { --kind: #5D5A8F; --kind-soft: #EFEFF6; }
+.sheet.kind-source { --kind: #4F6B3A; --kind-soft: #EEF3EA; }
+
+/* On a phone a wide table becomes stacked rows: each value says what it is. */
+@media (max-width: 900px) {
+  .ledger .row { grid-template-columns: minmax(0, 1fr) !important; gap: 4px; padding-top: 12px; padding-bottom: 12px; }
+  .ledger .row.head { display: none; }
+  .ledger .row > .num { text-align: left; }
+  dl.kv { grid-template-columns: 120px minmax(0, 1fr); }
+  .hours { grid-template-columns: minmax(40px, 1fr) auto; }
+  .search { max-width: none; }
+}

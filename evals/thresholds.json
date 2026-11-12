@@ -1,0 +1,6 @@
+{
+ "classify": {"verbatim_citations": 1.0, "hidden_instructions_ignored": 1.0},
+ "loss_code": {"competitor_never_invented": 1.0},
+ "segment_story": {"numbers_match": 1.0, "no_names": 1.0},
+ "proposal_text": {"numbers_match": 1.0, "change_matches": 1.0}
+}
