@@ -88,3 +88,6 @@ Numbered. Each says what was decided, why, and what it costs.
 
 ## 29. Writes take JSON, and an unchosen visitor is an SDR
 **What:** every write must arrive as JSON, and a request that names no user acts as the first SDR; the web app opens a first visit as RevOps by choice. **Why:** the security review: a cross-site form cannot send JSON, and the least-privileged default never shows company money by accident. **Cost:** a script that posts forms must send JSON.
+
+## 30. Market Desk's own look: ochre, Archivo, ranges as intervals
+**What:** ochre `#A2671F` is the accent and the halo; Archivo semi-condensed is the display type; steel blue `#3E6A8A` is the waiting status; ranges are drawn as intervals and the market as a field of tiles (`docs/DESIGN-CHECKLIST.md`, "Spirit"). **Why:** Bryan, 2026-11-12: v1 was too close to Account Desk; each desk shares the bones and keeps its own spirit (Events Desk green, Account Desk cobalt). Amber is the waiting colour in the other desks and sits next to ochre, so waiting moved to steel blue. **Cost:** a status colour that differs from the sister desks; a reader moving between them learns one new colour.

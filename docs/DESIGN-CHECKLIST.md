@@ -6,6 +6,22 @@ Two automated gates exist: `tests/test_screen_copy.py` fails on any sentence a s
 
 The pages are Market, Evidence, Profile, Accounts, Territories (with a Capacity tab), Tests, Changes, Handoffs, Sources, My book and Settings. RevOps sees all but My book; a manager sees all but Sources, Settings and My book; SDRs and AEs see My book and Accounts.
 
+## Spirit
+
+Three desks, one family. Each has its own spirit on the same bones.
+
+**Shared with Account Desk and Events Desk:** the shell (sidebar, pages, side sheets that show their kind), quiet list rows with one hairline, plain words with no AI tells, one halo on the one thing that waits for a decision, and restraint: no KPI tiles, no pills, no gradients, no glow for decoration.
+
+**Account Desk** is an operator's queue: cobalt, Geist throughout, dense rows, signal icons, the thesis panel. **Events Desk** is editorial and warm: forest green, IBM Plex Sans for display, event cards in their own colours, a runway and stage timeline.
+
+**Market Desk is a calm analyst's desk, a survey map of the market:**
+- **Colour:** ochre (`#A2671F`, 4.67:1 on white and for white text on it) for what can be pressed and for the one decision's halo; `#8F5A18` for ochre text on the light wash. Steel blue (`#3E6A8A`) says something is waiting, never amber, so identity and status cannot be confused.
+- **Type:** Archivo, semi-condensed (88% width), for headings, figures, the brand and sheet titles, like the labels on a map; Geist for reading.
+- **Signature:** ranges drawn as intervals. A rate is a band from low to high with a tick at the point and a ring where the others sit; TAM, SAM and SOM are nested bands on one money scale. The market is a field of tiles, each segment as wide as its reachable market, shaded by its share of tier A.
+- **Rhythm:** more air than an operator's queue: 15px text, 52px rows, 36px between sections, small-caps column heads.
+- **Motion:** bands open from their point, tiles settle in one after another, nothing bounces; all of it off under reduced motion.
+- **The one halo:** the draft profile on Profile, the first open proposal on Changes, what a draft plan changes on Territories.
+
 ## Words
 
 - [ ] No sentence explains a screen, a heading, a figure or a row. The screen explains itself.
