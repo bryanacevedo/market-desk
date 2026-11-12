@@ -60,15 +60,13 @@ def _story(p: dict) -> dict:
     out = []
     if by_kind.get("reason_to_buy"):
         q = by_kind["reason_to_buy"][0]
-        f = figs.get("win_rate")
-        out.append({"text": f"Buyers here say \"{q['text']}\"" + (f", and they win at {f['value']}." if f else "."),
-                    "quote_ids": [q["id"]], "figure_ids": ["win_rate"] if f else []})
+        out.append({"text": f"Top reason to buy: \"{q['text']}\".", "quote_ids": [q["id"]], "figure_ids": []})
     if by_kind.get("objection"):
         q = by_kind["objection"][0]
-        out.append({"text": f"One objection: \"{q['text']}\".", "quote_ids": [q["id"]], "figure_ids": []})
+        out.append({"text": f"Objection: \"{q['text']}\".", "quote_ids": [q["id"]], "figure_ids": []})
     if by_kind.get("competitor"):
         q = by_kind["competitor"][0]
-        out.append({"text": f"Competitors come up: \"{q['text']}\".", "quote_ids": [q["id"]], "figure_ids": []})
+        out.append({"text": f"Competitor: \"{q['text']}\".", "quote_ids": [q["id"]], "figure_ids": []})
     signer = figs.get("signer")
     if signer and out:
         out.append({"text": f"The {signer['value'].lower()} signs most deals.", "quote_ids": out[0]["quote_ids"],
@@ -82,16 +80,24 @@ def _story(p: dict) -> dict:
 def _proposal(p: dict) -> dict:
     ch, fs = p["change"], p["findings"]
     f = fs[0] if fs else None
-    verb = {"add_rule": "Add a rule for", "drop_rule": "Drop the rule on", "penalty": "Lower the score of",
-            "add_exclude": "Exclude", "reweight": "Reweight the rule on", "segment_expand": "Expand"}.get(ch["kind"], "Change")
-    first = f"{verb} {ch['field_label'].lower()}: {ch['value_label']}."
-    if f and f["trait"].startswith("Segment test"):
-        second = f"In the test, {f['win_rate']} of {f['opportunities']} worked accounts booked a meeting, against {f['rest_win_rate']} held back."
+    v = ch["value_label"]
+    v = {"pricing_model": f"{v[:1].lower()}{v[1:]} pricing", "employees": f"{v} employees"}.get(ch["field"], v) \
+        if ch["kind"] in ("add_rule", "penalty") else v
+    first = {"add_rule": f"Add {v}.", "drop_rule": f"Drop the {v} rule.", "penalty": f"Penalize {v}.",
+             "add_exclude": f"Exclude {v}.", "reweight": f"Reweight {v}.", "segment_expand": f"Expand {v}."}.get(ch["kind"], f"Change {v}.")
+    verdict = (f or {}).get("verdict", "")
+    if ch["kind"] == "add_exclude" and f and f.get("top_loss"):
+        second = f"Most losses: {f['top_loss'].rsplit(' ', 1)[0]}."
+    elif ch["kind"] == "segment_expand":
+        second = "Worked accounts booked more meetings than held-back ones."
+    elif ch["kind"] == "drop_rule" and "size" in verdict.lower():
+        second = "The gap goes away within each size band."
+    elif ch["kind"] == "drop_rule":
+        second = "Deals with and without it close at about the same rate."
+    elif ch["kind"] == "penalty":
+        second = "These deals close less often than the rest."
     else:
-        second = (f"{f['value']} won {f['win_rate']} of {f['opportunities']} deals, against {f['rest_win_rate']} for the rest."
-                  if f else "The deals behind it are in the findings.")
-    if f and f.get("top_loss") and ch["kind"] == "add_exclude":
-        second = second.rstrip(".") + f"; most losses were {f['top_loss'].rsplit(' ', 1)[0]} ({f['top_loss'].rsplit(' ', 1)[1]})."
+        second = "Deals with it close more often than the rest."
     return {"describes": {"kind": ch["kind"], "field": ch["field"], "value_label": ch["value_label"]},
             "sentences": [{"text": first, "finding_ids": [f["id"]] if f and "id" in f else []},
                           {"text": second, "finding_ids": [f["id"]] if f and "id" in f else []}]}

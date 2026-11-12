@@ -20,7 +20,7 @@
 > [!NOTE]
 > **What is real and what is simulated.** The company (Lumen Ledger), its 18,005 companies, three years of deals, call notes, sources and the other desks' results are invented, built from a fixed seed. The statistics, the profile and fit formula, sizing, territories, the handoff files, the two-person rules and the AI checks are real code, tested on real Postgres. Eight relationships were planted in the data on purpose and the desk finds each with its own rules; [the full list](#what-is-real-and-what-is-simulated) says which.
 
-[The rules](#the-rules-it-is-built-on) · [What it does](#what-it-does) · [The other desks](#how-it-fits-with-the-other-two-desks) · [Shared world](#the-shared-world) · [Run it](#run-it) · [The AI, measured](#the-ai-measured) · [Real and simulated](#what-is-real-and-what-is-simulated) · [Not yet proven](#not-yet-proven) · [Words](#words-used-here)
+[The rules](#the-rules-it-is-built-on) · [What it does](#what-it-does) · [The other desks](#how-it-fits-with-the-other-two-desks) · [Shared world](#the-shared-world) · [Run it](#run-it) · [AI evals](#ai-evals) · [Real and simulated](#what-is-real-and-what-is-simulated) · [Not yet proven](#not-yet-proven) · [Words](#words-used-here)
 
 Market Desk learns the ideal customer profile from every deal won, lost and churned, with each rule's win rate, range and verdict; it sizes every segment as ranges, counting only buyers the team can reach and accounts it can actually work in a year; it tiers every company and gives it to someone with hours to work it; it hands that book to [Account Desk](https://github.com/bryanacevedo/account-desk) and [Events Desk](https://github.com/bryanacevedo/events-desk), the two desks that reach out to the accounts; and it proposes changes to the profile only when their results say it was wrong, for a manager to publish.
 
@@ -42,7 +42,7 @@ Pick who you are acting as in the demo's sidebar (RevOps, the sales manager, an 
 ## What it does
 
 - **Evidence.** Every new-business deal closed in the last 24 months, by trait (industry, size, region, country, revenue, pricing model, each technology, deal source, HQ city, founding period, segment, and each rule of the published profile). Each value carries its deals, win rate with a 95% range, the rest's win rate, won-deal cycle, deal size, first-year churn and its top loss reasons. A value is **Clearly higher** or **Clearly lower** only when it holds after correcting for the number of values tested; a clear value whose difference goes away within company size bands is **Explained by size**; under 30 deals or 5 wins it is **Too few to tell**.
-- **Profile.** Versions of weighted rules, penalties and excludes in Account Desk's own shape, each rule with its evidence or marked Hypothesis. A draft shows **what moves** (which companies change tier, by owner and segment) and a **backtest** (the tier mix of customers, the best customers, lost and churned companies and a random control) before anyone publishes it.
+- **ICP.** Versions of weighted rules, penalties and excludes in Account Desk's own shape, each rule with its evidence or marked Hypothesis. A draft shows **what moves** (which companies change tier, by segment) and the **tier mix by group** (customers, the best customers, lost and churned companies and a random sample, under the draft and under the published version side by side) before anyone publishes it.
 - **Market.** For each segment and each region: companies by tier, coverage against public counts, reachable companies, and TAM, SAM and SOM as ranges. SAM counts only companies whose signer a contact source can find; SOM counts only what the active plan's people can work in 12 months, times the share that becomes a deal, times the win rate. TAM is always shown as a range.
 - **Territories and capacity.** Hours a month per account by tier against each person's selling hours and ramp; assignment by territory rule with the reason stated; a balancing pass on expected value; a hiring gap; a draft plan previewed as what changes before a manager activates it.
 - **Segment tests.** Work a cohort of a segment, hold back one in five, and compare meetings before the segment gets territory. Below the sample the comparison needs, it says how many more accounts it needs.
@@ -95,7 +95,7 @@ make demo
 
 `make demo` starts a private Postgres in `.data/`, builds the world from its fixed seed (about 35 seconds) and serves it at http://localhost:8800. `make test` runs the suite on real Postgres. `make audit` checks the demo database against every product rule. `make evals` replays the AI evals from their recordings, free; `make evals-live` calls Claude, capped at $15. `python -m market mcp` is a read-only MCP server (find accounts, why an account has its tier, a segment's figures, who owns what).
 
-## The AI, measured
+## AI evals
 
 Four tasks, 180 cases written by an agent that never saw the code (`evals/CASES.md`), graded by code where code can see the answer and by a Claude Sonnet 5.5 judge with a written checklist where it cannot. Model under test: Claude Opus 5.5.
 
@@ -137,26 +137,26 @@ The world was adjusted until the rules found the planted effects; the rules were
 - Nothing here has run against a real CRM, a real data vendor or real public counts; the adapters are contracts only.
 - Account Desk and Events Desk do not import these books yet; the equivalence test uses a copy of Account Desk's formula, and whether Events Desk's parser reads this ICP document is untested.
 - The hours per account (A 1.0, B 0.4, C 0.1 a month) and the quarter each account is worked are our assumptions (decision 17).
-- The sizing ranges are scenario bounds, not confidence intervals (decision 13).
+- The sizing ranges are scenario bounds (decision 13).
 - No login: the "acting as" menu stands in for one; header auth through Cloudflare Access is written and unproven.
-- Compliance design (companies and roles, not people; redaction; sole traders out of every book) is reasoned, not reviewed by counsel. Redaction misses a name written all in lower case that is neither in the CRM contact list nor a common first name, and a single first name at the start of a sentence.
+- Compliance design (companies and roles, not people; redaction; sole traders out of every book) is reasoned and not yet reviewed by counsel. Redaction misses a name written all in lower case that is neither in the CRM contact list nor a common first name, and a single first name at the start of a sentence.
 - The shared world export runs on the demo only: on live data it would invent people at real companies, so it refuses.
 
 ## Words used here
 
 | Word | Means |
 |---|---|
-| Profile, ICP | The ideal customer profile: weighted rules that add to a company's score, penalties that take away, and excludes that make it never a fit; versioned |
-| Travels, stays here | Whether Account Desk can read a rule: it has no pricing model or segment field, so those rules stay here and are listed as dropped in its book |
+| ICP | The ideal customer profile: weighted rules that add to a company's score, penalties that take away, and excludes that make it never a fit; versioned |
+| Not sent to Account Desk | A rule Account Desk cannot read: it has no pricing model or segment field, so the rule stays here and is listed in its book |
 | Signer | The role that signed most won deals in a segment |
-| Values tested | How many trait values had enough deals to test; the bar for a clear result tightens as this grows |
-| Shrunk win rate, win rate used | A segment's win rate pulled toward the overall rate as if it had 20 more deals at the overall rate, so a few lucky deals do not carry it |
-| Balanced, territory mean | A territory is balanced when each person's expected value is within 15% of the territory's mean and nobody is over their hours |
+| Traits compared | How many trait values had enough deals to test; the bar for a clear result tightens as this grows |
+| Planning win rate | A segment's win rate pulled toward the overall rate as if it had 20 more deals at the overall rate, so a few lucky deals do not carry it |
+| Balanced, territory average | A territory is balanced when each person's expected value is within 15% of the territory's average and nobody is over capacity |
 | Worked | In a segment test, the accounts Account Desk works; the others are held back |
 | Expand, drop, extend | The decisions on a read test: give the segment weight in the profile, stop, or run it 60 more days |
 | Ramp | A new hire's share of full selling hours, rising over their first three months |
-| Withheld | The AI's wording failed its check twice, so the screen shows the figures alone |
-| Not applied: read by AI | An exclude that would have matched a value the AI read from a description; the AI never excludes a company |
+| No summary | The AI's wording failed its check twice, so the screen shows the figures alone |
+| Skipped: AI-read value | An exclude that would have matched a value the AI read from a description; the AI never excludes a company |
 | Tier | A, B or C by fit score under the published profile; X is excluded, a customer, an open deal or a competitor |
 | Not judged | Less than 60% of the profile's weight is known for the company, so it gets no tier |
 | Scored on | The share of the profile's weight known for a company |

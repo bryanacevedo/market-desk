@@ -28,7 +28,7 @@ const KIND: Record<string, { label: string; icon: typeof X }> = {
   segment: { label: "Segment", icon: ChartPieSlice }, finding: { label: "Finding", icon: Scales },
   company: { label: "Company", icon: Buildings }, person: { label: "Person", icon: UserCircle },
   version: { label: "Profile version", icon: ListChecks }, move: { label: "Plan move", icon: ArrowsLeftRight },
-  test: { label: "Test", icon: Flask }, proposal: { label: "Proposal", icon: Lightbulb },
+  test: { label: "Test", icon: Flask }, proposal: { label: "Change", icon: Lightbulb },
   book: { label: "Book", icon: BookOpen }, source: { label: "Source", icon: Database },
 };
 
@@ -119,8 +119,8 @@ function SegmentSheet({ id }: { id: string }) {
           <Section title="Why they buy">
             {d.story?.status === "ok" ? (
               <div className="story">{d.story.sentences.map((s: any, i: number) => <p key={i}>{s.text}</p>)}</div>
-            ) : d.story ? <div className="notice"><Status kind="none">Withheld</Status>The wording failed its check twice, so only the figures show.</div> : null}
-            <div className="quotes">{d.quotes.slice(0, 4).map((q: any) => (
+            ) : d.story ? <Status kind="none">No summary</Status> : null}
+            <div className="quotes">{d.quotes.filter((q: any) => !(d.story?.sentences || []).some((s: any) => s.text.includes(q.text))).slice(0, 4).map((q: any) => (
               <div key={q.id} className="said-q"><span className="said-kind">{QUOTE_KIND[q.kind]}</span><div className="quote small">{q.text}</div></div>
             ))}</div>
           </Section>
@@ -145,8 +145,8 @@ function SegmentSheet({ id }: { id: string }) {
                 rows={[["TAM", z.tam_low, z.tam_high], ["SAM", z.sam_low, z.sam_high], ["SOM", z.som_low, z.som_high]]} />
               <dl className="kv">
                 <dt>Deal size</dt><dd>{money(z.acv_basis.p25)} to {money(z.acv_basis.p75)}{z.acv_basis.from === "overall" ? <span className="mute">, all segments</span> : null}</dd>
-                <dt>Planning win rate, pulled toward the overall rate</dt><dd><RangeLine rate={z.win_rate_basis.shrunk} low={z.win_rate_basis.low} high={z.win_rate_basis.high} ends /></dd>
-                <dt>Became deals</dt><dd><RangeLine rate={z.capacity_basis.opp_rate} low={z.capacity_basis.opp_low} high={z.capacity_basis.opp_high} max={0.2} ends /></dd>
+                <dt>Planning win rate</dt><dd><RangeLine rate={z.win_rate_basis.shrunk} low={z.win_rate_basis.low} high={z.win_rate_basis.high} ends /></dd>
+                <dt>Deal rate</dt><dd><RangeLine rate={z.capacity_basis.opp_rate} low={z.capacity_basis.opp_low} high={z.capacity_basis.opp_high} max={0.2} ends /></dd>
                 <dt>Accounts the plan can work</dt><dd>{n0(z.capacity_basis.capacity_accounts)}</dd>
               </dl>
             </Section>
@@ -191,7 +191,7 @@ function FindingSheet({ id }: { id: string }) {
           {f.cycle ? <Fig sm value={`${Math.round(f.cycle.median)}`} unit=" days" label="Won-deal cycle" /> : null}
         </div>
         <dl className="kv">
-          <dt>Range</dt><dd><RangeLine rate={f.rate} low={f.low} high={f.high} other={f.rest_rate} ends /></dd>
+          <dt>Likely win rate</dt><dd><RangeLine rate={f.rate} low={f.low} high={f.high} other={f.rest_rate} ends /></dd>
           <dt>Deals in the rest</dt><dd>{n0(f.rest_opps)}</dd>
           {f.cycle ? <><dt>Cycle range</dt><dd>{Math.round(f.cycle.low)} to {Math.round(f.cycle.high)} days</dd></> : null}
           {f.acv_median !== undefined && f.acv_median !== null ? <><dt>Deal size</dt><dd>{money(f.acv_median)} ({money(f.acv_p25)} to {money(f.acv_p75)})</dd></> : null}
@@ -234,6 +234,7 @@ function FindingSheet({ id }: { id: string }) {
 
 const PRICING: Record<string, string> = { usage: "Usage-based", seat: "Per seat", transaction: "Per transaction", mixed: "Mixed", unknown: "Unknown" };
 const SOURCE_WORD: Record<string, string> = { firmographics: "Company data vendor", technographics: "Technology vendor", funding_db: "Funding database", model: "AI, from the description", crm: "CRM" };
+const niceBand = (v: string) => v.startsWith("<") ? `Under ${v.slice(1)}` : v.endsWith("+") ? `${v.slice(0, -1)} or more` : v.replace(/^(\$[\d.]+[KMB]?)-(\$[\d.]+[KMB]?)$/, "$1 to $2");
 const FIELD: Record<string, string> = { industry: "Industry", employees: "Employees", revenue_band: "Revenue", pricing_model: "Pricing model", tech: "Technology" };
 
 function CompanySheet({ id }: { id: string }) {
@@ -247,7 +248,7 @@ function CompanySheet({ id }: { id: string }) {
             <div className="figs">
               <Fig sm value={f.judged ? f.tier : "Not judged"} label={`Tier, v${f.version}`} />
               {f.judged && f.score !== null ? <Fig sm value={f.score} label="Score" /> : null}
-              <Fig sm value={pct(f.scored_out_of)} label="Of the profile known" />
+              <Fig sm value={pct(f.scored_out_of)} label="Data known" />
             </div>
           ) : null}
           {f ? (
@@ -263,10 +264,10 @@ function CompanySheet({ id }: { id: string }) {
                   </div>
                 ))}
                 {(f.breakdown.not_applied || []).map((x: any, i: number) => (
-                  <div key={`na${i}`} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) auto" }}><span>{x.reason}</span><span className="mute">Not applied: read by AI</span></div>
+                  <div key={`na${i}`} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) auto" }}><span>{x.reason}</span><span className="mute">Skipped: AI-read value</span></div>
                 ))}
               </div>
-              <div className="small mute">{f.segment_label}</div>
+              <dl className="kv small"><dt>Segment</dt><dd>{f.segment_label}</dd></dl>
             </Section>
           ) : null}
           {c.owner ? (
@@ -282,7 +283,7 @@ function CompanySheet({ id }: { id: string }) {
               {c.fields.map((x: any, i: number) => (
                 <div key={i} className="row" style={{ gridTemplateColumns: "110px minmax(0,1fr) minmax(0,1fr)" }}>
                   <span className="mute">{FIELD[x.field] || x.field}</span>
-                  <span className="clip">{Array.isArray(x.value) ? x.value.join(", ") || "None" : typeof x.value === "number" ? x.value.toLocaleString("en-US") : PRICING[x.value] || String(x.value)}</span>
+                  <span className="clip">{Array.isArray(x.value) ? x.value.join(", ") || "None" : typeof x.value === "number" ? x.value.toLocaleString("en-US") : PRICING[x.value] || (x.field === "revenue_band" ? niceBand(String(x.value)) : String(x.value))}</span>
                   <span className="cell-main"><span className="s">{SOURCE_WORD[x.source] || x.source_label}, {day(x.observed_at)}</span>{x.quote ? <span className="s">{x.quote}</span> : null}</span>
                 </div>
               ))}
@@ -307,7 +308,7 @@ function CompanySheet({ id }: { id: string }) {
             </Section>
           ) : null}
           {c.results.length ? (
-            <Section title="From the desks">
+            <Section title="Desk results">
               <div className="ledger">{c.results.map((r: any) => (
                 <div key={r.id} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) 80px 90px" }}>
                   <span className="cell-main"><span className="t">{r.destination === "events_desk" ? "Events Desk" : r.held_back ? "Held back" : "Account Desk"}</span><span className="s">{day(r.period_start)} to {day(r.period_end)}</span></span>
@@ -387,13 +388,13 @@ function VersionSheet({ id }: { id: string }) {
         <Section title="Rules">
           <div className="ledger">{v.rules.map((r: any) => (
             <button key={r.kind + r.key} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) 44px 150px" }} disabled={!r.finding} onClick={() => r.finding && openSheet("finding", r.finding.id)}>
-              <span className="cell-main"><span className="t">{r.label}</span><span className="s">{r.kind === "factors" ? "Adds" : r.kind === "penalties" ? "Takes away" : "Never a fit"}{!r.travels ? ", stays here" : ""}</span></span>
+              <span className="cell-main"><span className="t">{r.label}</span><span className="s">{r.kind === "factors" ? "Adds points" : r.kind === "penalties" ? "Removes points" : "Excluded"}{!r.travels ? ", not sent to Account Desk" : ""}</span></span>
               <span className="num">{r.weight === null || r.weight === undefined ? "" : r.kind === "penalties" ? `−${r.weight}` : r.weight}</span>{r.finding ? <Verdict v={r.finding.verdict} /> : <Status kind="none">Hypothesis</Status>}
             </button>
           ))}</div>
         </Section>
         {v.dropped.length ? (
-          <Section title="Account Desk cannot read">
+          <Section title="Not sent to Account Desk">
             <div className="ledger">{v.dropped.map((d: any) => <div key={d.key} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)" }}><span>{d.rule}</span><span className="mute">{d.why}</span></div>)}</div>
           </Section>
         ) : null}
@@ -438,7 +439,7 @@ function TestSheet({ id }: { id: string }) {
             : lead && (t.status === "running" || (t.status === "read" && !t.decision)) ? <>
               <button className="btn quiet" disabled={busy} onClick={() => run(() => api(`/api/tests/${t.id}/decide`, { method: "POST", body: { decision: "drop" } }), "Dropped.")}>Drop</button>
               <button className="btn line" disabled={busy} onClick={() => run(() => api(`/api/tests/${t.id}/decide`, { method: "POST", body: { decision: "extend" } }), "Extended by 60 days.")}>Extend</button>
-              <button className="btn" disabled={busy || !r.clear} onClick={() => run(() => api(`/api/tests/${t.id}/decide`, { method: "POST", body: { decision: "expand" } }), "Expand proposed. The proposal is open on Changes.")}>Expand</button>
+              <button className="btn" disabled={busy || !r.clear} onClick={() => run(() => api(`/api/tests/${t.id}/decide`, { method: "POST", body: { decision: "expand" } }), "Expand proposed. It is open on Changes.")}>Expand</button>
             </> : undefined}>
           <Title sub={t.started_on ? `${day(t.started_on)} to ${day(t.ends_on)}` : "Not started"}>{t.segment_label}</Title>
           <div className="small">{t.hypothesis}</div>
@@ -450,13 +451,13 @@ function TestSheet({ id }: { id: string }) {
               </div>
               {r.enough ? <Status kind={r.clear ? "ok" : "none"}>{r.clear ? "Clear difference" : "No clear difference"}</Status>
                 : <Status kind="wait">Needs more accounts</Status>}
-              {r.enough && r.interval ? <span className="small">Difference: {Math.round(r.interval[0] * 100)} to {Math.round(r.interval[1] * 100)} points</span>
+              {r.enough && r.interval ? <span className="small">Lift: {Math.round(r.interval[0] * 100)} to {Math.round(r.interval[1] * 100)} points</span>
                 : <span className="small">Needs {n0(r.still_needed.holdout + r.still_needed.treated)} more accounts</span>}
             </div>
           </Section>
           {t.decision ? <dl className="kv"><dt>Decision</dt><dd>{t.decision[0].toUpperCase() + t.decision.slice(1)}, {t.decided_by_name}</dd>{t.decision_note ? <><dt>Note</dt><dd>{t.decision_note}</dd></> : null}</dl> : null}
           {t.refused.length ? (
-            <Section title="Refused from a book">
+            <Section title="Kept out of a book">
               <div className="ledger">{t.refused.map((x: any, i: number) => <div key={i} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) auto" }}><span>{x.name}</span><span className="mute">{day(x.at)}</span></div>)}</div>
             </Section>
           ) : null}
@@ -490,7 +491,7 @@ function ProposalSheet({ id }: { id: string }) {
         ) : undefined}>
         <Title sub={p.change.field_label}>{KIND_WORD[p.kind]}: {p.change.value_label}</Title>
         <Status kind={p.status === "open" ? "wait" : p.status === "dismissed" ? "off" : "ok"}>{p.status === "open" ? "Open" : p.status === "dismissed" ? "Dismissed" : "Made a draft"}</Status>
-        {p.sentences ? <div className="prop-words">{p.sentences.map((s: any, i: number) => <p key={i}>{s.text}</p>)}</div> : <Status kind="none">Withheld</Status>}
+        {p.sentences ? <div className="prop-words">{p.sentences.map((s: any, i: number) => <p key={i}>{s.text}</p>)}</div> : <Status kind="none">No summary</Status>}
         <Section title="Evidence">
           <div className="ledger">
             <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) 70px 90px 150px" }}><span /><span className="num">{p.test_ids.length ? "Accounts" : "Deals"}</span><span className="num">{p.test_ids.length ? "Meetings" : "Win rate"}</span><span>Verdict</span></div>
@@ -524,7 +525,7 @@ function BookSheet({ id }: { id: string }) {
         </div>
         <div className="actions">{b.files.map((f: any) => <a key={f.path} className="btn line sm" href={`/api/books/${b.id}/files/${f.path}`} download>{f.path}</a>)}</div>
         {b.dropped_rules.length ? (
-          <Section title="Rules Account Desk cannot read"><div className="ledger">{b.dropped_rules.map((d: any) => <div key={d.key} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)" }}><span>{d.rule}</span><span className="mute">{d.why}</span></div>)}</div></Section>
+          <Section title="Not sent to Account Desk"><div className="ledger">{b.dropped_rules.map((d: any) => <div key={d.key} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)" }}><span>{d.rule}</span><span className="mute">{d.why}</span></div>)}</div></Section>
         ) : null}
         {b.markdown ? <Section title="icp.md"><pre className="md-pre">{b.markdown}</pre></Section> : null}
         {b.sample.length ? (
@@ -551,9 +552,9 @@ function SourceSheet({ id }: { id: string }) {
         <Title sub={s.adapter === "sim" ? "Simulated" : "Live"}>{s.label}</Title>
         <dl className="kv">
           <dt>Runs every</dt><dd>{s.cadence_hours >= 48 ? `${Math.round(s.cadence_hours / 24)} days` : `${s.cadence_hours} hours`}</dd>
-          <dt>Cost</dt><dd>{s.paid ? (s.price_cents_per_unit !== undefined ? <>{`$${(s.price_cents_per_unit / 100).toFixed(2)} a ${s.unit}`} <span className="mute">our assumption</span></> : "Paid") : "Free"}</dd>
+          <dt>Cost</dt><dd>{s.paid ? (s.price_cents_per_unit !== undefined ? <>{`$${(s.price_cents_per_unit / 100).toFixed(2)} a ${s.unit}`} <span className="mute">Our assumption</span></> : "Paid") : "Free"}</dd>
           <dt>Licence</dt><dd>{s.licence_note}</dd>
-          {s.no_redistribution ? <><dt>In books</dt><dd>Never: its values stay out of every file</dd></> : null}
+          {s.no_redistribution ? <><dt>In books</dt><dd>Not exported</dd></> : null}
         </dl>
         <Section title="Runs">
           <div className="ledger">{s.runs.map((r: any) => (

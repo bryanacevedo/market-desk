@@ -5,7 +5,7 @@ import { Verdict } from "../parts";
 import { openSheet } from "../sheets";
 
 export function RuleRows({ rules }: { rules: any[] }) {
-  const kinds: [string, string][] = [["factors", "Adds to the score"], ["penalties", "Takes away"], ["excludes", "Never a fit"]];
+  const kinds: [string, string][] = [["factors", "Adds points"], ["penalties", "Removes points"], ["excludes", "Excluded"]];
   return (
     <div className="ledger">
       {kinds.map(([k, label]) => {
@@ -18,7 +18,7 @@ export function RuleRows({ rules }: { rules: any[] }) {
               <button key={r.key} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) 56px 170px" }}
                 onClick={() => r.finding && openSheet("finding", r.finding.id)} disabled={!r.finding}>
                 <span className="cell-main"><span className="t">{r.label}</span>{r.reason ? <span className="s">{r.reason}</span> : null}
-                  {!r.travels ? <span className="s">Account Desk cannot read this rule</span> : null}</span>
+                  {!r.travels ? <span className="s">Not sent to Account Desk</span> : null}</span>
                 <span className="num">{r.weight === null || r.weight === undefined ? "" : k === "penalties" ? `−${r.weight}` : r.weight}</span>
                 {r.finding ? <Verdict v={r.finding.verdict} /> : <Status kind="none">Hypothesis</Status>}
               </button>
@@ -33,7 +33,7 @@ export function RuleRows({ rules }: { rules: any[] }) {
 export function Moves({ id }: { id: number }) {
   const { data, error, reload } = useData<any>(`/api/profile/versions/${id}/moves`);
   if (error) return <Failed error={error} retry={reload} />;
-  if (!data) return <div><div className="small mute">Working out what moves against the published version</div><Loading rows={4} /></div>;
+  if (!data) return <Loading rows={4} />;
   const max = Math.max(1, ...data.moves.map((m: any) => m.count));
   return (
     <div className="two">
@@ -47,7 +47,7 @@ export function Moves({ id }: { id: number }) {
           ))}
         </div>
       </Section>
-      <Section title="Backtest">
+      <Section title="Tier mix by group">
         <div className="ledger">
           <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) 64px repeat(3, 52px)" }}><span>Group</span><span className="num">A now</span><span className="num">A</span><span className="num">B</span><span className="num">C or X</span></div>
           {data.backtest.map((g: any) => {
@@ -59,7 +59,7 @@ export function Moves({ id }: { id: number }) {
             return (
               <div key={g.group} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) 64px repeat(3, 52px)" }}>
                 <span className="cell-main"><span className="t">{g.group}</span><span className="s">{n0(g.n)} companies</span>
-                  {warn ? <span className="s"><Status kind="hold">A as often as current</Status></span> : null}</span>
+                  {warn ? <span className="s"><Status kind="hold">Churned A as often</Status></span> : null}</span>
                 <span className="num mute">{was ? `${Math.round((100 * was.mix.A) / Math.max(1, was.n))}%` : ""}</span>
                 <span className="num">{s(g.mix.A)}</span><span className="num">{s(g.mix.B)}</span><span className="num">{s(g.mix.C + g.mix.X + g.mix["Not judged"])}</span>
               </div>
@@ -75,25 +75,24 @@ export function Profile() {
   const { data, error, reload } = useData<any>("/api/profile");
   const [busy, run] = useBusy();
   if (error) return <div className="page"><Failed error={error} retry={reload} /></div>;
-  if (!data) return <div className="page"><div className="head"><h1>Profile</h1></div><Loading /></div>;
+  if (!data) return <div className="page"><div className="head"><h1>ICP</h1></div><Loading /></div>;
   const p = data.published;
   return (
     <div className="page">
-      <div className="head"><h1>Profile</h1></div>
+      <div className="head"><h1>ICP</h1></div>
       <div className="figs">
         <Fig value={`v${p.number}`} label="Published" />
         <Fig value={day(p.published_at)} label="Since" />
-        <Fig value={p.tiers.A} label="Tier A from" />
-        <Fig value={p.tiers.B} label="Tier B from" />
+        <Fig value={p.tiers.A} label="Tier A cutoff" />
+        <Fig value={p.tiers.B} label="Tier B cutoff" />
       </div>
       {data.job ? <div className="notice"><Status kind="wait">Waiting</Status>Rescoring every company</div> : null}
       {data.drafts.map((d: any) => (
         <div key={d.id} className="halo"><Section title={`Draft v${d.number}`} icon={PencilSimpleLine}
           right={<div className="actions">
             <button className="btn line sm" onClick={() => openSheet("version", d.id)}>Open</button>
-            <button className="btn sm" disabled={busy || !d.can_publish}
-              title={d.can_publish ? undefined : "A manager other than the author publishes"}
-              onClick={() => run(() => api(`/api/profile/versions/${d.id}/publish`, { method: "POST" }), "Published. Every company is being rescored.")}>Publish</button>
+            {d.can_publish ? <button className="btn sm" disabled={busy}
+              onClick={() => run(() => api(`/api/profile/versions/${d.id}/publish`, { method: "POST" }), "Published. Every company is being rescored.")}>Publish</button> : null}
           </div>}>
           <div className="small mute">{d.note}</div>
           {!d.can_publish ? <div className="small">A manager other than {d.author} publishes</div> : null}

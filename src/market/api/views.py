@@ -562,7 +562,7 @@ def mybook(cur, u: dict) -> dict:
     for r in rows:
         r["segment_label"] = C.SEGMENT_LABEL.get(r["segment"])
     snap = db.one(cur, "select * from capacity_snapshots where plan = %s and user_id = %s", plan, u["id"])
-    return {"rows": rows, "stories": stories,
+    return {"rows": rows, "stories": stories, "tiers": pub["rules"]["tiers"],
             "capacity": snap and {"hours_available": snap["hours_available"], "hours_required": snap["hours_required"]}}
 
 

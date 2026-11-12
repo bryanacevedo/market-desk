@@ -19,13 +19,14 @@ export function Handoffs() {
         <h1>Handoffs</h1>
         {revops ? (
           <div className="actions">
-            <button className="btn line" disabled={busy} onClick={() => run(() => api("/api/books", { method: "POST", body: { destination: "events_desk" } }), "Events Desk document written.")}>New Events Desk document</button>
-            <button className="btn" disabled={busy} onClick={() => run(() => api("/api/books", { method: "POST", body: { destination: "account_desk" } }), "Account Desk book written.")}>New Account Desk book</button>
+            <button className="btn line" disabled={busy} onClick={() => run(() => api("/api/books", { method: "POST", body: { destination: "events_desk" } }), "Events Desk file written.")}>New Events Desk file</button>
+            <button className="btn line" disabled={busy} onClick={() => run(() => api("/api/books", { method: "POST", body: { destination: "account_desk" } }), "Account Desk file written.")}>New Account Desk file</button>
           </div>
         ) : null}
       </div>
       {["account_desk", "events_desk"].map((d) => {
         const books = data.books.filter((b: any) => b.destination === d);
+        const back = books.find((b: any) => b.results.accounts);
         return (
           <Section key={d} title={DEST[d]} icon={ArrowsLeftRight}>
             {books.length ? (
@@ -41,12 +42,13 @@ export function Handoffs() {
                 ))}
               </div>
             ) : <Empty title="Nothing sent yet" />}
-            {d === "account_desk" && books[0] ? (
+            {d === "account_desk" && books[0] && !back ? <div className="small mute" style={{ marginTop: 8 }}>No results back from Account Desk yet</div> : null}
+            {d === "account_desk" && back ? (
               <div className="figs" style={{ marginTop: 8 }}>
-                <Fig value={n0(books[books.length - 1].results.accounts)} label="Accounts read back" />
-                <Fig value={n0(books[books.length - 1].results.meetings)} label="Meetings" />
-                <Fig value={n0(books[books.length - 1].results.opportunities)} label="Opportunities" />
-                {me?.money ? <Fig value={money(books[books.length - 1].results.pipeline_cents)} label="Pipeline" /> : null}
+                <Fig value={n0(back.results.accounts)} label={`Accounts worked, version ${back.version}`} />
+                <Fig value={n0(back.results.meetings)} label="Meetings" />
+                <Fig value={n0(back.results.opportunities)} label="Opportunities" />
+                {me?.money ? <Fig value={money(back.results.pipeline_cents)} label="Pipeline" /> : null}
               </div>
             ) : null}
             {d === "events_desk" ? (
@@ -63,12 +65,12 @@ export function Handoffs() {
         <Section key={p.id} title={`From draft v${p.version}`} right={<a className="btn quiet sm" href={`/api/handoffs/preview/${p.id}/icp.json`} download><DownloadSimple size={14} />icp.json</a>}>
           {p.dropped_rules.length ? (
             <div className="ledger">
-              <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)" }}><span>Rule Account Desk cannot read</span><span>Why</span></div>
+              <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)" }}><span>Not sent to Account Desk</span><span>Why</span></div>
               {p.dropped_rules.map((d: any) => (
                 <div key={d.key} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)" }}><span className="t">{d.rule}</span><span className="mute">{d.why}</span></div>
               ))}
             </div>
-          ) : <Empty title="Every rule travels" />}
+          ) : <Empty title="All rules sent" />}
         </Section>
       ))}
     </div>

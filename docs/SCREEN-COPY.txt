@@ -1,33 +1,27 @@
 # eligible, # needed
+# now, # in the draft
 # to # days
-Account Desk cannot read this rule
 Accounts the plan can work
 Active since #, by #
 Deals before a rule is proposed for removal
-Difference: # to # points
 Fewer than 30 opportunities or 5 wins.
 Hours a month per test account
 Less than 60% of the profile is known for this company.
+Lift: # to # points
 Meeting rate, worked vs held back
 Months an account is worked
-Never: its values stay out of every file
 No accounts in your book
 No evidence behind this rule yet.
-Not applied: read by AI
+No results back from Account Desk yet
+Not sent to Account Desk
 Overdue by # ##
 Page # of #
-Planning win rate, pulled toward the overall rate
-Rule Account Desk cannot read
 Share held back in a test
-Share of worked accounts that become deals, before any results
-TAM, SAM and SOM, log scale
 That did not go through.
 The difference could be chance.
 The difference goes away within each company size band.
-The wording failed its check twice, so only the figures show.
 Too few accounts to read a difference yet.
-Weight given to the overall win rate, in deals
-Win rate, ring: the rest
-Wins less often than the rest, beyond chance across every value tested.
-Wins more often than the rest, beyond chance across every value tested.
-Working out what moves against the published version
+Waiting for a manager to activate
+Win rate vs the rest
+Wins less often than the rest, by more than chance.
+Wins more often than the rest, by more than chance.

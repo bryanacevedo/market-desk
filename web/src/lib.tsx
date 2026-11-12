@@ -147,6 +147,7 @@ export function money(cents: number | null | undefined): string {
   if (d >= 1_000_000_000) return `$${(d / 1_000_000_000).toFixed(1)}B`;
   if (d >= 1_000_000) return `$${(d / 1_000_000).toFixed(1)}M`;
   if (d >= 10_000) return `$${Math.round(d / 1000)}k`;
+  if (d >= 1_000) return `$${(d / 1000).toFixed(1)}k`;
   return `$${d.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 }
 export function initials(name: string): string {
@@ -211,8 +212,8 @@ export function Count({ value }: { value: ReactNode }) {
 }
 const reduced = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
-export function Fig({ value, label, unit, onClick, sm }: { value: ReactNode; label: string; unit?: string; onClick?: () => void; sm?: boolean }) {
-  const inner = <><b><Count value={value} />{unit ? <small>{unit}</small> : null}</b><span>{label}</span></>;
+export function Fig({ value, label, unit, onClick, sm, was }: { value: ReactNode; label: string; unit?: string; onClick?: () => void; sm?: boolean; was?: string }) {
+  const inner = <><b><Count value={value} />{unit ? <small>{unit}</small> : null}</b><span>{label}</span>{was ? <span className="was">{was}</span> : null}</>;
   if (onClick) {
     return <button type="button" className={`fig go${sm ? " sm" : ""}`} onClick={onClick}
       style={{ background: "none", border: 0, borderLeft: "1px solid var(--line)", textAlign: "left", font: "inherit", color: "inherit" }}>{inner}</button>;

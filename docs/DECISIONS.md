@@ -115,3 +115,19 @@ Only RevOps moves an account by hand, in a draft plan, with a note; the manager 
 ## 36. What the layer reviews left as it was
 
 The Events Desk document keeps the heading "Looks right, is not", because Events Desk's parser reads it by name. The `?as=` parameter that picks the acting person stays on the public demo only, for links and screenshots; a live install takes identity from the access header alone. The demo's 14 SDR-owned accounts that opened deals with an AE after the active plan was drafted stay as they are: the plan shows them under "What changes" until the next plan.
+
+## 37. Second design pass: the signature carries every decision page
+
+A fresh designer compared every screen with Account Desk and Events Desk, and a fresh editor read every visible string. What changed, and why:
+
+- Capacity is a range, not a bar: the band is the hours a person holds today, a dashed stretch the hours still to come while they ramp, and the tick the hours their book needs. Over is a tick past the band.
+- A draft plan is read against the active one: each headline figure says what it is now and the change, each person's A and B accounts are drawn as a ring (now) and a tick (draft) on one scale, What changes sits right under the figures, and Activate is in the head row.
+- My book draws each account's score against the tier lines (a fit band), with column heads; the reason shows only when it says something (a hand move, a test).
+- A test's two meeting rates are two ranges on one track: worked in ochre, held back in steel.
+- The tile field's shade is the tier A share scaled across the segments shown, so it encodes something; narrow tiles keep their names whole.
+- Bars that are not intervals (what moves, hours, fields known) step back to half-strength ink; the tier mix is drawn in ochre tones.
+- Badges count the reader's own work: open changes for RevOps; a draft to publish and a plan to activate for the manager.
+- A button you cannot press yet is a quiet outline; Publish shows only to someone who can publish.
+- Copy: 38 tells removed (an explainer tagline, cute nav groups, one name each for changes, ICP, rules not sent to Account Desk, capacity and data known; stand-in sentences that repeated the figures beside them).
+
+Kept as Bryan liked them: Market's TAM, SAM and SOM rows, Evidence's bands and the tier-mix table (now with v3 beside v4).

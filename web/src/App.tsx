@@ -26,12 +26,12 @@ const ROUTES: Route[] = [
   { path: "/my-book", label: "My book", icon: <Books size={18} />, page: MyBook, roles: ["sdr", "ae"], bar: true },
   { path: "/accounts", label: "Accounts", icon: <Target size={18} />, page: Accounts, roles: ["revops", "manager", "sdr", "ae"], bar: true },
   { path: "/changes", label: "Changes", icon: <Lightbulb size={18} />, page: Changes, roles: LEAD, count: "changes", bar: true },
-  { path: "/evidence", label: "Evidence", icon: <Scales size={18} />, page: Evidence, roles: LEAD, group: "The profile" },
-  { path: "/profile", label: "Profile", icon: <ListChecks size={18} />, page: Profile, roles: LEAD },
+  { path: "/evidence", label: "Evidence", icon: <Scales size={18} />, page: Evidence, roles: LEAD, group: "ICP" },
+  { path: "/profile", label: "ICP", icon: <ListChecks size={18} />, page: Profile, roles: LEAD, count: "icp" },
   { path: "/tests", label: "Tests", icon: <Flask size={18} />, page: Tests, roles: LEAD },
-  { path: "/territories", label: "Territories", icon: <MapTrifold size={18} />, page: Territories, roles: LEAD, group: "Who works it" },
+  { path: "/territories", label: "Territories", icon: <MapTrifold size={18} />, page: Territories, roles: LEAD, group: "Coverage", count: "plans" },
   { path: "/handoffs", label: "Handoffs", icon: <ArrowsLeftRight size={18} />, page: Handoffs, roles: LEAD },
-  { path: "/sources", label: "Sources", icon: <Database size={18} />, page: Sources, roles: ["revops"], group: "Running it" },
+  { path: "/sources", label: "Sources", icon: <Database size={18} />, page: Sources, roles: ["revops"], group: "Admin" },
   { path: "/settings", label: "Settings", icon: <GearSix size={18} />, page: Settings, roles: ["revops"] },
 ];
 
@@ -70,7 +70,7 @@ export function App() {
   return (
     <div className="app">
       <aside className="side">
-        <div className="brand-block"><div className="brand"><Mark />Market Desk</div><div className="tagline">ICP, market and territories</div></div>
+        <div className="brand-block"><div className="brand"><Mark />Market Desk</div></div>
         <nav className="nav" aria-label="Main">
           {routes.map((r) => (
             <div key={r.path} style={{ display: "contents" }}>

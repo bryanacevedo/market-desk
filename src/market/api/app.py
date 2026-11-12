@@ -212,18 +212,21 @@ def me(u: dict = Depends(current_user)) -> dict:
     with db.tx() as cur:
         users = db.all(cur, "select id, name, role from users where active order by case role when 'revops' then 0 "
                             "when 'manager' then 1 when 'sdr' then 2 else 3 end, name") if CONFIG.auth_mode == "demo" else []
-        counts = {"changes": db.val(cur, "select count(*) from change_proposals where status = 'open'")}
+        open_changes = db.val(cur, "select count(*) from change_proposals where status = 'open'")
+        counts = {"changes": open_changes if u["role"] == "revops" else 0,
+                  "icp": db.val(cur, "select count(*) from icp_versions where status = 'draft' and author <> %s", u["id"]) if u["role"] == "manager" else 0,
+                  "plans": db.val(cur, "select count(*) from territory_plans where status = 'draft' and author <> %s", u["id"]) if u["role"] == "manager" else 0}
         # What is waiting on this person: a manager publishes and activates what someone else drafted.
         waiting = []
         if u["role"] == "manager":
-            waiting += [{"what": f"Publish profile v{r['number']}", "path": "/profile"} for r in db.all(cur,
+            waiting += [{"what": f"Publish ICP v{r['number']}", "path": "/profile"} for r in db.all(cur,
                         "select number from icp_versions where status = 'draft' and author <> %s order by number", u["id"])]
             waiting += [{"what": f"Activate {r['name']}", "path": "/territories"} for r in db.all(cur,
                         "select name from territory_plans where status = 'draft' and author <> %s order by id", u["id"])]
         elif u["role"] == "revops":
-            n = counts["changes"]
+            n = open_changes
             if n:
-                waiting.append({"what": f"{n} open proposal{'s' if n != 1 else ''}", "path": "/changes"})
+                waiting.append({"what": f"{n} open change{'s' if n != 1 else ''}", "path": "/changes"})
         now = db.val(cur, "select app_now()")
         sim = db.val(cur, "select enabled from sim_clock")
     return {"user": {k: u[k] for k in ("id", "name", "role")}, "users": users, "counts": counts, "money": money(u),

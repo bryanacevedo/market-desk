@@ -160,3 +160,67 @@ h1 { font-size: 30px; line-height: 36px; font-weight: 560; letter-spacing: -0.01
 }
 
 @media (max-width: 900px) { .ledger.market .tiermix { width: 100%; } }
+
+/* Capacity as a range: held hours as a quiet fill, the ramp still to come as the ochre band, the book's need as the tick. */
+.cap { display: grid; grid-template-columns: minmax(80px, 1fr) minmax(112px, auto); gap: 12px; align-items: center; min-width: 0; }
+.cap-ramp { position: absolute; top: 4px; height: 6px; border-radius: 0 3px 3px 0; border: 1px dashed color-mix(in srgb, var(--accent) 60%, transparent); border-left: 0; box-sizing: border-box; }
+.cap-val { font-size: 13px; font-variant-numeric: tabular-nums; white-space: nowrap; display: grid; line-height: 1.25; }
+.cap-val small { font-size: 11.5px; color: var(--mute); }
+.cap.over .cap-val strong { font-weight: 650; }
+.cap.over .range-point { background: var(--ink); width: 3px; }
+
+/* The draft against the active plan: ring where the person is now, tick where the draft puts them, ochre between. */
+.shift { display: grid; grid-template-columns: minmax(70px, 1fr) 72px; gap: 10px; align-items: center; min-width: 0; }
+.shift-span { position: absolute; top: 6px; height: 2px; background: var(--accent); border-radius: 1px; }
+.shift-val { font-size: 14px; font-weight: 520; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.shift-val small { display: block; font-size: 11.5px; font-weight: 450; color: var(--mute); }
+
+/* A score against the tier lines. */
+.fitband { display: grid; grid-template-columns: minmax(64px, 1fr) 28px; gap: 8px; align-items: center; min-width: 0; }
+.fit-line { position: relative; height: 14px; }
+.fit-line::before { content: ""; position: absolute; left: 0; right: 0; top: 6.5px; height: 1px; background: var(--line-2); }
+.fit-zone { position: absolute; top: 4px; height: 6px; }
+.fit-zone.b { background: color-mix(in srgb, var(--accent) 14%, var(--ground)); border-radius: 3px 0 0 3px; }
+.fit-zone.a { background: color-mix(in srgb, var(--accent) 34%, var(--ground)); border-radius: 0 3px 3px 0; }
+.fit-val { font-size: 13px; font-variant-numeric: tabular-nums; text-align: right; color: var(--ink-2); }
+.fig .was { display: block; font-size: 12px; color: var(--mute); margin-top: 2px; }
+
+/* Design pass 2 ------------------------------------------------------------------------------------------------- */
+
+/* Tiles: the darkest tile has the most tier A among those shown; a narrow tile keeps its name whole in smaller type;
+   the gathered tile is dashed so it never reads as a segment. */
+.tile-name { text-overflow: clip; }
+.tile.narrow .tile-name { font-size: 12px; line-height: 15px; -webkit-line-clamp: 4; }
+.tile.smaller { box-shadow: none; outline: 1px dashed var(--line-2); outline-offset: -1px; }
+
+/* Bars give way to the intervals: ink at half strength, full ink only when over. Tier mix in ochre tones. */
+.barrow .fill { background: color-mix(in srgb, var(--ink) 55%, var(--ground)); }
+.hours .track i { background: color-mix(in srgb, var(--ink) 55%, var(--ground)); }
+.hours.over .track i { background: var(--ink); }
+.t-a { background: var(--accent-2); } .t-b { background: color-mix(in srgb, var(--accent) 45%, var(--ground)); }
+.t-c { background: color-mix(in srgb, var(--accent) 16%, var(--ground)); } .t-x { background: var(--line-2); }
+
+/* A button you cannot press yet is a quiet outline, not a faded pill. */
+.btn:disabled, .btn[disabled] { opacity: 1; background: none; color: var(--mute); box-shadow: inset 0 0 0 1px var(--line); }
+
+/* Waiting on you: a line in the halo's wash, not a grey well. */
+.notice.waiting { background: var(--accent-wash); box-shadow: inset 0 0 0 1px var(--accent-line); }
+
+/* Change cards: one row of evidence, a short band, the halo card aligned with the rest, 44 px targets. */
+.prop.halo { padding: 14px 16px; }
+.prop-top label { display: inline-flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; margin: -12px -6px -12px -12px; }
+.prop-top .link-row { min-height: 44px; display: inline-flex; align-items: center; }
+.prop-ev { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px; }
+.prop-ev .pe-band { flex: 0 1 320px; min-width: 200px; }
+.prop-ev .pe-fig { display: grid; line-height: 1.2; }
+.prop-ev .pe-fig b { font-size: 15px; font-weight: 520; font-variant-numeric: tabular-nums; }
+.prop-ev .pe-fig span { font-size: 11.5px; color: var(--mute); }
+
+/* Two rates on one track: worked as the ochre band, held back as a steel outline band with its ring. */
+.pair { display: grid; grid-template-columns: auto minmax(90px, 1fr); gap: 10px; align-items: center; min-width: 0; }
+.pair-band-held { position: absolute; top: 3px; height: 8px; border-radius: 4px; box-shadow: inset 0 0 0 1px var(--wait); opacity: .7; }
+.pair-held { position: absolute; top: 3.5px; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%; border: 1.5px solid var(--wait); background: var(--ground); }
+.pair .range-val small { display: block; }
+.form-field { display: grid; gap: 6px; min-width: 0; }
+.tile-name { overflow-wrap: break-word; }
+.tile-val { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }

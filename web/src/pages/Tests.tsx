@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Flask } from "@phosphor-icons/react";
 import { api } from "../api";
 import { Empty, Failed, Loading, Section, Status, day, n0, pct, useBusy, useData } from "../lib";
-import { RangeLine } from "../parts";
+import { Pair } from "../parts";
 import { openSheet } from "../sheets";
 
 const DECISION: Record<string, string> = { expand: "Expand proposed", drop: "Dropped", extend: "Extended" };
@@ -23,7 +23,7 @@ export function Lift({ r }: { r: any }) {
       </div>
       {r.enough ? (
         <div className="lift-verdict">
-          <span className="small">Difference: {Math.round(r.interval[0] * 100)} to {Math.round(r.interval[1] * 100)} points</span>
+          <span className="small">Lift: {Math.round(r.interval[0] * 100)} to {Math.round(r.interval[1] * 100)} points</span>
         </div>
       ) : <div className="small">Needs {n0(r.still_needed.holdout + r.still_needed.treated)} more accounts</div>}
     </div>
@@ -52,7 +52,7 @@ export function Tests() {
               <button key={t.id} className="row" style={{ gridTemplateColumns: cols }} onClick={() => openSheet("test", t.id)}>
                 <span className="cell-main"><span className="t">{t.segment_label}</span><span className="s">{n0(t.members)} accounts</span></span>
                 <span className="mute">{t.started_on ? day(t.started_on) : "Not started"}</span>
-                <span data-label="Meeting rate, worked vs held back"><RangeLine rate={t.report.treated.rate} other={t.report.holdout.rate} max={0.3} /></span>
+                <span data-label="Meeting rate, worked vs held back"><Pair r={t.report} /></span>
                 <span className="cell-main"><Status kind={g}>{w}</Status>{t.decision ? <span className="s">{DECISION[t.decision]}</span> : null}</span>
               </button>
             );
@@ -62,13 +62,13 @@ export function Tests() {
       {me?.user.role === "revops" ? (
         <Section title="New test">
           <div className="form-row" style={{ gridTemplateColumns: "minmax(0,1fr) minmax(0,2fr) auto" }}>
-            <label className="field"><span className="small mute">Segment</span>
+            <label className="form-field"><span className="small mute">Segment</span>
               <select className="select" value={segment} onChange={(e) => setSegment(e.target.value)}>
                 <option value="">Choose</option>
                 {data.segments.map((s: any) => <option key={s.key} value={s.key}>{s.label}, {n0(s.eligible)} eligible</option>)}
               </select>
             </label>
-            <label className="field"><span className="small mute">What we expect</span>
+            <label className="form-field"><span className="small mute">What we expect</span>
               <input className="input" value={hyp} onChange={(e) => setHyp(e.target.value)} maxLength={300} />
             </label>
             <button className="btn" disabled={busy || !segment || hyp.trim().length < 5}

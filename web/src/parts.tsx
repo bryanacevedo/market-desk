@@ -84,7 +84,7 @@ export function RangeLine({ rate, low, high, other, max = RATE_MAX, label, ends 
   const lo = low ?? rate;
   const hi = high ?? rate;
   return (
-    <span className={`range${ends ? " with-ends" : ""}`} role="img" aria-label={`${label ?? ""}${pct(rate)}, ${pct(lo)} to ${pct(hi)}${other !== null && other !== undefined ? `, others ${pct(other)}` : ""}`}>
+    <span className={`range${ends ? " with-ends" : ""}`} role="img" aria-label={`${label ?? ""}${pct(rate)}, ${pct(lo)} to ${pct(hi)}${other !== null && other !== undefined ? `, the rest ${pct(other)}` : ""}`}>
       <span className="range-val">{pct(rate)}</span>
       <span className="range-line" aria-hidden="true">
         <i className="range-band" style={{ left: x(lo), width: `calc(${x(hi)} - ${x(lo)})` }} />
@@ -136,24 +136,104 @@ export function MarketField({ tiles, onPick, smaller }: { tiles: { key: string; 
   const total = live.reduce((s, t) => s + t.weight, 0) || 1;
   const big = live.filter((t) => t.weight / total >= 0.04);
   const small = live.filter((t) => t.weight / total < 0.04);
+  const shares = big.filter((t) => !t.muted).map((t) => t.aShare);
+  const lo = Math.min(...shares, 1), hi = Math.max(...shares, 0);
+  const tone = (a: number) => Math.round(12 + 46 * (hi > lo ? (a - lo) / (hi - lo) : 0.5));
   return (
     <div className="field" role="list" aria-label="SAM by segment">
       {big.map((t, i) => (
         <button key={t.key} role="listitem" type="button" onClick={() => onPick(t.key)} title={`${t.label}, ${t.value}`}
           className={`tile${t.muted ? " muted" : ""}${t.weight / total < 0.08 ? " narrow" : ""}`}
-          style={{ flex: `${t.weight / total} 1 0`, ["--tone" as any]: t.muted ? 0 : Math.round(8 + 34 * t.aShare), animationDelay: `${i * 40}ms` }}>
-          <span className="tile-name">{t.label}</span>
+          style={{ flex: `${t.weight / total} 1 0`, ["--tone" as any]: t.muted ? 0 : tone(t.aShare), animationDelay: `${i * 40}ms` }}>
+          <span className="tile-name">{t.weight / total < 0.08 ? t.label.split(", ").map((w, k) => <span key={k} style={{ display: "block" }}>{w}</span>) : t.label}</span>
           <span className="tile-val">{t.value}</span>
           {!t.muted ? <span className="tile-a">A {Math.round(100 * t.aShare)}%</span> : null}
         </button>
       ))}
       {small.length ? (
         <span role="listitem" className="tile smaller" style={{ flex: `${small.reduce((s, t) => s + t.weight, 0) / total} 1 0` }}
-          title={small.map((t) => `${t.label}, ${t.value}`).join("; ")}>
-          <span className="tile-name">{smaller}</span>
-          <span className="tile-val">{small.length}</span>
+          title={`${smaller}: ${small.map((t) => `${t.label}, ${t.value}`).join("; ")}`}>
+          <span className="tile-name">+{small.length}</span>
         </span>
       ) : null}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------- capacity, plan changes and fit, drawn as intervals
+
+/** A person's month as a range: the band is the hours they hold today, the dashed stretch the hours still to come
+ *  while they ramp, the ink tick the hours their book needs. A tick past the band is over. One scale for the team. */
+export function CapacityRange({ needed, held, full, max }: { needed: number; held: number; full: number; max: number }) {
+  const x = (v: number) => `${Math.max(0, Math.min(100, (100 * v) / Math.max(max, 1)))}%`;
+  const over = needed > held + 0.05;
+  const ramping = full - held > 0.5;
+  return (
+    <span className={`cap${over ? " over" : ""}`} role="img"
+      aria-label={`Needs ${Math.round(needed)} hours, holds ${Math.round(held)}${ramping ? `, ${Math.round(full)} at full ramp` : ""}`}>
+      <span className="range-line" aria-hidden="true">
+        <i className="range-band" style={{ left: 0, width: x(held) }} />
+        {ramping ? <i className="cap-ramp" style={{ left: x(held), width: `calc(${x(full)} - ${x(held)})` }} /> : null}
+        <i className="range-point" style={{ left: x(needed) }} />
+      </span>
+      <span className="cap-val">{Math.round(needed)} of {Math.round(held)} h{over ? <strong> over</strong> : null}
+        {ramping ? <small>{Math.round(full)} h at full ramp</small> : null}</span>
+    </span>
+  );
+}
+
+/** One person's book in the active plan (ring) and in the draft (tick), on one scale, with the change written. */
+export function PlanShift({ was, now, max }: { was: number | null; now: number; max: number }) {
+  const x = (v: number) => `${Math.max(0, Math.min(100, (100 * v) / Math.max(max, 1)))}%`;
+  const d = was === null ? null : now - was;
+  return (
+    <span className="shift" role="img" aria-label={was === null ? `${now} in the draft, new to the plan` : `${was} now, ${now} in the draft`}>
+      <span className="range-line" aria-hidden="true">
+        {was !== null ? <i className="shift-span" style={{ left: x(Math.min(was, now)), width: x(Math.abs(now - was)) }} /> : null}
+        {was !== null ? <i className="range-other" style={{ left: x(was) }} /> : null}
+        <i className="range-point" style={{ left: x(now) }} />
+      </span>
+      <span className="shift-val">{now.toLocaleString("en-US")}
+        <small>{d === null ? "new" : d === 0 ? "same" : `${d > 0 ? "+" : "−"}${Math.abs(d).toLocaleString("en-US")}`}</small></span>
+    </span>
+  );
+}
+
+/** Where an account's score sits against the tier lines: C, then B from the B line, then A from the A line. */
+export function FitBand({ score, a, b }: { score: number | null | undefined; a: number; b: number }) {
+  if (score === null || score === undefined) return <span className="faint small">Not judged</span>;
+  return (
+    <span className="fitband" role="img" aria-label={`Score ${score}; tier B from ${b}, tier A from ${a}`}>
+      <span className="fit-line" aria-hidden="true">
+        <i className="fit-zone b" style={{ left: `${b}%`, width: `${a - b}%` }} />
+        <i className="fit-zone a" style={{ left: `${a}%`, width: `${100 - a}%` }} />
+        <i className="range-point" style={{ left: `${Math.max(0, Math.min(100, score))}%` }} />
+      </span>
+      <span className="fit-val">{score}</span>
+    </span>
+  );
+}
+
+const wilson = (k: number, n: number): [number, number] => {
+  if (!n) return [0, 0];
+  const z = 1.96, p = k / n, d = 1 + (z * z) / n, c = p + (z * z) / (2 * n), m = z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n));
+  return [Math.max(0, (c - m) / d), Math.min(1, (c + m) / d)];
+};
+
+/** A test's two meeting rates on one track, each with its likely range: worked in ochre, held back in steel. */
+export function Pair({ r, max = 0.3 }: { r: any; max?: number }) {
+  const x = (v: number) => `${Math.max(0, Math.min(100, (100 * v) / max))}%`;
+  const [wl, wh] = wilson(r.treated.meetings, r.treated.accounts);
+  const [hl, hh] = wilson(r.holdout.meetings, r.holdout.accounts);
+  return (
+    <span className="pair" role="img" aria-label={`Worked ${pct(r.treated.rate)}, held back ${pct(r.holdout.rate)}`}>
+      <span className="range-val">{pct(r.treated.rate)}<small>held back {pct(r.holdout.rate)}</small></span>
+      <span className="range-line" aria-hidden="true">
+        {r.holdout.accounts ? <i className="pair-band-held" style={{ left: x(hl), width: `calc(${x(hh)} - ${x(hl)})` }} /> : null}
+        {r.treated.accounts ? <i className="range-band" style={{ left: x(wl), width: `calc(${x(wh)} - ${x(wl)})` }} /> : null}
+        {r.holdout.accounts ? <i className="pair-held" style={{ left: x(r.holdout.rate) }} /> : null}
+        <i className="range-point" style={{ left: x(r.treated.rate) }} />
+      </span>
+    </span>
   );
 }

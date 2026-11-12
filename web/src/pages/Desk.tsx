@@ -21,7 +21,7 @@ export function Sources() {
         <div className="row head" style={{ gridTemplateColumns: cols }}><span>Source</span><span>Kind</span><span>Last run</span><span>Fields filled</span><span className="num">This month</span></div>
         {data.rows.map((s: any) => (
           <button key={s.key} className="row" style={{ gridTemplateColumns: cols }} onClick={() => openSheet("source", s.key)}>
-            <span className="cell-main"><span className="t">{s.label}</span><span className="s">{s.adapter === "sim" ? "Simulated" : "Live"}{s.no_redistribution ? ", stays out of books" : ""}</span></span>
+            <span className="cell-main"><span className="t">{s.label}</span><span className="s">{s.adapter === "sim" ? "Simulated" : "Live"}{s.no_redistribution ? ", not exported" : ""}</span></span>
             <span className="mute">{KIND_WORD[s.kind]}</span>
             <Status kind={s.stale ? "hold" : "ok"}>{s.stale ? "Missed its run" : ago(s.last_run)}</Status>
             <span className="cell-main">{s.fill.slice(0, 2).map((f: any) => <span key={f.field} className="s">{f.field} <b className="strong">{pct(f.share)}</b></span>)}</span>
@@ -35,9 +35,9 @@ export function Sources() {
 
 const SETTING: Record<string, string> = {
   evidence_window_months: "Window, months", min_opps: "Fewest deals to judge", min_wins: "Fewest wins to judge",
-  family_alpha: "Bar for a clear result", shrink_k: "Weight given to the overall win rate, in deals",
+  family_alpha: "Bar for a clear result", shrink_k: "Win rate smoothing, deals",
   hours_per_tier: "Hours a month per account", balance_band: "Allowed gap from average", hours_test_account: "Hours a month per test account", held_back_share: "Share held back in a test",
-  drop_rule_min_opps: "Deals before a rule is proposed for removal", opp_rate_default: "Share of worked accounts that become deals, before any results",
+  drop_rule_min_opps: "Deals before a rule is proposed for removal", opp_rate_default: "Starting deal rate",
   account_cycle_months: "Months an account is worked",
 };
 

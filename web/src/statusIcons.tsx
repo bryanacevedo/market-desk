@@ -16,5 +16,5 @@ export const STATUS_ICONS: Record<string, Icon> = {
   "Clear difference": ArrowUp, "No clear difference": Scales, "Held back": EyeSlash, "Worked": CheckCircle,
   // sources and capacity
   "On time": CheckCircle, "Missed its run": WarningCircle, "Over capacity": WarningCircle, "Within hours": CheckCircle,
-  "Not judged": Question, "Excluded": Prohibit, "Withheld": EyeSlash, "Waiting": Clock,
+  "Not judged": Question, "Excluded": Prohibit, "No summary": EyeSlash, "Waiting": Clock,
 };

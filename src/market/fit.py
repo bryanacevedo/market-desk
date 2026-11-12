@@ -200,7 +200,7 @@ def backtest(cur, version_id: int) -> list[dict]:
         "Closed lost": """select distinct company as id from deals where kind = 'new' and outcome = 'lost'
             and company not in (select company from customers)""",
         "Churned customers": "select company as id from customers where churned_on is not null",
-        "Random control": "select id from companies where lifecycle <> 'competitor' order by md5(id::text || 'control') limit 500",
+        "Random sample": "select id from companies where lifecycle <> 'competitor' order by md5(id::text || 'control') limit 500",
     }
     out = []
     for label, sql in groups.items():

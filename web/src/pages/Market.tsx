@@ -51,17 +51,17 @@ export function Market() {
       </div>
       <section>
         <MarketField tiles={tiles} onPick={open} smaller={seg ? "Smaller segments" : "Smaller regions"} />
-        <div className="field-key"><span>Width: SAM, high end</span><span>Shade: share at tier A</span></div>
+        <div className="field-key"><span>Tile size: SAM</span><span>Darker: more tier A</span></div>
       </section>
       <div className="ledger market" role="table" aria-label={seg ? "Segments" : "Regions"}>
         <div className="row head" role="row" style={{ gridTemplateColumns: cols }}>
           <span>{seg ? "Segment" : "Region"}</span><span className="num">Companies</span><span className="num">Reachable</span>
-          <span>Tiers</span><span>TAM, SAM and SOM, log scale</span>{seg ? <span>Win rate</span> : null}
+          <span>Tiers</span><span>TAM, SAM, SOM</span>{seg ? <span>Win rate</span> : null}
         </div>
         {data.rows.map((r) => (
           <button key={r.key} className="row" role="row" style={{ gridTemplateColumns: cols }} onClick={() => open(r.key)}>
             <span className="cell-main"><span className="t">{r.label}</span>
-              <span className="s">{r.coverage_share === null ? "Public count unknown" : `Covers ${pct(Math.min(r.coverage_share, 1))}`}</span></span>
+              <span className="s">{r.coverage_share === null ? "No public count" : `${pct(Math.min(r.coverage_share, 1))} of public count`}</span></span>
             <span className="num" data-label="Companies">{n0(r.universe_count)}</span>
             <span className="num" data-label="Reachable">{n0(r.sam_count)}</span>
             <TierMix a={r.fit_a} b={r.fit_b} c={r.fit_c} x={r.fit_x} nj={r.not_judged} />

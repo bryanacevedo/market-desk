@@ -30,14 +30,13 @@ function Evidence({ p }: { p: any }) {
   const range = String(f.range || "").match(/(\d+)% to (\d+)%/);
   const test = !p.finding_ids.length;
   return (
-    <dl className="kv prop-ev">
-      <dt>{test ? "Meeting rate, worked vs held back" : "Win rate"}</dt>
-      <dd><RangeLine rate={num(f.win_rate)} low={test || !range ? null : Number(range[1]) / 100} high={test || !range ? null : Number(range[2]) / 100}
-        other={num(f.rest_win_rate)} /></dd>
-      <dt>{test ? "Held back" : "The rest"}</dt><dd>{f.rest_win_rate}</dd>
-      <dt>{test ? "Accounts" : "Deals"}</dt><dd>{Number(f.opportunities).toLocaleString("en-US")}</dd>
-      {f.top_loss ? <><dt>Top loss</dt><dd>{f.top_loss[0].toUpperCase() + f.top_loss.slice(1)}</dd></> : null}
-    </dl>
+    <div className="prop-ev">
+      <span className="pe-band"><RangeLine label={test ? "Meeting rate " : "Win rate "} rate={num(f.win_rate)} low={test || !range ? null : Number(range[1]) / 100}
+        high={test || !range ? null : Number(range[2]) / 100} other={num(f.rest_win_rate)} max={test ? 0.3 : undefined} /></span>
+      <span className="pe-fig"><b>{f.rest_win_rate}</b><span>{test ? "Held back" : "The rest"}</span></span>
+      <span className="pe-fig"><b>{Number(f.opportunities).toLocaleString("en-US")}</b><span>{test ? "Accounts" : "Deals"}</span></span>
+      {f.top_loss ? <span className="pe-fig"><b>{f.top_loss[0].toUpperCase() + f.top_loss.slice(1)}</b><span>Top loss</span></span> : null}
+    </div>
   );
 }
 
@@ -71,13 +70,13 @@ export function Changes() {
                     <span className="t prop-kind">{KIND[p.kind]}: {p.change.value_label}</span>
                   </button>
                   <span className="grow" />
-                  {p.text_status === "withheld" ? <Status kind="none">Withheld</Status> : null}
+                  {p.text_status === "withheld" ? <Status kind="none">No summary</Status> : null}
                 </div>
                 <Evidence p={p} />
                 <div className="prop-foot">
                   {p.findings.map((f: any) => p.finding_ids.length ? (
-                    <button key={f.id} className="link small" onClick={() => openSheet("finding", f.id)}>{f.value}: {f.verdict}</button>
-                  ) : <button key={f.test_id} className="link small" onClick={() => openSheet("test", p.test_ids[0])}>{f.value}: segment test</button>)}
+                    <button key={f.id} className="link small" onClick={() => openSheet("finding", f.id)}>{f.verdict}, see the evidence</button>
+                  ) : <button key={f.test_id} className="link small" onClick={() => openSheet("test", p.test_ids[0])}>See the test</button>)}
                   <span className="grow" />
                   {dismissing === p.id ? (
                     <span className="actions">

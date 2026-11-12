@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Books, MagnifyingGlass } from "@phosphor-icons/react";
 import { Logo } from "../marks";
 import { Empty, Failed, Fig, Loading, Section, Status, n0, navigate, pct, useData, usePath, withParam } from "../lib";
-import { Hours, Tier } from "../parts";
+import { FitBand, Hours, Tier } from "../parts";
 import { openSheet } from "../sheets";
 
 const REASON: Record<string, string> = {
@@ -49,7 +49,7 @@ export function Accounts() {
         <>
           <div className="ledger wrap-names accounts">
             <div className="row head" style={{ gridTemplateColumns: cols }}>
-              <span /><span>Company</span><span>Segment</span><span className="num">Tier</span><span className="num">Scored on</span><span>Owner</span><span className="num">Last result</span>
+              <span /><span>Company</span><span>Segment</span><span className="num">Tier</span><span className="num">Data known</span><span>Owner</span><span className="num">Last result</span>
             </div>
             {data.rows.map((r: any) => (
               <button key={r.id} className="row" style={{ gridTemplateColumns: cols }} onClick={() => openSheet("company", r.id)}>
@@ -58,7 +58,7 @@ export function Accounts() {
                 <span className="clip mute">{r.segment_label}</span>
                 <span className="num"><Tier tier={r.tier} judged={r.judged} />{r.judged && r.score !== null ? <small className="mute"> {r.score}</small> : null}</span>
                 <span className="num mute">{pct(r.scored_out_of)}</span>
-                <span className="cell-main">{r.over_capacity ? <Status kind="hold">Unassigned, no hours</Status> : <span className="t" style={{ fontWeight: 450 }}>{r.owner || <span className="faint">Unassigned</span>}</span>}{r.owner ? <span className="s">{reasonWord(r.reason_code)}</span> : null}</span>
+                <span className="cell-main">{r.over_capacity ? <Status kind="hold">Unassigned: no capacity</Status> : <span className="t" style={{ fontWeight: 450 }}>{r.owner || <span className="faint">Unassigned</span>}</span>}{r.owner ? <span className="s">{reasonWord(r.reason_code)}</span> : null}</span>
                 <span className="num mute">{r.last_dest ? (r.last_meetings ? <Status kind="ok">Meeting</Status> : "No meeting") : ""}</span>
               </button>
             ))}
@@ -87,19 +87,20 @@ export function MyBook() {
       <div className="figs">
         <Fig value={n0(by("A").length)} label="Tier A" />
         <Fig value={n0(by("B").length)} label="Tier B" />
-        <Fig value={n0(data.rows.length - by("A").length - by("B").length)} label="Customers and open deals" />
+        <Fig value={n0(by("X").length)} label="Customers and open deals" />
       </div>
       {data.capacity ? <div style={{ maxWidth: 420 }}><Hours used={data.capacity.hours_required} of={data.capacity.hours_available} /></div> : null}
       {data.rows.length ? ["A", "B", "C", "X"].map((t) => by(t).length ? (
         <Section key={t} title={t === "X" ? "Customers and open deals" : `Tier ${t}`} count={by(t).length} icon={Books}>
           <div className="ledger wrap-names">
+            <div className="row head" style={{ gridTemplateColumns: "28px minmax(0,1.4fr) minmax(120px,0.9fr) minmax(0,1fr) minmax(0,1fr)" }}><span /><span>Company</span><span>Score</span><span>Segment</span><span>Note</span></div>
             {by(t).slice(0, 120).map((r: any) => (
-              <button key={r.id} className="row" style={{ gridTemplateColumns: "28px minmax(0,1.4fr) 52px minmax(0,1fr) minmax(0,1fr)" }} onClick={() => openSheet("company", r.id)}>
+              <button key={r.id} className="row" style={{ gridTemplateColumns: "28px minmax(0,1.4fr) minmax(120px,0.9fr) minmax(0,1fr) minmax(0,1fr)" }} onClick={() => openSheet("company", r.id)}>
                 <Logo domain={r.primary_domain} name={r.name} />
                 <span className="cell-main"><span className="t">{r.name}</span><span className="s">{r.industry}</span></span>
-                <span className="num" data-label="Score">{r.score ?? ""}</span>
+                <span data-label="Score"><FitBand score={r.score} a={data.tiers?.A ?? 85} b={data.tiers?.B ?? 65} /></span>
                 <span className="clip mute">{r.segment_label}</span>
-                <span className="clip">{reasonWord(r.reason_code)}</span>
+                <span className="clip mute">{r.reason_code === "rule" ? "" : r.note || reasonWord(r.reason_code)}</span>
               </button>
             ))}
           </div>
@@ -107,21 +108,20 @@ export function MyBook() {
       ) : null) : <Empty title="No accounts in your book" />}
       {Object.entries(data.stories).map(([k, s]: [string, any]) => (
         <Section key={k} title={s.label}>
-          {s.status === "ok" ? <Story sentences={s.sentences} quotes={s.quotes} /> : <Status kind="none">Withheld</Status>}
+          {s.status === "ok" ? <Story sentences={s.sentences} quotes={s.quotes} /> : <Status kind="none">No summary</Status>}
         </Section>
       ))}
     </div>
   );
 }
 
-/** Why a segment buys: the desk's sentences, each followed by the buyer's own words it rests on. */
-export function Story({ sentences, quotes }: { sentences: any[]; quotes: Record<string, any> }) {
+/** Why a segment buys: the desk's sentences, each quoting the buyer's own words. */
+export function Story({ sentences }: { sentences: any[]; quotes?: Record<string, any> }) {
   return (
     <div className="story">
       {sentences.map((s, i) => (
         <div key={i} className="story-s">
           <p>{s.text}</p>
-          {s.quote_ids.slice(0, 1).map((q: number) => quotes[q] ? <div key={q} className="quote small">{quotes[q].text}</div> : null)}
         </div>
       ))}
     </div>

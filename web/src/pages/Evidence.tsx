@@ -40,7 +40,7 @@ export function Evidence() {
       {rows.length ? (
         <div className="ledger wide-table">
           <div className="row head" style={{ gridTemplateColumns: cols }}>
-            <span>Trait</span><span className="num">Deals</span><span>Win rate, ring: the rest</span>
+            <span>Trait</span><span className="num">Deals</span><span>Win rate vs the rest</span>
             <span className="num">Won-deal cycle</span><span className="num">{me?.money ? "Deal size" : ""}</span><span>Verdict</span>
           </div>
           {rows.map((r: any) => (
