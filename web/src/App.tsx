@@ -39,6 +39,11 @@ const ROLE: Record<string, string> = { revops: "RevOps", manager: "Manager" };
 export function App() {
   const [path] = usePath();
   const { data: me, error: meError, reload } = useData<Me>("/api/me");
+  // The desks this install links to start waking while the visitor reads (Render's free plan sleeps them); none
+  // when DESK_LINKS is unset, so a desk on its own calls nothing (shared-world DESIGN.md 9).
+  useEffect(() => {
+    for (const url of Object.values((me as any)?.links ?? {})) fetch(`${url}/api/health`, { mode: "no-cors" }).catch(() => undefined);
+  }, [(me as any)?.links]);
   useEffect(() => {
     // A first visit opens as RevOps, who sees the whole desk; the choice is kept after that.
     let chosen: string | null = null;

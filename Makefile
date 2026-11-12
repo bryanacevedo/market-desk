@@ -27,8 +27,8 @@ test: db          ## the whole suite, on real Postgres
 audit:            ## check the demo database against every product rule
 	$(PY) scripts/audit_rules.py
 
-export:           ## write the shared world export to ./world
-	$(PY) -m market world-export world
+export:           ## write the legacy world export to ./world-export (the shared world now lives in lumen-world)
+	$(PY) -m market world-export world-export
 
 evals:            ## every AI eval, replayed from recordings (free; what CI does)
 	$(PY) evals/run.py

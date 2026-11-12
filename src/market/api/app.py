@@ -27,6 +27,7 @@ from .. import (  # noqa: F401 register job handlers
     catalog as C,
 )
 from .. import (
+    crm,
     db,
     evidence,
     fit,
@@ -233,8 +234,20 @@ def me(u: dict = Depends(current_user)) -> dict:
         now = db.val(cur, "select app_now()")
         sim = db.val(cur, "select enabled from sim_clock")
     return {"user": {k: u[k] for k in ("id", "name", "role")}, "users": users, "counts": counts, "money": money(u),
-            "waiting": waiting,
+            "waiting": waiting, "links": desk_links(),
             "now": now, "simulated": sim, "public_demo": CONFIG.public_demo, "seller": CONFIG.seller}
+
+
+def desk_links() -> dict[str, str]:
+    """The other desks this install may link to, from DESK_LINKS ("crm_desk=https://...,account_desk=https://...").
+    Unset: none, so a desk on its own shows no links and wakes no other service (shared-world DESIGN.md 2a and 9)."""
+    import os
+    out = {}
+    for part in os.environ.get("DESK_LINKS", "").split(","):
+        k, _, v = part.partition("=")
+        if k.strip() in ("crm_desk", "account_desk", "events_desk") and v.strip().startswith("https://"):
+            out[k.strip()] = v.strip().rstrip("/")
+    return out
 
 
 @app.get("/api/market")
@@ -714,6 +727,20 @@ def read_results(cur, destination: str | None, rows: list[dict]) -> int:
 
 if WEB.exists():
     app.mount("/assets", StaticFiles(directory=WEB / "assets"), name="assets")
+
+
+@app.get("/go/account/{ref:path}", include_in_schema=False)
+def go_account(ref: str):
+    """Another desk's link to an account: `world:co_...` or `domain:...` opens its company sheet here."""
+    from fastapi.responses import RedirectResponse
+    kind, _, value = ref.partition(":")
+    with db.tx() as cur:
+        rows = db.all(cur, "select id, primary_domain from companies where not sole_trader")
+    match = next((r["id"] for r in rows if (kind == "world" and crm.world_id(r["primary_domain"]) == value)
+                  or (kind == "domain" and r["primary_domain"] == value.lower())), None)
+    if match is None:
+        return HTMLResponse("<p>Market Desk holds no company with that id.</p>", status_code=404)
+    return RedirectResponse(f"/accounts?sheet=company:{match}", status_code=302)
 
 
 @app.get("/{path:path}", include_in_schema=False)

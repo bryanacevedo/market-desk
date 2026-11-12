@@ -1,6 +1,7 @@
 # accounts free to test, # needed
 # accounts, worked and held back
 # now, # in the draft
+# refused by CRM Desk: #
 # to # days
 #, # accounts free to test
 : # to # points

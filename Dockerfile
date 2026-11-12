@@ -15,6 +15,7 @@ COPY pyproject.toml uv.lock .python-version ./
 RUN uv sync --frozen --no-dev --no-install-project
 COPY src ./src
 COPY migrations ./migrations
+COPY world ./world
 COPY evals/recordings ./evals/recordings
 COPY scripts/docker-start.sh scripts/docker-build-demo.sh ./scripts/
 COPY --from=web /web/dist ./web/dist

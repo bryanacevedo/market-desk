@@ -28,7 +28,7 @@ Market Desk learns the ideal customer profile from every deal won, lost and chur
 
 **[Watch the explainer (1:52)](https://bryanacevedo.github.io/project-videos/video/market-desk.mp4)**: a plain-English explainer for someone outside RevOps. It answers two questions a sales team argues about, who to sell to and how many sellers it needs, from the demo's own deals: who the team wins with, how big the reachable market is, what that means per territory, and how the team will know it was right. Every figure in it was read from the live demo on 12 November 2026.
 
-Pick who you are acting as in the demo's sidebar: RevOps or the sales manager. Those are the only two roles. SDRs and AEs are data here, people in the territory plan, and do not sign in: their accounts are meant to reach them where they work. Market Desk already writes one book file in Account Desk's format, with every assigned account and its owner, SDRs' and AEs' alike; sending each seller's book to [CRM Desk](https://crm-desk-sevh.onrender.com) is planned, not built. If it has been idle, Render takes up to a minute to wake it.
+Pick who you are acting as in the demo's sidebar: RevOps or the sales manager. Those are the only two roles. SDRs and AEs are data here, people in the territory plan, and do not sign in: their accounts are meant to reach them where they work. Market Desk already writes one book file in Account Desk's format, with every assigned account and its owner, SDRs' and AEs' alike; with a CRM set, each account also goes to [CRM Desk](https://crm-desk-sevh.onrender.com) with its tier, AE and SDR. If it has been idle, Render takes up to a minute to wake it.
 
 <p align="center">
 <img src="docs/screens/evidence-desktop.png" alt="Evidence: each trait's win rate drawn as a range against the others, with a plain verdict" width="49%">
@@ -77,16 +77,9 @@ flowchart LR
 
 ## The shared world
 
-The simulated world here is meant to become the one universe all three desks load from. `make export` (or `python -m market world-export DIR`) writes:
+Market Desk's companies, deals, customers and call notes now come from Lumen Ledger's shared world, `lumen-world`, which every desk's demo reads. Its slice for this desk is vendored in `world/` (decision 40): the same 18,005 companies this desk used to draw for itself (27 renamed because they carried the seller's name), the history moved into working hours and cut at 13 August 2026, the one team roster, and counts of findable roles per company. The slice holds no people, and call notes arrive with the names they mention and are redacted before anything is stored (decision 1). `WORLD=legacy` rebuilds the desk's own world from `src/market/sim/world.py`.
 
-| File | Columns |
-|---|---|
-| `companies.csv` | `world_id, name, domain, parent_domain, industry, employees, country, region, region_group, revenue_band, pricing_model, tech, lifecycle, hq_city, founded_year` |
-| `people.csv` | `world_id, company_world_id, first_name, last_name, title, persona, seniority, email` |
-| `tiers.csv` | `company_world_id, icp_version, score, tier, segment, owner_email` |
-| `manifest.json` | format version, seller (Lumen Ledger), seed, row counts, sha256 of each file |
-
-A company's `world_id` is `co_` and the first 12 hex characters of sha256 of its domain, so it does not depend on database ids and survives a rebuild. People are invented from the seed and the company's `world_id` at export time, two to six for each judged tier A and B company that is not a competitor; they exist only in the export and never in this desk's database (decision 1). A test exports twice from one database and requires identical files; the world itself rebuilds identically from its seed. Account Desk and Events Desk do not read it yet.
+With `CRM=crmdesk`, activating a plan sends its books to CRM Desk: every assigned account with its tier, segment, fit score, profile version, the AE who owns it and the SDR who works it (decision 41). Handoffs shows what was sent and what CRM Desk refused, such as an SDR a manager pinned there. With no CRM set, nothing is sent and the desk works alone, as before. In the demo the conversation was recorded once, with both desks running (`lumen-world/stage/rehearse.py`), and replayed when the image is built, so the two public demos agree without calling each other.
 
 ## Run it
 
@@ -97,7 +90,7 @@ make setup
 make demo
 ```
 
-`make demo` starts a private Postgres in `.data/`, builds the world from its fixed seed (about 35 seconds) and serves it at http://localhost:8800. `make test` runs the suite on real Postgres. `make audit` checks the demo database against every product rule. `make evals` replays the AI evals from their recordings, free; `make evals-live` calls Claude, capped at $15. `python -m market mcp` is a read-only MCP server (find accounts, why an account has its tier, a segment's figures, who owns what).
+`make demo` starts a private Postgres in `.data/`, builds the demo from the vendored world (about 15 seconds) and serves it at http://localhost:8800. `make test` runs the suite on real Postgres. `make audit` checks the demo database against every product rule. `make evals` replays the AI evals from their recordings, free; `make evals-live` calls Claude, capped at $15. `python -m market mcp` is a read-only MCP server (find accounts, why an account has its tier, a segment's figures, who owns what).
 
 ## AI evals
 
@@ -119,7 +112,7 @@ Every figure scores the model's first attempt; the gate's catches are reported a
 
 **Real:** erasure of a team member or of a company's notes, the statistics (each checked in `tests/test_stats.py` against a published value or, for Mantel-Haenszel, a value computed once with statsmodels), the evidence analysis and its size check, the fit formula (Account Desk's, ported from its code), sizing, capacity, assignment and balancing, the two-person rules (enforced by the database), the held-back rule (a database trigger refuses a held-back company in an Account Desk book), the handoff files (a test scores every exported company whose exported fields are all known, most of each book, with a copy of Account Desk's formula and gets the same tier), the redaction of call notes, the AI gates, and the evals above.
 
-**Simulated:** the seller (Lumen Ledger, the same invented company Account Desk sells for), its team, 18,005 companies (with `.example` domains), 1,661 new-business and 166 expansion deals over three years, 286 customers (35 of them churned), 2,253 call notes on 900 deals, every vendor and source, the public counts, the results from the other desks, and the three segment tests. The demo's AI answers come from deterministic stand-ins written in code, not from Claude; the segment story stand-in is written to fail its check on the Enterprise segment so the withheld state shows. Live Claude answers exist only in the eval recordings.
+**Simulated:** the seller (Lumen Ledger, the same invented company Account Desk sells for), its team, 18,005 companies (with `.example` domains), 1,565 new-business and 166 expansion deals over three years, 285 customers (35 of them churned), 2,135 call notes on 842 deals (all from the shared world, `lumen-world`, except 92 new-business deals this desk's story adds for its segment tests), every vendor and source, the public counts, the results from the other desks, and the three segment tests. The demo's AI answers come from deterministic stand-ins written in code, not from Claude; the segment story stand-in is written to fail its check on the Enterprise segment so the withheld state shows. Live Claude answers exist only in the eval recordings.
 
 **Planted on purpose**, in `PLANTED` in `src/market/sim/world.py`; the desk's own rules find each one:
 
@@ -139,13 +132,13 @@ The world was adjusted until the rules found the planted effects; the rules were
 ## Not yet proven
 
 - Nothing here has run against a real CRM, a real data vendor or real public counts; the adapters are contracts only.
-- Nothing sends a seller's book to CRM Desk yet. The Territories page says each seller's book goes there; that is the plan (decision 39), not built.
+- Books go to CRM Desk only with `CRM=crmdesk`; the public demo replays one recorded exchange instead of calling CRM Desk live (decision 41).
 - Account Desk and Events Desk do not import these books yet; the equivalence test uses a copy of Account Desk's formula, and whether Events Desk's parser reads this ICP document is untested.
 - The hours per account (A 1.0, B 0.4, C 0.1 a month) and the quarter each account is worked are our assumptions (decision 17).
 - The sizing ranges are scenario bounds (decision 13).
 - No login: the "acting as" menu stands in for one; header auth through Cloudflare Access is written and unproven.
 - Compliance design (companies and roles, not people; redaction; sole traders out of every book) is reasoned and not yet reviewed by counsel. Redaction misses a name written all in lower case that is neither in the CRM contact list nor a common first name, and a single first name at the start of a sentence.
-- The shared world export runs on the demo only: on live data it would invent people at real companies, so it refuses.
+- The legacy world export (`make export`, to `world-export/`) runs on the demo only: on live data it would invent people at real companies, so it refuses. The shared world now lives in `lumen-world`.
 
 ## Words used here
 
@@ -184,7 +177,7 @@ The world was adjusted until the rules found the planted effects; the rules were
 | Hiring gap | Tier A and B companies in our regions that nobody has hours for |
 | Book | A versioned file set sent to another desk |
 | Acting as | The demo's menu for choosing who you are: RevOps or the manager |
-| Seller's book | The accounts a plan gives one SDR or AE. Every seller's assigned accounts go into one book file for Account Desk, with the owner on each row; sending each seller's book to CRM Desk, with each account's tier, segment, fit score and owner, is planned |
+| Seller's book | The accounts a plan gives one SDR or AE. Every seller's assigned accounts go into one book file for Account Desk, with the owner on each row; with `CRM=crmdesk`, each account also goes to CRM Desk with its tier, segment, fit score, AE and SDR |
 
 ## Portfolio
 

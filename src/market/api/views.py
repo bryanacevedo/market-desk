@@ -311,7 +311,9 @@ def company(cur, cid: int, u: dict, allowed: bool | None = None) -> dict | None:
         f["label"] = labels.get(f["key"], f["key"])
     for f in breakdown.get("not_applied", []):
         f["label"] = labels.get(f.get("key"), f.get("reason"))
-    return strip({"id": c["id"], "name": c["name"], "domain": c["primary_domain"], "lifecycle": c["lifecycle"],
+    from ..crm import world_id
+    return strip({"id": c["id"], "name": c["name"], "domain": c["primary_domain"], "world_id": world_id(c["primary_domain"]),
+                  "lifecycle": c["lifecycle"],
                   "industry": c["industry"], "employees": c["employees"], "country": C.COUNTRY_NAME.get(c["country"], c["country"]),
                   "region_group": c["region_group"], "revenue_band": c["revenue_band"], "pricing_model": c["pricing_model"],
                   "tech": c["tech"], "description": c["description"], "sole_trader": c["sole_trader"],
@@ -491,7 +493,26 @@ def handoffs(cur, allowed: bool) -> dict:
                             from desk_results where destination = 'events_desk'""")
     drafts = db.all(cur, "select id, number from icp_versions where status = 'draft' order by number")
     previews = [handoff.preview(cur, d["id"]) | {"id": d["id"]} for d in drafts]
-    return strip({"books": books, "events": events, "previews": previews}, allowed)
+    return strip({"books": books, "events": events, "previews": previews, "crm": crm_desk(cur)}, allowed)
+
+
+def crm_desk(cur) -> dict | None:
+    """What went to CRM Desk and what it refused. None when no CRM is set and nothing was ever sent (the desk alone)."""
+    from .. import crm
+    s = crm.summary(cur)
+    if not s["enabled"] and not s["sent"] and not s["queued"]:
+        return None
+    for r in s["refusals"]:
+        c = db.one(cur, "select id, name from companies where primary_domain = %s", r["domain"])
+        r["company"], r["name"] = (c["id"], c["name"]) if c else (None, r["domain"])
+        r["proposed_name"] = db.val(cur, "select name from users where email = %s", r["proposed"]) or r["proposed"]
+        r["what"] = {"sdr_owner_id": "SDR", "owner_id": "Owner"}.get(r["field"], r["field"])
+        r["why"] = {"owner_pinned": "A manager pinned it in CRM Desk",
+                    "kept_value_a_person_entered": "Someone in CRM Desk entered a different value"}.get(r["reason"], "CRM Desk kept its own value")
+    for e in s["errors"]:
+        c = db.one(cur, "select id, name from companies where primary_domain = %s", e["domain"])
+        e["company"], e["name"] = (c["id"], c["name"]) if c else (None, e["domain"])
+    return s
 
 
 def book(cur, bid: int, allowed: bool) -> dict | None:

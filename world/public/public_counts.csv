@@ -1,0 +1,992 @@
+country,industry,size_band,year,companies
+AR,Agencies,120 to 499,2024,1
+AR,Agencies,20 to 119,2024,4
+AR,Data infrastructure,120 to 499,2024,5
+AR,Data infrastructure,20 to 119,2024,6
+AR,Data infrastructure,"500 to 1,999",2024,1
+AR,Developer tools,120 to 499,2024,3
+AR,Developer tools,20 to 119,2024,3
+AR,Developer tools,"500 to 1,999",2024,2
+AR,E-commerce,120 to 499,2024,2
+AR,E-commerce,20 to 119,2024,8
+AR,E-commerce,"500 to 1,999",2024,1
+AR,Education,120 to 499,2024,2
+AR,Fintech,120 to 499,2024,2
+AR,Fintech,20 to 119,2024,1
+AR,Fintech,"500 to 1,999",2024,2
+AR,Healthcare software,120 to 499,2024,3
+AR,Healthcare software,20 to 119,2024,3
+AR,IT services,120 to 499,2024,6
+AR,IT services,20 to 119,2024,4
+AR,IT services,"500 to 1,999",2024,1
+AR,Logistics,20 to 119,2024,1
+AR,Manufacturing,120 to 499,2024,1
+AR,Manufacturing,20 to 119,2024,1
+AR,Marketplaces,120 to 499,2024,3
+AR,Marketplaces,20 to 119,2024,2
+AR,Marketplaces,"500 to 1,999",2024,2
+AR,Media,120 to 499,2024,1
+AR,Media,20 to 119,2024,2
+AR,Software,120 to 499,2024,6
+AR,Software,20 to 119,2024,5
+AR,Software,"500 to 1,999",2024,2
+AT,Agencies,120 to 499,2024,8
+AT,Agencies,20 to 119,2024,13
+AT,Agencies,"500 to 1,999",2024,4
+AT,Data infrastructure,120 to 499,2024,9
+AT,Data infrastructure,"500 to 1,999",2024,2
+AT,Developer tools,120 to 499,2024,21
+AT,Developer tools,20 to 119,2024,8
+AT,Developer tools,"500 to 1,999",2024,2
+AT,E-commerce,120 to 499,2024,18
+AT,E-commerce,20 to 119,2024,11
+AT,E-commerce,"500 to 1,999",2024,12
+AT,Education,120 to 499,2024,2
+AT,Education,20 to 119,2024,2
+AT,Education,"500 to 1,999",2024,4
+AT,Fintech,120 to 499,2024,10
+AT,Fintech,20 to 119,2024,22
+AT,Government,120 to 499,2024,5
+AT,Healthcare software,120 to 499,2024,13
+AT,Healthcare software,20 to 119,2024,7
+AT,Healthcare software,"500 to 1,999",2024,3
+AT,IT services,120 to 499,2024,19
+AT,IT services,20 to 119,2024,14
+AT,IT services,"500 to 1,999",2024,3
+AT,Logistics,"500 to 1,999",2024,2
+AT,Manufacturing,120 to 499,2024,10
+AT,Manufacturing,20 to 119,2024,16
+AT,Manufacturing,"500 to 1,999",2024,4
+AT,Marketplaces,120 to 499,2024,5
+AT,Marketplaces,20 to 119,2024,6
+AT,Media,20 to 119,2024,5
+AT,Media,"500 to 1,999",2024,2
+AT,Software,120 to 499,2024,13
+AT,Software,"2,000 to 4,999",2024,3
+AT,Software,20 to 119,2024,27
+AT,Software,"500 to 1,999",2024,8
+AU,Agencies,120 to 499,2024,14
+AU,Agencies,20 to 119,2024,14
+AU,Agencies,"500 to 1,999",2024,11
+AU,Data infrastructure,120 to 499,2024,29
+AU,Data infrastructure,20 to 119,2024,22
+AU,Data infrastructure,"500 to 1,999",2024,8
+AU,Developer tools,120 to 499,2024,21
+AU,Developer tools,20 to 119,2024,17
+AU,Developer tools,"500 to 1,999",2024,10
+AU,E-commerce,120 to 499,2024,23
+AU,E-commerce,20 to 119,2024,24
+AU,E-commerce,"500 to 1,999",2024,7
+AU,Education,120 to 499,2024,17
+AU,Education,20 to 119,2024,6
+AU,Education,"5,000 or more",2024,1
+AU,Education,"500 to 1,999",2024,1
+AU,Fintech,120 to 499,2024,35
+AU,Fintech,20 to 119,2024,30
+AU,Fintech,"500 to 1,999",2024,10
+AU,Government,120 to 499,2024,4
+AU,Government,20 to 119,2024,4
+AU,Government,"500 to 1,999",2024,3
+AU,Healthcare software,120 to 499,2024,8
+AU,Healthcare software,20 to 119,2024,13
+AU,Healthcare software,"500 to 1,999",2024,6
+AU,IT services,120 to 499,2024,42
+AU,IT services,"2,000 to 4,999",2024,1
+AU,IT services,"500 to 1,999",2024,8
+AU,Logistics,120 to 499,2024,9
+AU,Manufacturing,120 to 499,2024,16
+AU,Manufacturing,"2,000 to 4,999",2024,2
+AU,Manufacturing,20 to 119,2024,15
+AU,Manufacturing,"500 to 1,999",2024,6
+AU,Marketplaces,120 to 499,2024,13
+AU,Marketplaces,"2,000 to 4,999",2024,1
+AU,Marketplaces,20 to 119,2024,7
+AU,Marketplaces,"500 to 1,999",2024,2
+AU,Media,120 to 499,2024,7
+AU,Media,20 to 119,2024,1
+AU,Software,120 to 499,2024,54
+AU,Software,"2,000 to 4,999",2024,3
+AU,Software,20 to 119,2024,32
+AU,Software,"500 to 1,999",2024,22
+BE,Agencies,120 to 499,2024,7
+BE,Agencies,20 to 119,2024,2
+BE,Agencies,"500 to 1,999",2024,5
+BE,Data infrastructure,120 to 499,2024,5
+BE,Data infrastructure,20 to 119,2024,6
+BE,Data infrastructure,"500 to 1,999",2024,3
+BE,Developer tools,120 to 499,2024,5
+BE,Developer tools,20 to 119,2024,9
+BE,Developer tools,"500 to 1,999",2024,3
+BE,E-commerce,120 to 499,2024,13
+BE,E-commerce,20 to 119,2024,8
+BE,E-commerce,"500 to 1,999",2024,3
+BE,Education,120 to 499,2024,1
+BE,Education,20 to 119,2024,4
+BE,Education,"500 to 1,999",2024,1
+BE,Fintech,120 to 499,2024,8
+BE,Fintech,"2,000 to 4,999",2024,1
+BE,Fintech,20 to 119,2024,5
+BE,Fintech,"500 to 1,999",2024,3
+BE,Government,"2,000 to 4,999",2024,1
+BE,Healthcare software,120 to 499,2024,5
+BE,Healthcare software,20 to 119,2024,7
+BE,Healthcare software,"500 to 1,999",2024,4
+BE,IT services,120 to 499,2024,11
+BE,IT services,"2,000 to 4,999",2024,1
+BE,IT services,20 to 119,2024,9
+BE,IT services,"500 to 1,999",2024,7
+BE,Logistics,120 to 499,2024,1
+BE,Logistics,20 to 119,2024,2
+BE,Logistics,"500 to 1,999",2024,1
+BE,Manufacturing,120 to 499,2024,7
+BE,Manufacturing,"500 to 1,999",2024,1
+BE,Marketplaces,120 to 499,2024,2
+BE,Marketplaces,20 to 119,2024,3
+BE,Marketplaces,"500 to 1,999",2024,4
+BE,Media,120 to 499,2024,1
+BE,Media,"2,000 to 4,999",2024,1
+BE,Media,20 to 119,2024,3
+BE,Software,"2,000 to 4,999",2024,1
+BE,Software,20 to 119,2024,8
+BE,Software,"500 to 1,999",2024,3
+BR,Agencies,120 to 499,2024,13
+BR,Agencies,20 to 119,2024,12
+BR,Agencies,"500 to 1,999",2024,6
+BR,Data infrastructure,120 to 499,2024,28
+BR,Data infrastructure,20 to 119,2024,25
+BR,Data infrastructure,"500 to 1,999",2024,10
+BR,Developer tools,120 to 499,2024,23
+BR,Developer tools,20 to 119,2024,34
+BR,Developer tools,"500 to 1,999",2024,16
+BR,E-commerce,120 to 499,2024,30
+BR,E-commerce,"2,000 to 4,999",2024,1
+BR,E-commerce,20 to 119,2024,21
+BR,E-commerce,"500 to 1,999",2024,8
+BR,Education,120 to 499,2024,8
+BR,Education,20 to 119,2024,13
+BR,Education,"500 to 1,999",2024,3
+BR,Fintech,120 to 499,2024,28
+BR,Fintech,"2,000 to 4,999",2024,4
+BR,Fintech,20 to 119,2024,19
+BR,Fintech,"500 to 1,999",2024,4
+BR,Government,20 to 119,2024,3
+BR,Government,"500 to 1,999",2024,1
+BR,Healthcare software,120 to 499,2024,11
+BR,Healthcare software,"2,000 to 4,999",2024,1
+BR,Healthcare software,20 to 119,2024,12
+BR,Healthcare software,"500 to 1,999",2024,4
+BR,IT services,120 to 499,2024,21
+BR,IT services,"2,000 to 4,999",2024,1
+BR,IT services,20 to 119,2024,18
+BR,IT services,"500 to 1,999",2024,15
+BR,Logistics,120 to 499,2024,7
+BR,Logistics,20 to 119,2024,5
+BR,Manufacturing,120 to 499,2024,14
+BR,Manufacturing,"2,000 to 4,999",2024,1
+BR,Manufacturing,20 to 119,2024,19
+BR,Manufacturing,"500 to 1,999",2024,6
+BR,Marketplaces,120 to 499,2024,9
+BR,Marketplaces,20 to 119,2024,8
+BR,Marketplaces,"500 to 1,999",2024,6
+BR,Media,120 to 499,2024,5
+BR,Media,20 to 119,2024,5
+BR,Media,"500 to 1,999",2024,2
+BR,Software,120 to 499,2024,63
+BR,Software,"2,000 to 4,999",2024,4
+BR,Software,20 to 119,2024,33
+BR,Software,"5,000 or more",2024,1
+BR,Software,"500 to 1,999",2024,19
+CA,Agencies,120 to 499,2024,42
+CA,Agencies,20 to 119,2024,27
+CA,Agencies,"500 to 1,999",2024,8
+CA,Data infrastructure,120 to 499,2024,31
+CA,Data infrastructure,20 to 119,2024,49
+CA,Data infrastructure,"500 to 1,999",2024,21
+CA,Developer tools,"2,000 to 4,999",2024,1
+CA,Developer tools,20 to 119,2024,33
+CA,Developer tools,"5,000 or more",2024,1
+CA,Developer tools,"500 to 1,999",2024,12
+CA,E-commerce,120 to 499,2024,49
+CA,E-commerce,"2,000 to 4,999",2024,1
+CA,E-commerce,20 to 119,2024,24
+CA,E-commerce,"5,000 or more",2024,1
+CA,E-commerce,"500 to 1,999",2024,24
+CA,Education,120 to 499,2024,12
+CA,Education,20 to 119,2024,8
+CA,Education,"500 to 1,999",2024,1
+CA,Fintech,120 to 499,2024,64
+CA,Fintech,"2,000 to 4,999",2024,2
+CA,Fintech,20 to 119,2024,51
+CA,Fintech,"5,000 or more",2024,1
+CA,Fintech,"500 to 1,999",2024,21
+CA,Government,120 to 499,2024,8
+CA,Government,20 to 119,2024,7
+CA,Government,"500 to 1,999",2024,4
+CA,Healthcare software,120 to 499,2024,35
+CA,Healthcare software,20 to 119,2024,25
+CA,Healthcare software,"500 to 1,999",2024,13
+CA,IT services,120 to 499,2024,37
+CA,IT services,"2,000 to 4,999",2024,2
+CA,IT services,20 to 119,2024,47
+CA,IT services,"500 to 1,999",2024,26
+CA,Logistics,120 to 499,2024,6
+CA,Logistics,"2,000 to 4,999",2024,1
+CA,Logistics,20 to 119,2024,4
+CA,Logistics,"500 to 1,999",2024,4
+CA,Manufacturing,120 to 499,2024,36
+CA,Manufacturing,20 to 119,2024,30
+CA,Manufacturing,"500 to 1,999",2024,8
+CA,Marketplaces,120 to 499,2024,19
+CA,Marketplaces,"2,000 to 4,999",2024,1
+CA,Marketplaces,20 to 119,2024,13
+CA,Marketplaces,"500 to 1,999",2024,10
+CA,Media,120 to 499,2024,10
+CA,Media,20 to 119,2024,4
+CA,Media,"500 to 1,999",2024,9
+CA,Software,120 to 499,2024,89
+CA,Software,"2,000 to 4,999",2024,3
+CA,Software,20 to 119,2024,70
+CA,Software,"500 to 1,999",2024,28
+CH,Agencies,120 to 499,2024,14
+CH,Agencies,20 to 119,2024,13
+CH,Agencies,"500 to 1,999",2024,6
+CH,Data infrastructure,120 to 499,2024,18
+CH,Data infrastructure,"2,000 to 4,999",2024,2
+CH,Data infrastructure,20 to 119,2024,15
+CH,Data infrastructure,"500 to 1,999",2024,14
+CH,Developer tools,120 to 499,2024,21
+CH,Developer tools,20 to 119,2024,22
+CH,Developer tools,"500 to 1,999",2024,4
+CH,E-commerce,120 to 499,2024,27
+CH,E-commerce,20 to 119,2024,23
+CH,E-commerce,"500 to 1,999",2024,5
+CH,Education,120 to 499,2024,5
+CH,Education,"500 to 1,999",2024,4
+CH,Fintech,120 to 499,2024,45
+CH,Fintech,"2,000 to 4,999",2024,4
+CH,Fintech,20 to 119,2024,43
+CH,Fintech,"500 to 1,999",2024,15
+CH,Government,120 to 499,2024,5
+CH,Government,20 to 119,2024,10
+CH,Healthcare software,120 to 499,2024,14
+CH,Healthcare software,20 to 119,2024,7
+CH,Healthcare software,"500 to 1,999",2024,10
+CH,IT services,120 to 499,2024,27
+CH,IT services,20 to 119,2024,31
+CH,IT services,"500 to 1,999",2024,9
+CH,Logistics,120 to 499,2024,6
+CH,Logistics,20 to 119,2024,7
+CH,Manufacturing,120 to 499,2024,19
+CH,Manufacturing,20 to 119,2024,13
+CH,Manufacturing,"500 to 1,999",2024,7
+CH,Marketplaces,120 to 499,2024,13
+CH,Marketplaces,20 to 119,2024,5
+CH,Marketplaces,"500 to 1,999",2024,4
+CH,Media,120 to 499,2024,9
+CH,Media,20 to 119,2024,8
+CH,Media,"500 to 1,999",2024,2
+CH,Software,120 to 499,2024,57
+CH,Software,20 to 119,2024,36
+CH,Software,"500 to 1,999",2024,13
+DE,Agencies,120 to 499,2024,58
+DE,Agencies,"2,000 to 4,999",2024,2
+DE,Agencies,20 to 119,2024,63
+DE,Agencies,"500 to 1,999",2024,19
+DE,Data infrastructure,120 to 499,2024,78
+DE,Data infrastructure,20 to 119,2024,80
+DE,Data infrastructure,"500 to 1,999",2024,22
+DE,Developer tools,120 to 499,2024,63
+DE,Developer tools,"2,000 to 4,999",2024,2
+DE,Developer tools,20 to 119,2024,64
+DE,Developer tools,"500 to 1,999",2024,31
+DE,E-commerce,120 to 499,2024,82
+DE,E-commerce,"2,000 to 4,999",2024,6
+DE,E-commerce,"500 to 1,999",2024,45
+DE,Education,120 to 499,2024,31
+DE,Education,20 to 119,2024,22
+DE,Education,"500 to 1,999",2024,4
+DE,Fintech,120 to 499,2024,88
+DE,Fintech,"2,000 to 4,999",2024,2
+DE,Fintech,"500 to 1,999",2024,48
+DE,Government,120 to 499,2024,23
+DE,Government,20 to 119,2024,13
+DE,Government,"500 to 1,999",2024,4
+DE,Healthcare software,120 to 499,2024,42
+DE,Healthcare software,"2,000 to 4,999",2024,4
+DE,Healthcare software,20 to 119,2024,44
+DE,Healthcare software,"500 to 1,999",2024,15
+DE,IT services,120 to 499,2024,104
+DE,IT services,"2,000 to 4,999",2024,2
+DE,IT services,20 to 119,2024,79
+DE,IT services,"500 to 1,999",2024,41
+DE,Logistics,120 to 499,2024,21
+DE,Logistics,20 to 119,2024,3
+DE,Logistics,"500 to 1,999",2024,12
+DE,Manufacturing,120 to 499,2024,83
+DE,Manufacturing,"2,000 to 4,999",2024,2
+DE,Manufacturing,20 to 119,2024,60
+DE,Manufacturing,"500 to 1,999",2024,27
+DE,Marketplaces,120 to 499,2024,29
+DE,Marketplaces,20 to 119,2024,32
+DE,Marketplaces,"5,000 or more",2024,2
+DE,Marketplaces,"500 to 1,999",2024,15
+DE,Media,120 to 499,2024,28
+DE,Media,20 to 119,2024,29
+DE,Media,"500 to 1,999",2024,5
+DE,Software,120 to 499,2024,124
+DE,Software,"2,000 to 4,999",2024,2
+DE,Software,20 to 119,2024,102
+DE,Software,"500 to 1,999",2024,58
+DK,Agencies,120 to 499,2024,8
+DK,Agencies,20 to 119,2024,4
+DK,Agencies,"500 to 1,999",2024,6
+DK,Data infrastructure,120 to 499,2024,12
+DK,Data infrastructure,"2,000 to 4,999",2024,1
+DK,Data infrastructure,20 to 119,2024,13
+DK,Data infrastructure,"500 to 1,999",2024,5
+DK,Developer tools,120 to 499,2024,5
+DK,Developer tools,20 to 119,2024,17
+DK,Developer tools,"500 to 1,999",2024,3
+DK,E-commerce,120 to 499,2024,8
+DK,E-commerce,20 to 119,2024,5
+DK,E-commerce,"500 to 1,999",2024,4
+DK,Education,120 to 499,2024,4
+DK,Education,20 to 119,2024,1
+DK,Education,"500 to 1,999",2024,1
+DK,Fintech,120 to 499,2024,7
+DK,Fintech,20 to 119,2024,10
+DK,Fintech,"500 to 1,999",2024,4
+DK,Government,120 to 499,2024,1
+DK,Healthcare software,120 to 499,2024,1
+DK,Healthcare software,20 to 119,2024,7
+DK,IT services,120 to 499,2024,17
+DK,IT services,"2,000 to 4,999",2024,2
+DK,IT services,20 to 119,2024,10
+DK,IT services,"500 to 1,999",2024,3
+DK,Logistics,120 to 499,2024,1
+DK,Logistics,"500 to 1,999",2024,1
+DK,Manufacturing,120 to 499,2024,5
+DK,Manufacturing,20 to 119,2024,6
+DK,Manufacturing,"500 to 1,999",2024,2
+DK,Marketplaces,120 to 499,2024,5
+DK,Marketplaces,20 to 119,2024,2
+DK,Marketplaces,"500 to 1,999",2024,4
+DK,Media,120 to 499,2024,5
+DK,Media,20 to 119,2024,3
+DK,Media,"500 to 1,999",2024,1
+DK,Software,120 to 499,2024,18
+DK,Software,"2,000 to 4,999",2024,2
+DK,Software,20 to 119,2024,11
+DK,Software,"5,000 or more",2024,1
+DK,Software,"500 to 1,999",2024,6
+ES,Agencies,120 to 499,2024,14
+ES,Agencies,20 to 119,2024,18
+ES,Agencies,"500 to 1,999",2024,2
+ES,Data infrastructure,120 to 499,2024,12
+ES,Data infrastructure,20 to 119,2024,12
+ES,Data infrastructure,"500 to 1,999",2024,4
+ES,Developer tools,120 to 499,2024,22
+ES,Developer tools,20 to 119,2024,15
+ES,Developer tools,"500 to 1,999",2024,4
+ES,E-commerce,120 to 499,2024,18
+ES,E-commerce,"500 to 1,999",2024,4
+ES,Education,120 to 499,2024,4
+ES,Education,20 to 119,2024,6
+ES,Education,"5,000 or more",2024,1
+ES,Education,"500 to 1,999",2024,1
+ES,Fintech,120 to 499,2024,26
+ES,Fintech,20 to 119,2024,22
+ES,Fintech,"500 to 1,999",2024,8
+ES,Government,120 to 499,2024,5
+ES,Government,20 to 119,2024,7
+ES,Government,"500 to 1,999",2024,4
+ES,Healthcare software,120 to 499,2024,5
+ES,Healthcare software,"500 to 1,999",2024,5
+ES,IT services,120 to 499,2024,20
+ES,IT services,"2,000 to 4,999",2024,1
+ES,IT services,20 to 119,2024,16
+ES,Logistics,120 to 499,2024,4
+ES,Logistics,20 to 119,2024,4
+ES,Manufacturing,120 to 499,2024,18
+ES,Manufacturing,"2,000 to 4,999",2024,1
+ES,Manufacturing,20 to 119,2024,8
+ES,Manufacturing,"500 to 1,999",2024,6
+ES,Marketplaces,120 to 499,2024,11
+ES,Marketplaces,"2,000 to 4,999",2024,1
+ES,Marketplaces,20 to 119,2024,9
+ES,Marketplaces,"500 to 1,999",2024,4
+ES,Media,120 to 499,2024,4
+ES,Media,20 to 119,2024,7
+ES,Media,"500 to 1,999",2024,1
+ES,Software,120 to 499,2024,26
+ES,Software,20 to 119,2024,16
+FI,Agencies,120 to 499,2024,2
+FI,Agencies,20 to 119,2024,2
+FI,Agencies,"500 to 1,999",2024,1
+FI,Data infrastructure,120 to 499,2024,5
+FI,Data infrastructure,20 to 119,2024,5
+FI,Developer tools,120 to 499,2024,1
+FI,Developer tools,20 to 119,2024,6
+FI,E-commerce,20 to 119,2024,6
+FI,E-commerce,"500 to 1,999",2024,1
+FI,Education,120 to 499,2024,1
+FI,Education,20 to 119,2024,2
+FI,Education,"500 to 1,999",2024,1
+FI,Fintech,120 to 499,2024,10
+FI,Fintech,20 to 119,2024,5
+FI,Fintech,"500 to 1,999",2024,1
+FI,Government,120 to 499,2024,1
+FI,Government,20 to 119,2024,1
+FI,Government,"500 to 1,999",2024,1
+FI,Healthcare software,120 to 499,2024,1
+FI,Healthcare software,"500 to 1,999",2024,1
+FI,IT services,120 to 499,2024,5
+FI,IT services,20 to 119,2024,4
+FI,IT services,"500 to 1,999",2024,3
+FI,Logistics,20 to 119,2024,1
+FI,Manufacturing,120 to 499,2024,2
+FI,Manufacturing,20 to 119,2024,2
+FI,Manufacturing,"500 to 1,999",2024,4
+FI,Marketplaces,20 to 119,2024,3
+FI,Software,120 to 499,2024,12
+FI,Software,"2,000 to 4,999",2024,1
+FI,Software,20 to 119,2024,5
+FI,Software,"500 to 1,999",2024,4
+FR,Agencies,120 to 499,2024,50
+FR,Agencies,"2,000 to 4,999",2024,5
+FR,Agencies,20 to 119,2024,58
+FR,Agencies,"500 to 1,999",2024,16
+FR,Data infrastructure,120 to 499,2024,43
+FR,Data infrastructure,20 to 119,2024,58
+FR,Developer tools,120 to 499,2024,45
+FR,Developer tools,"2,000 to 4,999",2024,2
+FR,Developer tools,20 to 119,2024,39
+FR,Developer tools,"500 to 1,999",2024,12
+FR,E-commerce,120 to 499,2024,40
+FR,E-commerce,"500 to 1,999",2024,25
+FR,Education,120 to 499,2024,19
+FR,Education,20 to 119,2024,17
+FR,Education,"500 to 1,999",2024,2
+FR,Fintech,120 to 499,2024,62
+FR,Fintech,20 to 119,2024,50
+FR,Fintech,"500 to 1,999",2024,26
+FR,Government,120 to 499,2024,4
+FR,Government,20 to 119,2024,13
+FR,Government,"500 to 1,999",2024,4
+FR,Healthcare software,120 to 499,2024,33
+FR,Healthcare software,"2,000 to 4,999",2024,4
+FR,Healthcare software,20 to 119,2024,26
+FR,Healthcare software,"500 to 1,999",2024,17
+FR,IT services,120 to 499,2024,70
+FR,IT services,"2,000 to 4,999",2024,2
+FR,IT services,20 to 119,2024,43
+FR,IT services,"500 to 1,999",2024,16
+FR,Logistics,120 to 499,2024,9
+FR,Logistics,20 to 119,2024,11
+FR,Logistics,"500 to 1,999",2024,8
+FR,Manufacturing,120 to 499,2024,39
+FR,Manufacturing,"2,000 to 4,999",2024,2
+FR,Manufacturing,20 to 119,2024,26
+FR,Manufacturing,"500 to 1,999",2024,5
+FR,Marketplaces,120 to 499,2024,21
+FR,Marketplaces,20 to 119,2024,10
+FR,Marketplaces,"500 to 1,999",2024,15
+FR,Media,120 to 499,2024,11
+FR,Media,"2,000 to 4,999",2024,2
+FR,Media,20 to 119,2024,18
+FR,Media,"500 to 1,999",2024,7
+FR,Software,120 to 499,2024,89
+FR,Software,20 to 119,2024,70
+FR,Software,"500 to 1,999",2024,38
+GB,Agencies,120 to 499,2024,61
+GB,Agencies,"2,000 to 4,999",2024,3
+GB,Agencies,20 to 119,2024,53
+GB,Agencies,"500 to 1,999",2024,27
+GB,Data infrastructure,"2,000 to 4,999",2024,4
+GB,Data infrastructure,"500 to 1,999",2024,20
+GB,Developer tools,120 to 499,2024,62
+GB,Developer tools,20 to 119,2024,58
+GB,Developer tools,"5,000 or more",2024,1
+GB,E-commerce,120 to 499,2024,79
+GB,E-commerce,"2,000 to 4,999",2024,4
+GB,E-commerce,20 to 119,2024,96
+GB,E-commerce,"500 to 1,999",2024,43
+GB,Education,120 to 499,2024,18
+GB,Education,"500 to 1,999",2024,9
+GB,Fintech,120 to 499,2024,129
+GB,Fintech,"2,000 to 4,999",2024,2
+GB,Fintech,20 to 119,2024,81
+GB,Fintech,"5,000 or more",2024,1
+GB,Fintech,"500 to 1,999",2024,36
+GB,Government,120 to 499,2024,17
+GB,Government,"2,000 to 4,999",2024,1
+GB,Government,"500 to 1,999",2024,4
+GB,Healthcare software,120 to 499,2024,49
+GB,Healthcare software,"2,000 to 4,999",2024,2
+GB,Healthcare software,20 to 119,2024,40
+GB,Healthcare software,"500 to 1,999",2024,14
+GB,IT services,120 to 499,2024,112
+GB,IT services,"2,000 to 4,999",2024,2
+GB,IT services,20 to 119,2024,80
+GB,IT services,"5,000 or more",2024,1
+GB,IT services,"500 to 1,999",2024,30
+GB,Logistics,120 to 499,2024,19
+GB,Logistics,"2,000 to 4,999",2024,1
+GB,Logistics,20 to 119,2024,10
+GB,Logistics,"500 to 1,999",2024,7
+GB,Manufacturing,20 to 119,2024,38
+GB,Manufacturing,"500 to 1,999",2024,15
+GB,Marketplaces,120 to 499,2024,28
+GB,Marketplaces,"2,000 to 4,999",2024,2
+GB,Marketplaces,20 to 119,2024,33
+GB,Marketplaces,"500 to 1,999",2024,15
+GB,Media,120 to 499,2024,28
+GB,Media,20 to 119,2024,15
+GB,Media,"500 to 1,999",2024,14
+GB,Software,120 to 499,2024,176
+GB,Software,"2,000 to 4,999",2024,3
+GB,Software,20 to 119,2024,115
+GB,Software,"5,000 or more",2024,1
+GB,Software,"500 to 1,999",2024,46
+IE,Agencies,120 to 499,2024,2
+IE,Agencies,20 to 119,2024,4
+IE,Agencies,"500 to 1,999",2024,5
+IE,Data infrastructure,20 to 119,2024,9
+IE,Data infrastructure,"500 to 1,999",2024,3
+IE,Developer tools,20 to 119,2024,8
+IE,E-commerce,120 to 499,2024,5
+IE,E-commerce,20 to 119,2024,11
+IE,E-commerce,"500 to 1,999",2024,3
+IE,Education,120 to 499,2024,2
+IE,Education,"500 to 1,999",2024,1
+IE,Fintech,120 to 499,2024,13
+IE,Fintech,20 to 119,2024,5
+IE,Fintech,"500 to 1,999",2024,3
+IE,Government,120 to 499,2024,1
+IE,Government,20 to 119,2024,2
+IE,Government,"500 to 1,999",2024,1
+IE,Healthcare software,120 to 499,2024,10
+IE,Healthcare software,20 to 119,2024,1
+IE,Healthcare software,"5,000 or more",2024,1
+IE,Healthcare software,"500 to 1,999",2024,1
+IE,IT services,120 to 499,2024,8
+IE,IT services,20 to 119,2024,13
+IE,IT services,"500 to 1,999",2024,2
+IE,Logistics,20 to 119,2024,1
+IE,Manufacturing,120 to 499,2024,8
+IE,Manufacturing,"500 to 1,999",2024,2
+IE,Marketplaces,120 to 499,2024,1
+IE,Marketplaces,20 to 119,2024,2
+IE,Marketplaces,"500 to 1,999",2024,2
+IE,Media,120 to 499,2024,2
+IE,Media,20 to 119,2024,3
+IE,Software,120 to 499,2024,16
+IE,Software,20 to 119,2024,14
+IE,Software,"500 to 1,999",2024,7
+IN,Agencies,120 to 499,2024,18
+IN,Agencies,20 to 119,2024,18
+IN,Agencies,"500 to 1,999",2024,5
+IN,Data infrastructure,120 to 499,2024,40
+IN,Data infrastructure,"2,000 to 4,999",2024,1
+IN,Data infrastructure,20 to 119,2024,23
+IN,Data infrastructure,"500 to 1,999",2024,12
+IN,Developer tools,120 to 499,2024,23
+IN,Developer tools,"2,000 to 4,999",2024,1
+IN,Developer tools,20 to 119,2024,18
+IN,Developer tools,"500 to 1,999",2024,8
+IN,E-commerce,120 to 499,2024,26
+IN,E-commerce,20 to 119,2024,15
+IN,E-commerce,"500 to 1,999",2024,9
+IN,Education,120 to 499,2024,6
+IN,Education,20 to 119,2024,7
+IN,Education,"500 to 1,999",2024,4
+IN,Fintech,120 to 499,2024,24
+IN,Fintech,20 to 119,2024,32
+IN,Fintech,"500 to 1,999",2024,5
+IN,Government,120 to 499,2024,7
+IN,Government,20 to 119,2024,1
+IN,Healthcare software,120 to 499,2024,24
+IN,Healthcare software,20 to 119,2024,14
+IN,IT services,120 to 499,2024,31
+IN,IT services,20 to 119,2024,28
+IN,IT services,"500 to 1,999",2024,8
+IN,Logistics,120 to 499,2024,11
+IN,Logistics,20 to 119,2024,9
+IN,Logistics,"500 to 1,999",2024,1
+IN,Manufacturing,120 to 499,2024,26
+IN,Manufacturing,20 to 119,2024,17
+IN,Manufacturing,"500 to 1,999",2024,8
+IN,Marketplaces,120 to 499,2024,15
+IN,Marketplaces,20 to 119,2024,8
+IN,Marketplaces,"500 to 1,999",2024,7
+IN,Media,120 to 499,2024,7
+IN,Media,20 to 119,2024,5
+IN,Media,"500 to 1,999",2024,4
+IN,Software,"2,000 to 4,999",2024,3
+IN,Software,20 to 119,2024,41
+IN,Software,"500 to 1,999",2024,17
+IT,Agencies,120 to 499,2024,10
+IT,Agencies,20 to 119,2024,15
+IT,Agencies,"500 to 1,999",2024,1
+IT,Data infrastructure,120 to 499,2024,11
+IT,Data infrastructure,20 to 119,2024,12
+IT,Developer tools,120 to 499,2024,10
+IT,Developer tools,"2,000 to 4,999",2024,1
+IT,Developer tools,20 to 119,2024,17
+IT,Developer tools,"500 to 1,999",2024,4
+IT,E-commerce,120 to 499,2024,36
+IT,E-commerce,20 to 119,2024,22
+IT,E-commerce,"500 to 1,999",2024,9
+IT,Education,120 to 499,2024,3
+IT,Education,"500 to 1,999",2024,2
+IT,Fintech,120 to 499,2024,16
+IT,Fintech,"2,000 to 4,999",2024,1
+IT,Fintech,20 to 119,2024,21
+IT,Fintech,"500 to 1,999",2024,13
+IT,Government,120 to 499,2024,2
+IT,Government,20 to 119,2024,3
+IT,Healthcare software,120 to 499,2024,13
+IT,Healthcare software,20 to 119,2024,6
+IT,Healthcare software,"500 to 1,999",2024,4
+IT,IT services,120 to 499,2024,22
+IT,IT services,20 to 119,2024,20
+IT,IT services,"500 to 1,999",2024,10
+IT,Logistics,120 to 499,2024,9
+IT,Logistics,20 to 119,2024,3
+IT,Logistics,"500 to 1,999",2024,1
+IT,Manufacturing,120 to 499,2024,16
+IT,Manufacturing,20 to 119,2024,8
+IT,Manufacturing,"500 to 1,999",2024,6
+IT,Marketplaces,120 to 499,2024,7
+IT,Marketplaces,20 to 119,2024,3
+IT,Marketplaces,"5,000 or more",2024,1
+IT,Marketplaces,"500 to 1,999",2024,4
+IT,Media,120 to 499,2024,5
+IT,Media,20 to 119,2024,7
+IT,Media,"500 to 1,999",2024,2
+IT,Software,120 to 499,2024,39
+IT,Software,20 to 119,2024,27
+IT,Software,"500 to 1,999",2024,13
+MX,Agencies,120 to 499,2024,2
+MX,Agencies,"2,000 to 4,999",2024,1
+MX,Agencies,20 to 119,2024,10
+MX,Agencies,"5,000 or more",2024,1
+MX,Agencies,"500 to 1,999",2024,3
+MX,Data infrastructure,120 to 499,2024,13
+MX,Data infrastructure,20 to 119,2024,6
+MX,Data infrastructure,"500 to 1,999",2024,3
+MX,Developer tools,120 to 499,2024,9
+MX,Developer tools,20 to 119,2024,11
+MX,Developer tools,"500 to 1,999",2024,5
+MX,E-commerce,120 to 499,2024,17
+MX,E-commerce,"2,000 to 4,999",2024,1
+MX,E-commerce,20 to 119,2024,15
+MX,E-commerce,"500 to 1,999",2024,5
+MX,Education,120 to 499,2024,1
+MX,Education,20 to 119,2024,6
+MX,Education,"500 to 1,999",2024,1
+MX,Fintech,120 to 499,2024,26
+MX,Fintech,"2,000 to 4,999",2024,1
+MX,Fintech,20 to 119,2024,17
+MX,Fintech,"500 to 1,999",2024,9
+MX,Government,120 to 499,2024,1
+MX,Government,20 to 119,2024,2
+MX,Government,"500 to 1,999",2024,1
+MX,Healthcare software,120 to 499,2024,15
+MX,Healthcare software,20 to 119,2024,5
+MX,Healthcare software,"500 to 1,999",2024,2
+MX,IT services,120 to 499,2024,7
+MX,IT services,20 to 119,2024,13
+MX,IT services,"500 to 1,999",2024,6
+MX,Logistics,120 to 499,2024,4
+MX,Logistics,20 to 119,2024,4
+MX,Logistics,"500 to 1,999",2024,1
+MX,Manufacturing,120 to 499,2024,8
+MX,Manufacturing,20 to 119,2024,6
+MX,Manufacturing,"500 to 1,999",2024,4
+MX,Marketplaces,120 to 499,2024,12
+MX,Marketplaces,20 to 119,2024,9
+MX,Media,120 to 499,2024,5
+MX,Media,20 to 119,2024,1
+MX,Media,"500 to 1,999",2024,3
+MX,Software,120 to 499,2024,25
+MX,Software,20 to 119,2024,27
+MX,Software,"500 to 1,999",2024,3
+NL,Agencies,120 to 499,2024,20
+NL,Agencies,20 to 119,2024,19
+NL,Agencies,"500 to 1,999",2024,8
+NL,Data infrastructure,120 to 499,2024,32
+NL,Data infrastructure,"2,000 to 4,999",2024,4
+NL,Data infrastructure,20 to 119,2024,15
+NL,Data infrastructure,"500 to 1,999",2024,7
+NL,Developer tools,120 to 499,2024,26
+NL,Developer tools,"2,000 to 4,999",2024,2
+NL,Developer tools,20 to 119,2024,22
+NL,Developer tools,"500 to 1,999",2024,6
+NL,E-commerce,120 to 499,2024,35
+NL,E-commerce,"2,000 to 4,999",2024,2
+NL,E-commerce,"500 to 1,999",2024,12
+NL,Education,120 to 499,2024,8
+NL,Education,20 to 119,2024,8
+NL,Education,"500 to 1,999",2024,1
+NL,Fintech,120 to 499,2024,30
+NL,Fintech,20 to 119,2024,25
+NL,Fintech,"500 to 1,999",2024,10
+NL,Government,120 to 499,2024,3
+NL,Government,20 to 119,2024,4
+NL,Government,"500 to 1,999",2024,3
+NL,Healthcare software,120 to 499,2024,24
+NL,Healthcare software,"2,000 to 4,999",2024,1
+NL,Healthcare software,20 to 119,2024,15
+NL,Healthcare software,"500 to 1,999",2024,6
+NL,IT services,120 to 499,2024,20
+NL,IT services,"2,000 to 4,999",2024,2
+NL,IT services,20 to 119,2024,25
+NL,IT services,"5,000 or more",2024,1
+NL,IT services,"500 to 1,999",2024,10
+NL,Logistics,120 to 499,2024,4
+NL,Logistics,20 to 119,2024,4
+NL,Logistics,"500 to 1,999",2024,2
+NL,Manufacturing,"2,000 to 4,999",2024,1
+NL,Manufacturing,20 to 119,2024,23
+NL,Manufacturing,"500 to 1,999",2024,11
+NL,Marketplaces,120 to 499,2024,16
+NL,Marketplaces,20 to 119,2024,10
+NL,Marketplaces,"500 to 1,999",2024,2
+NL,Media,120 to 499,2024,1
+NL,Media,"2,000 to 4,999",2024,1
+NL,Media,20 to 119,2024,2
+NL,Media,"500 to 1,999",2024,4
+NL,Software,120 to 499,2024,49
+NL,Software,"2,000 to 4,999",2024,4
+NL,Software,20 to 119,2024,51
+NL,Software,"500 to 1,999",2024,12
+NO,Agencies,120 to 499,2024,4
+NO,Agencies,"2,000 to 4,999",2024,1
+NO,Agencies,20 to 119,2024,2
+NO,Agencies,"500 to 1,999",2024,3
+NO,Data infrastructure,120 to 499,2024,7
+NO,Data infrastructure,20 to 119,2024,12
+NO,Data infrastructure,"500 to 1,999",2024,5
+NO,Developer tools,120 to 499,2024,6
+NO,Developer tools,20 to 119,2024,3
+NO,Developer tools,"500 to 1,999",2024,3
+NO,E-commerce,120 to 499,2024,10
+NO,E-commerce,"2,000 to 4,999",2024,1
+NO,E-commerce,"500 to 1,999",2024,3
+NO,Education,120 to 499,2024,5
+NO,Education,"2,000 to 4,999",2024,1
+NO,Education,20 to 119,2024,4
+NO,Education,"500 to 1,999",2024,4
+NO,Fintech,120 to 499,2024,9
+NO,Fintech,"2,000 to 4,999",2024,1
+NO,Fintech,20 to 119,2024,11
+NO,Fintech,"500 to 1,999",2024,8
+NO,Government,120 to 499,2024,1
+NO,Government,20 to 119,2024,5
+NO,Government,"500 to 1,999",2024,1
+NO,Healthcare software,120 to 499,2024,3
+NO,Healthcare software,20 to 119,2024,7
+NO,Healthcare software,"500 to 1,999",2024,2
+NO,IT services,120 to 499,2024,15
+NO,IT services,20 to 119,2024,6
+NO,IT services,"500 to 1,999",2024,3
+NO,Logistics,120 to 499,2024,1
+NO,Manufacturing,120 to 499,2024,8
+NO,Manufacturing,20 to 119,2024,3
+NO,Manufacturing,"500 to 1,999",2024,1
+NO,Marketplaces,120 to 499,2024,5
+NO,Marketplaces,20 to 119,2024,3
+NO,Marketplaces,"500 to 1,999",2024,1
+NO,Media,120 to 499,2024,4
+NO,Media,20 to 119,2024,1
+NO,Media,"500 to 1,999",2024,1
+NO,Software,120 to 499,2024,14
+NO,Software,"2,000 to 4,999",2024,1
+NO,Software,20 to 119,2024,13
+NO,Software,"500 to 1,999",2024,7
+PT,Agencies,120 to 499,2024,1
+PT,Agencies,20 to 119,2024,6
+PT,Data infrastructure,120 to 499,2024,5
+PT,Data infrastructure,20 to 119,2024,4
+PT,Data infrastructure,"500 to 1,999",2024,2
+PT,Developer tools,120 to 499,2024,2
+PT,Developer tools,20 to 119,2024,2
+PT,Developer tools,"500 to 1,999",2024,1
+PT,E-commerce,120 to 499,2024,7
+PT,E-commerce,20 to 119,2024,1
+PT,E-commerce,"500 to 1,999",2024,1
+PT,Education,120 to 499,2024,1
+PT,Education,"500 to 1,999",2024,1
+PT,Fintech,20 to 119,2024,3
+PT,Fintech,"500 to 1,999",2024,2
+PT,Government,120 to 499,2024,1
+PT,Government,20 to 119,2024,3
+PT,Government,"500 to 1,999",2024,1
+PT,Healthcare software,120 to 499,2024,5
+PT,Healthcare software,20 to 119,2024,4
+PT,Healthcare software,"500 to 1,999",2024,1
+PT,IT services,120 to 499,2024,5
+PT,IT services,20 to 119,2024,3
+PT,IT services,"500 to 1,999",2024,1
+PT,Logistics,120 to 499,2024,3
+PT,Logistics,20 to 119,2024,1
+PT,Manufacturing,120 to 499,2024,1
+PT,Manufacturing,"2,000 to 4,999",2024,1
+PT,Manufacturing,"500 to 1,999",2024,1
+PT,Marketplaces,20 to 119,2024,3
+PT,Marketplaces,"500 to 1,999",2024,1
+PT,Media,120 to 499,2024,1
+PT,Software,120 to 499,2024,5
+PT,Software,20 to 119,2024,9
+PT,Software,"500 to 1,999",2024,1
+SE,Agencies,120 to 499,2024,20
+SE,Agencies,20 to 119,2024,4
+SE,Agencies,"500 to 1,999",2024,9
+SE,Data infrastructure,120 to 499,2024,20
+SE,Data infrastructure,20 to 119,2024,19
+SE,Data infrastructure,"500 to 1,999",2024,9
+SE,Developer tools,120 to 499,2024,14
+SE,Developer tools,20 to 119,2024,15
+SE,Developer tools,"500 to 1,999",2024,7
+SE,E-commerce,120 to 499,2024,24
+SE,E-commerce,"2,000 to 4,999",2024,1
+SE,E-commerce,20 to 119,2024,25
+SE,E-commerce,"5,000 or more",2024,1
+SE,E-commerce,"500 to 1,999",2024,5
+SE,Education,120 to 499,2024,14
+SE,Education,20 to 119,2024,5
+SE,Education,"500 to 1,999",2024,1
+SE,Fintech,120 to 499,2024,26
+SE,Fintech,"500 to 1,999",2024,1
+SE,Government,120 to 499,2024,1
+SE,Government,"2,000 to 4,999",2024,1
+SE,Government,20 to 119,2024,7
+SE,Healthcare software,120 to 499,2024,8
+SE,Healthcare software,20 to 119,2024,4
+SE,Healthcare software,"500 to 1,999",2024,2
+SE,IT services,120 to 499,2024,21
+SE,IT services,20 to 119,2024,23
+SE,IT services,"500 to 1,999",2024,8
+SE,Logistics,20 to 119,2024,3
+SE,Logistics,"500 to 1,999",2024,3
+SE,Manufacturing,120 to 499,2024,14
+SE,Manufacturing,20 to 119,2024,12
+SE,Manufacturing,"500 to 1,999",2024,6
+SE,Marketplaces,120 to 499,2024,4
+SE,Marketplaces,"2,000 to 4,999",2024,1
+SE,Marketplaces,20 to 119,2024,5
+SE,Marketplaces,"500 to 1,999",2024,3
+SE,Media,120 to 499,2024,2
+SE,Media,20 to 119,2024,3
+SE,Media,"500 to 1,999",2024,1
+SE,Software,120 to 499,2024,22
+SE,Software,"2,000 to 4,999",2024,1
+SE,Software,20 to 119,2024,42
+SE,Software,"500 to 1,999",2024,9
+SG,Agencies,120 to 499,2024,23
+SG,Agencies,20 to 119,2024,13
+SG,Agencies,"500 to 1,999",2024,5
+SG,Data infrastructure,"2,000 to 4,999",2024,3
+SG,Data infrastructure,"500 to 1,999",2024,8
+SG,Developer tools,120 to 499,2024,18
+SG,Developer tools,"2,000 to 4,999",2024,1
+SG,Developer tools,20 to 119,2024,24
+SG,Developer tools,"500 to 1,999",2024,6
+SG,E-commerce,120 to 499,2024,19
+SG,E-commerce,20 to 119,2024,16
+SG,E-commerce,"500 to 1,999",2024,6
+SG,Education,120 to 499,2024,6
+SG,Education,20 to 119,2024,7
+SG,Fintech,120 to 499,2024,31
+SG,Fintech,"2,000 to 4,999",2024,1
+SG,Fintech,20 to 119,2024,32
+SG,Fintech,"500 to 1,999",2024,7
+SG,Government,120 to 499,2024,3
+SG,Government,"5,000 or more",2024,1
+SG,Government,"500 to 1,999",2024,2
+SG,Healthcare software,120 to 499,2024,14
+SG,Healthcare software,20 to 119,2024,12
+SG,Healthcare software,"500 to 1,999",2024,4
+SG,IT services,120 to 499,2024,28
+SG,IT services,20 to 119,2024,21
+SG,IT services,"500 to 1,999",2024,11
+SG,Logistics,120 to 499,2024,5
+SG,Logistics,"2,000 to 4,999",2024,1
+SG,Logistics,20 to 119,2024,2
+SG,Logistics,"500 to 1,999",2024,1
+SG,Manufacturing,120 to 499,2024,21
+SG,Manufacturing,20 to 119,2024,14
+SG,Manufacturing,"500 to 1,999",2024,12
+SG,Marketplaces,120 to 499,2024,9
+SG,Marketplaces,20 to 119,2024,9
+SG,Marketplaces,"500 to 1,999",2024,2
+SG,Media,120 to 499,2024,5
+SG,Media,20 to 119,2024,4
+SG,Media,"500 to 1,999",2024,5
+SG,Software,120 to 499,2024,36
+SG,Software,"2,000 to 4,999",2024,1
+SG,Software,20 to 119,2024,41
+SG,Software,"500 to 1,999",2024,12
+US,Agencies,120 to 499,2024,310
+US,Agencies,"2,000 to 4,999",2024,14
+US,Agencies,20 to 119,2024,221
+US,Agencies,"5,000 or more",2024,1
+US,Agencies,"500 to 1,999",2024,108
+US,Data infrastructure,120 to 499,2024,358
+US,Data infrastructure,"2,000 to 4,999",2024,22
+US,Data infrastructure,20 to 119,2024,336
+US,Data infrastructure,"5,000 or more",2024,1
+US,Data infrastructure,"500 to 1,999",2024,135
+US,Developer tools,120 to 499,2024,350
+US,Developer tools,"2,000 to 4,999",2024,11
+US,Developer tools,20 to 119,2024,262
+US,Developer tools,"5,000 or more",2024,1
+US,Developer tools,"500 to 1,999",2024,99
+US,E-commerce,120 to 499,2024,471
+US,E-commerce,"2,000 to 4,999",2024,11
+US,E-commerce,20 to 119,2024,315
+US,E-commerce,"500 to 1,999",2024,160
+US,Education,120 to 499,2024,128
+US,Education,"2,000 to 4,999",2024,5
+US,Education,20 to 119,2024,120
+US,Education,"500 to 1,999",2024,43
+US,Fintech,120 to 499,2024,504
+US,Fintech,"2,000 to 4,999",2024,18
+US,Fintech,20 to 119,2024,440
+US,Fintech,"500 to 1,999",2024,153
+US,Government,120 to 499,2024,81
+US,Government,"2,000 to 4,999",2024,3
+US,Government,20 to 119,2024,68
+US,Government,"500 to 1,999",2024,36
+US,Healthcare software,120 to 499,2024,300
+US,Healthcare software,"2,000 to 4,999",2024,12
+US,Healthcare software,20 to 119,2024,213
+US,Healthcare software,"5,000 or more",2024,1
+US,Healthcare software,"500 to 1,999",2024,75
+US,IT services,120 to 499,2024,469
+US,IT services,"2,000 to 4,999",2024,14
+US,IT services,"5,000 or more",2024,4
+US,IT services,"500 to 1,999",2024,173
+US,Logistics,120 to 499,2024,83
+US,Logistics,"2,000 to 4,999",2024,1
+US,Logistics,20 to 119,2024,75
+US,Logistics,"5,000 or more",2024,1
+US,Logistics,"500 to 1,999",2024,21
+US,Manufacturing,120 to 499,2024,317
+US,Manufacturing,"2,000 to 4,999",2024,5
+US,Manufacturing,20 to 119,2024,224
+US,Manufacturing,"5,000 or more",2024,1
+US,Manufacturing,"500 to 1,999",2024,94
+US,Marketplaces,120 to 499,2024,137
+US,Marketplaces,"2,000 to 4,999",2024,8
+US,Marketplaces,20 to 119,2024,146
+US,Marketplaces,"500 to 1,999",2024,76
+US,Media,120 to 499,2024,107
+US,Media,"2,000 to 4,999",2024,5
+US,Media,20 to 119,2024,101
+US,Media,"500 to 1,999",2024,47
+US,Software,120 to 499,2024,693
+US,Software,"2,000 to 4,999",2024,24
+US,Software,20 to 119,2024,551
+US,Software,"5,000 or more",2024,4

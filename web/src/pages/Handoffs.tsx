@@ -13,6 +13,7 @@ export function Handoffs() {
   if (!data) return <div className="page"><div className="head"><h1>Handoffs</h1></div><Loading /></div>;
   const revops = me?.user.role === "revops";
   const cols = "minmax(0,1.2fr) 70px 70px 80px 90px 100px minmax(0,1fr)";
+  const crmCols = "minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr)";
   return (
     <div className="page">
       <div className="head">
@@ -61,6 +62,42 @@ export function Handoffs() {
           </Section>
         );
       })}
+      {data.crm ? (
+        <Section title="CRM Desk" icon={ArrowsLeftRight}>
+          <div className="figs">
+            <Fig value={n0(data.crm.sent)} label={data.crm.last_sent_at ? `Accounts sent, ${day(data.crm.last_sent_at)}` : "Accounts sent"} />
+            <Fig value={n0(data.crm.refusals.length)} label="Refused" />
+            {data.crm.queued ? <Fig value={n0(data.crm.queued)} label="Waiting to send" /> : null}
+            {data.crm.errors.length ? <Fig value={n0(data.crm.errors.length)} label="Not taken" /> : null}
+          </div>
+          {data.crm.failed.length ? (
+            <div className="notice" style={{ marginTop: 8 }}>{data.crm.failed.length === 1 ? "One send was" : `${data.crm.failed.length} sends were`} refused by CRM Desk: {data.crm.failed[0].last_error}</div>
+          ) : null}
+          {data.crm.errors.length ? (
+            <div className="ledger" style={{ marginTop: 8 }}>
+              <div className="row head" style={{ gridTemplateColumns: crmCols }}><T>Account</T><T>Not taken</T><T>Why</T></div>
+              {data.crm.errors.map((e: any) => (
+                <div key={e.domain} className="row" style={{ gridTemplateColumns: crmCols }}>
+                  {e.company ? <button className="link-row cell-main" onClick={() => openSheet("company", e.company)}><span className="t">{e.name}</span></button> : <span className="t">{e.name}</span>}
+                  <span>All of it</span><span className="mute">{e.error}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+          {data.crm.refusals.length ? (
+            <div className="ledger" style={{ marginTop: 8 }}>
+              <div className="row head" style={{ gridTemplateColumns: crmCols }}><T>Account</T><T>Change</T><T>Why it was refused</T></div>
+              {data.crm.refusals.map((r: any) => (
+                <div key={`${r.domain}${r.field}`} className="row" style={{ gridTemplateColumns: crmCols }}>
+                  {r.company ? <button className="link-row cell-main" onClick={() => openSheet("company", r.company)}><span className="t">{r.name}</span></button> : <span className="t">{r.name}</span>}
+                  <span>{r.what} to {r.proposed_name}</span>
+                  <span className="mute">{r.why}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </Section>
+      ) : null}
       {data.previews.map((p: any) => (
         <Section key={p.id} title={`From draft v${p.version}`} right={<a className="btn quiet sm" href={`/api/handoffs/preview/${p.id}/icp.json`} download><DownloadSimple size={14} />icp.json</a>}>
           {p.dropped_rules.length ? (

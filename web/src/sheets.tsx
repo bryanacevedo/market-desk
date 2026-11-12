@@ -242,13 +242,21 @@ const SOURCE_WORD: Record<string, string> = { firmographics: "Company data vendo
 const niceBand = (v: string) => v.startsWith("<") ? `Under ${v.slice(1)}` : v.endsWith("+") ? `${v.slice(0, -1)} or more` : v.replace(/^(\$[\d.]+[KMB]?)-(\$[\d.]+[KMB]?)$/, "$1 to $2");
 const FIELD: Record<string, string> = { industry: "Industry", employees: "Employees", revenue_band: "Revenue", pricing_model: "Pricing model", tech: "Technology" };
 
+/** The same account in CRM Desk, when this install links to it (DESK_LINKS); nothing when the desk runs alone. */
+function OtherDesk({ worldId }: { worldId: string }) {
+  const links = useData<any>("/api/me").data?.links ?? {};
+  if (!links.crm_desk || !worldId) return null;
+  return <a className="btn line sm" href={`${links.crm_desk}/go/account/world:${worldId}`} target="_blank" rel="noreferrer">Open in CRM Desk</a>;
+}
+
 function CompanySheet({ id }: { id: string }) {
   return (
     <Wrap kind="company" path={`/api/companies/${id}`}>{(c) => {
       const f = c.fit;
       return (
         <Frame kind="company" crumb={c.name}>
-          <div className="who"><Logo domain={c.domain} name={c.name} size={44} /><div><div className="sheet-title">{c.name}</div><div className="mute small">{c.domain}, {c.country}</div></div></div>
+          <div className="who"><Logo domain={c.domain} name={c.name} size={44} /><div className="grow"><div className="sheet-title">{c.name}</div><div className="mute small">{c.domain}, {c.country}</div></div>
+            <OtherDesk worldId={c.world_id} /></div>
           {f ? (
             <div className="figs">
               <Fig sm value={f.judged ? f.tier : "Not judged"} label={`Tier, v${f.version}`} />

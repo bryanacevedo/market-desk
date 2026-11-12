@@ -2,6 +2,7 @@
 what they would have done on the dates they did it. The clock opens on 2026-11-11."""
 from __future__ import annotations
 
+import os
 import random
 from datetime import date, datetime, timedelta, timezone
 
@@ -22,7 +23,11 @@ from .. import (
 )
 from ..catalog import SEGMENTS
 from ..db import J
-from . import world
+from . import lumen, world
+
+# The shared world by default (sim/lumen.py); WORLD=legacy rebuilds the desk's own world (sim/world.py).
+SHARED = os.environ.get("WORLD", "lumen") != "legacy"
+NOW = lumen.NOW if SHARED else world.NOW
 
 
 def _ts(d: str) -> datetime:
@@ -104,23 +109,41 @@ def open_deal(cur, company: int, created: datetime, source: str, rng: random.Ran
            owner, f"CRM-{company:06d}", company)
 
 
-TERRITORIES_H2 = lambda u: [  # noqa: E731
-    {"key": "na_fin_sw", "label": "North America: fintech and software", "region_groups": ["North America"],
-     "segments": ["fintech_core", "fintech_large", "software"], "people": [u["Maya"]["id"], u["Daniel"]["id"]],
-     "ae": u["Grace"]["id"]},
-    {"key": "na_tech", "label": "North America: data, developer tools, marketplaces, small",
-     "region_groups": ["North America"], "segments": ["data_infra", "devtools", "marketplaces", "small"],
-     "people": [u["Tom"]["id"]], "ae": u["Omar"]["id"]},
-    {"key": "europe", "label": "Europe", "region_groups": ["UK and Ireland", "DACH", "France and Benelux", "Nordics", "Southern Europe"],
-     "segments": [s["key"] for s in SEGMENTS if s["key"] != "enterprise"], "people": [u["Priya"]["id"]], "ae": u["Hannah"]["id"]},
-    {"key": "enterprise", "label": "Enterprise", "region_groups": ["North America", "UK and Ireland", "DACH", "France and Benelux",
-                                                                    "Nordics", "Southern Europe"],
-     "segments": ["enterprise"], "people": [u["Grace"]["id"], u["Hannah"]["id"]], "ae": None},
-]
+def TERRITORIES_H2(u: dict) -> list[dict]:  # noqa: N802
+    """The plan's territories. On the shared world the one roster adds Leah Ahn (Denver) beside Tom in North America,
+    and Jonas Weber and Lukas Brandt (Berlin) take DACH and Southern Europe from Priya and Hannah."""
+    ids = lambda *names: [u[n]["id"] for n in names if n in u]  # noqa: E731
+    out = [
+        {"key": "na_fin_sw", "label": "North America: fintech and software", "region_groups": ["North America"],
+         "segments": ["fintech_core", "fintech_large", "software"], "people": ids("Maya", "Daniel"), "ae": u["Grace"]["id"]},
+        {"key": "na_tech", "label": "North America: data, developer tools, marketplaces, small",
+         "region_groups": ["North America"], "segments": ["data_infra", "devtools", "marketplaces", "small"],
+         "people": ids("Tom", "Leah"), "ae": u["Omar"]["id"]},
+    ]
+    europe = [s["key"] for s in SEGMENTS if s["key"] != "enterprise"]
+    if "Jonas" in u and "Lukas" in u:
+        out += [{"key": "europe_west", "label": "Europe: UK, Ireland, France, Benelux, Nordics",
+                 "region_groups": ["UK and Ireland", "France and Benelux", "Nordics"], "segments": europe,
+                 "people": ids("Priya"), "ae": u["Hannah"]["id"]},
+                {"key": "europe_central", "label": "Europe: DACH and the south", "region_groups": ["DACH", "Southern Europe"],
+                 "segments": europe, "people": ids("Jonas"), "ae": u["Lukas"]["id"]}]
+    else:
+        out.append({"key": "europe", "label": "Europe", "region_groups": ["UK and Ireland", "DACH", "France and Benelux", "Nordics",
+                                                                          "Southern Europe"],
+                    "segments": europe, "people": ids("Priya"), "ae": u["Hannah"]["id"]})
+    out.append({"key": "enterprise", "label": "Enterprise", "region_groups": ["North America", "UK and Ireland", "DACH",
+                                                                               "France and Benelux", "Nordics", "Southern Europe"],
+                "segments": ["enterprise"], "people": ids("Grace", "Hannah"), "ae": None})
+    return out
 
 
 def territories_q1(u: dict) -> list[dict]:
     t = TERRITORIES_H2(u)
+    if "Jonas" in u:  # the shared world: Nadia joins Jonas on DACH and the south when she starts in December
+        central = next(x for x in t if x["key"] == "europe_central")
+        central["people"] = central["people"] + [u["Nadia"]["id"]]
+        t[-1] = {**t[-1], "people": [u["Grace"]["id"], u["Hannah"]["id"], u["Omar"]["id"]]}
+        return t
     t[2] = {**t[2], "key": "europe_west", "label": "Europe: UK, France, Benelux, Nordics, South",
             "region_groups": ["UK and Ireland", "France and Benelux", "Nordics", "Southern Europe"]}
     t.insert(3, {"key": "dach", "label": "DACH", "region_groups": ["DACH"],
@@ -148,7 +171,7 @@ def test_results(cur, test_id: int, worked_rate: float, held_rate: float, start:
                            meetings, opportunities, pipeline_cents, read_at, source_run)
                            values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)""",
                    cid, "account_desk" if grp == "worked" else None, start, end, grp == "worked", grp == "held_back",
-                   test_id, m, opp, opp * rng.randint(25_000, 60_000) * 100, min(read_at, world.NOW), src)
+                   test_id, m, opp, opp * rng.randint(25_000, 60_000) * 100, min(read_at, NOW), src)
 
 
 def book_results(cur, book_id: int, start: date, seed: int) -> None:
@@ -166,7 +189,7 @@ def book_results(cur, book_id: int, start: date, seed: int) -> None:
             open_deal(cur, r["company"], _ts("2026-10-20") + timedelta(days=rng.randint(0, 18)), "outbound", rng)
         db.run(cur, """insert into desk_results (company, destination, period_start, period_end, worked, held_back, meetings,
                        opportunities, won, pipeline_cents, read_at, source_run) values (%s,'account_desk',%s,%s,true,false,%s,%s,%s,%s,%s,%s)""",
-               r["company"], start, world.NOW.date(), m, opp, won, opp * rng.randint(25_000, 70_000) * 100, world.NOW, src)
+               r["company"], start, NOW.date(), m, opp, won, opp * rng.randint(25_000, 70_000) * 100, NOW, src)
 
 
 def event_results(cur, seed: int) -> int:
@@ -186,7 +209,7 @@ def event_results(cur, seed: int) -> int:
             open_deal(cur, cid, _ts(str(e)), "event", rng)
         db.run(cur, """insert into desk_results (company, destination, period_start, period_end, worked, held_back, meetings,
                        opportunities, read_at, source_run) values (%s,'events_desk',%s,%s,true,false,%s,%s,%s,%s)""",
-               cid, s, e, m, opp, world.NOW, src)
+               cid, s, e, m, opp, NOW, src)
     return len(ids)
 
 
@@ -194,7 +217,7 @@ def build_demo(n_companies: int = 18_000, seed: int = 7) -> dict:
     """In date order, so nothing on file knows what happened after it."""
     info: dict = {}
     with db.tx() as cur:
-        info["world"] = world.build(cur, seed=seed, n_companies=n_companies)
+        info["world"] = lumen.build(cur) if SHARED else world.build(cur, seed=seed, n_companies=n_companies)
     with db.tx() as cur:
         keep = db.val(cur, "select at from sim_clock")
         clock(cur, "2024-01-10")  # the model read the descriptions when the companies first came in
@@ -251,7 +274,10 @@ def build_demo(n_companies: int = 18_000, seed: int = 7) -> dict:
             territories.release_test(cur, t)
         # 1 October: the data infrastructure test starts, and its worked group joins the next book.
         clock(cur, "2026-10-01")
-        t3 = tests_seg.create_draft(cur, "data_infra", "Data infrastructure companies book meetings at twice the rate of the rest.", sam)
+        # On the shared world six SDRs work more accounts than four did, so fewer data infrastructure companies are free
+        # to hold out: the test runs on what is left (460), with less power, and the screen says so.
+        t3 = tests_seg.create_draft(cur, "data_infra", "Data infrastructure companies book meetings at twice the rate of the rest.", sam,
+                                    cohort=460 if SHARED else None)
         tests_seg.start(cur, t3, sam, started_on=date(2026, 10, 1), ends_on=date(2027, 1, 31))
         b3 = handoff.build_book(cur, "account_desk", sam, at=_ts("2026-10-01"))
         held = db.val(cur, "select company from segment_test_members where test = %s and grp = 'held_back' order by company limit 1", t3)
@@ -302,8 +328,11 @@ def build_demo(n_companies: int = 18_000, seed: int = 7) -> dict:
         if region:
             proposals.dismiss(cur, region, elena, "We only sell where we have a team and entities: North America and Europe.")
         info["stories"] = segments.stories(cur)
-        clock(cur, world.NOW)
+        clock(cur, NOW)
         for plan in db.all(cur, "select id from territory_plans where status in ('active', 'draft')"):
             territories.snapshot(cur, plan["id"])
         info["alerts"] = monitors.run_all(cur)
+        if SHARED:  # what Market Desk sent CRM Desk in the rehearsal, and CRM Desk's answers (sim/lumen.py)
+            from .. import crm
+            info["crm_sent"] = crm.replay(cur, lumen.WORLD / "journal.jsonl")
     return info

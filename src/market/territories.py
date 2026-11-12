@@ -319,6 +319,8 @@ def activate(cur, plan_id: int, by: dict) -> None:
         audit.log(cur, by["name"], "owner_moved", "company", r["company"], {"plan": plan_id, "from": r["from_owner"],
                   "to": r["to_owner"]}, actor_id=by["id"])
     audit.log(cur, by["name"], "plan_activated", "plan", plan_id, {"changes": ch["changes"]}, actor_id=by["id"])
+    from . import crm  # the books go to a CRM when one is set (shared-world DESIGN.md 7, step 1)
+    crm.queue_plan(cur, plan_id)
 
 
 def hiring_gap(cur, plan_id: int) -> dict:

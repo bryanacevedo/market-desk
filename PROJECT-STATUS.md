@@ -1,6 +1,6 @@
 # Market Desk: project status
 
-**Updated:** 2026-11-12. **Spec:** `docs/SPEC.md` (section 15 holds the gate 0 corrections and wins where they differ); decisions `docs/DECISIONS.md` 1 to 39.
+**Updated:** 2026-11-12. **Spec:** `docs/SPEC.md` (section 15 holds the gate 0 corrections and wins where they differ); decisions `docs/DECISIONS.md` 1 to 42.
 
 ## Where it stands
 
@@ -10,11 +10,14 @@ Film: a plain-English explainer (1:52), https://bryanacevedo.github.io/project-v
 
 Redesigned 2026-11-12 with its own spirit (`docs/DESIGN-CHECKLIST.md`, Spirit; decision 30).
 
-Checked by running, on the demo database built from seed 7:
-- 18,005 companies; 1,661 new-business and 166 expansion deals over 36 months; 286 customers, 35 of them churned; 2,253 call notes on 900 deals; 1,163 deals in the 24-month evidence window, 79 trait values tested; 52 rules-against-data checks passing (`make audit`, 2026-11-12).
-- `make test`: 53 tests passing on real Postgres 18 (2026-11-12, after the seller views and their tests were removed).
-- Every planted relationship P1 to P8 found by the desk's own rules (`docs/SCENARIO-COVERAGE.md`).
-- The demo builds in about 35 seconds locally, in date order from November 2023 to 11 November 2026.
+**Shared world, Phase 2 (2026-11-12, branch `world-phase2`, decisions 40 to 42):** the demo is built from the slice of `lumen-world` vendored in `world/` (`WORLD=legacy` keeps the old build); the team is the one roster; with `CRM=crmdesk` a plan's books go to CRM Desk and Handoffs lists what was sent and refused; the demo replays the rehearsal's recorded exchange (1,317 accounts sent, one SDR refused because a manager pinned it in CRM Desk). `/go/account` and `DESK_LINKS` link to CRM Desk's account page.
+
+Checked by running, on the demo database built from the shared world (2026-11-12):
+- 18,005 companies; 1,565 new-business and 166 expansion deals over 36 months (92 of the new-business deals added by the desk's story for its segment tests); 285 customers, 35 of them churned; 2,135 call notes on 842 deals; 52 rules-against-data checks passing.
+- `make test` passing on real Postgres 18, including the books to CRM Desk, a refusal cleared by a later answer, a refused send shown, the rehearsal's pinned SDR, the links and the truth guard. `node scripts/design-lint.mjs` and the web build clean.
+- Every planted relationship P1 to P8 still found by the desk's own rules (`docs/SCENARIO-COVERAGE.md`, regenerated).
+- The demo builds in about 15 seconds locally. `WORLD=legacy` still builds the old world (52 checks passing) with no `world/` folder.
+- Not built in Phase 2, moved to Phase 3 (shared-world DESIGN.md 13): the deals CSV import that lets Market Desk be sold without a CRM's history, a Salesforce-shaped CRM interface (the adapter is CRM Desk's only), a configuration test that picks exactly one CRM. Evidence still reads this desk's own copy of the history, not CRM Desk's feeds (Phase 5).
 
 ## Review gates
 

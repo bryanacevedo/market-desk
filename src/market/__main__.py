@@ -7,6 +7,7 @@
   import-results FILE  read results by account from a CSV (domain, period_start, period_end, worked, held_back,
                        test, meetings, opportunities, won, lost, pipeline_cents; at most 5 MB and 50,000 rows)
   mcp                  read-only MCP server on stdio
+  crm-sync             send the active plan's books to the CRM now (CRM=crmdesk), and print what it refused
 """
 from __future__ import annotations
 
@@ -41,6 +42,29 @@ def main(argv: list[str]) -> int:
         reset()
         info = story.build_demo(n_companies=int(os.environ.get("DEMO_COMPANIES", "18000")))
         print(json.dumps({"world": info, "seconds": round(time.time() - t0, 1)}, default=str))
+        db.close()
+    elif cmd == "crm-sync":
+        from . import crm
+        if not crm.enabled():
+            raise SystemExit("No CRM is set: CRM=crmdesk with CRM_DESK_URL and CRM_DESK_KEY.")
+        with db.tx() as cur:
+            plan = db.val(cur, "select id from territory_plans where status = 'active'")
+            crm.queue_plan(cur, plan)
+        sent = 0
+        while True:
+            try:
+                with db.tx() as cur:
+                    row = db.one(cur, "select * from crm_outbox where status = 'queued' order by id limit 1 for update skip locked")
+                    if row is None:
+                        break
+                    crm.deliver(cur, row)
+                    sent += 1
+            except crm.CrmDown as exc:
+                if exc.retry_after is None:
+                    raise
+                time.sleep(exc.retry_after)  # CRM Desk asked to wait; the row is still queued
+        with db.tx() as cur:
+            print(json.dumps({"requests": sent, **crm.summary(cur)}, default=str, indent=1))
         db.close()
     elif cmd == "world-export":
         from . import world_export

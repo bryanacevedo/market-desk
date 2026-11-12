@@ -1,0 +1,51 @@
+{
+  "deals": {
+    "dropped_after_cut": 102,
+    "generated_expansion": 166,
+    "generated_new": 1575,
+    "kept": 1639
+  },
+  "format_version": "1",
+  "note": "Every company, person and domain is invented. truth/ is for simulated vendors and simulators only.",
+  "now": "2026-11-12T14:00:00+00:00",
+  "portraits": "included: 0",
+  "rows": {
+    "public/companies.csv": 18005,
+    "public/events.csv": 18,
+    "public/fx_rates.csv": 74,
+    "public/public_counts.csv": 991,
+    "public/team.csv": 15,
+    "truth/call_notes.csv": 2135,
+    "truth/companies.csv": 18005,
+    "truth/company_data.csv": 18000,
+    "truth/coverage.csv": 63510,
+    "truth/customers.csv": 285,
+    "truth/deal_roles.csv": 5416,
+    "truth/deals.csv": 1639
+  },
+  "seed": 7,
+  "seller": "Lumen Ledger",
+  "sha256": {
+    "guard.mjs": "a5174ea858138becfa2f66421cb399091f2cfa5753c8094a1302bd2fa4769745",
+    "guard.py": "00e516bafe2abcd99941cff78fea4de165b888914d3a90e0022eab96a05c4157",
+    "public/clock.json": "4d480c7654856043b6d03743c90c27ff8c1594729bb1b06442c5b253702ee17b",
+    "public/companies.csv": "ac8994f79d4e6f6efb72660cd747a998b83ce0498e5684e9caf6b8e4e6ab7387",
+    "public/events.csv": "ec979a835a609090dd76479ee8913317db2e7085a0ba6a41c9f298dbd581eaa5",
+    "public/fx_rates.csv": "aa055bbc5975f9a6770634655cfa2660c507497289534d1b732a9cd85812ad4b",
+    "public/public_counts.csv": "3ede7809498e6e9251da24f527ff86251f7e9504c86ffb67be11b9f11befc0a2",
+    "public/seller.json": "5cc021e26bb6e5f37bf6c0cc8250ced9892751657c1f256d66d41d7c2e131ed2",
+    "public/team.csv": "2957fdd7e4379c687c2aed7e5fbe7d876e04c78e96fe4be8c1d0fae91bc9ad25",
+    "truth/call_notes.csv": "0ceb9caf3b1b9c27a23cd5292616b29b0fdd93eac502d7e178fa4331a118a224",
+    "truth/companies.csv": "4488ff9d61d11eb3a8b396be22d5b4d99b73d32bde90fd6cd2be43d7496f41b1",
+    "truth/company_data.csv": "491bf3e507e279c49555a874fb7edd7d90b30fe10bc3441fe52d8314919dd4ca",
+    "truth/coverage.csv": "bdbb38c4076e4a0764bb7a80529b65b445e2e986c7d6974f176ae1beea6b1030",
+    "truth/customers.csv": "eb06f50096152e3e58e3f74cb7b844205dc32f7529085c63fed279e54ec964e9",
+    "truth/deal_roles.csv": "06d76fdd95e32aa027e3b7e25a48acdbab4ba1df87d33cdad692262a07ceb439",
+    "truth/deals.csv": "d139ec21dfcfb345fa47eb6366bd50dc5946e0b537814df45c75c242cdc04faa"
+  },
+  "slice_of": {
+    "desk": "market_desk",
+    "world_version": "1.1.0"
+  },
+  "world_version": "1.1.0"
+}
