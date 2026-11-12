@@ -6,7 +6,7 @@
 
 Market Desk decides who a B2B team sells to. It learns the ideal customer profile from every deal won, lost and churned, with each rule's win rate, range and verdict; it sizes every segment as ranges, counting only buyers the team can reach and accounts it can actually work in a year; it tiers every company and gives it to someone with hours to work it; it hands that book to [Account Desk](https://github.com/bryanacevedo/account-desk) and Events Desk; and it proposes changes to the profile only when their results say it was wrong, for a second person to publish.
 
-**[Try the live demo](LIVE_URL).** Pick who you are acting as in the sidebar (RevOps, the sales manager, an SDR or an AE). The company, its market, its deals and its sources are invented and simulated. If it has been idle, Render takes up to a minute to wake it. Read "What is real and what is simulated" before trusting any number in it.
+**[Try the live demo](https://market-desk-3kou.onrender.com).** Pick who you are acting as in the sidebar (RevOps, the sales manager, an SDR or an AE). The company, its market, its deals and its sources are invented and simulated. If it has been idle, Render takes up to a minute to wake it. Read "What is real and what is simulated" before trusting any number in it.
 
 ## The rules it is built on
 
