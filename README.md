@@ -93,7 +93,7 @@ make setup
 make demo
 ```
 
-`make demo` starts a private Postgres in `.data/`, builds the world from its fixed seed (about 30 seconds) and serves it at http://localhost:8800. `make test` runs the suite on real Postgres. `make audit` checks the demo database against every product rule. `make evals` replays the AI evals from their recordings, free; `make evals-live` calls Claude, capped at $15. `python -m market mcp` is a read-only MCP server (find accounts, why an account has its tier, a segment's figures, who owns what).
+`make demo` starts a private Postgres in `.data/`, builds the world from its fixed seed (about 35 seconds) and serves it at http://localhost:8800. `make test` runs the suite on real Postgres. `make audit` checks the demo database against every product rule. `make evals` replays the AI evals from their recordings, free; `make evals-live` calls Claude, capped at $15. `python -m market mcp` is a read-only MCP server (find accounts, why an account has its tier, a segment's figures, who owns what).
 
 ## The AI, measured
 
@@ -113,7 +113,7 @@ Three live runs cost $1.92 in all against a $15 cap. The first run judged only 3
 
 **Real:** erasure of a team member or of a company's notes, the statistics (each checked in `tests/test_stats.py` against a published value or, for Mantel-Haenszel, a value computed once with statsmodels), the evidence analysis and its size check, the fit formula (Account Desk's, ported from its code), sizing, capacity, assignment and balancing, the two-person rules (enforced by the database), the held-back rule (a database trigger refuses a held-back company in an Account Desk book), the handoff files (a test scores every exported company whose exported fields are all known, most of each book, with a copy of Account Desk's formula and gets the same tier), the redaction of call notes, the AI gates, and the evals above.
 
-**Simulated:** the seller (Lumen Ledger, the same invented company Account Desk sells for), its team, 18,005 companies (with `.example` domains), 1,647 new-business and 166 expansion deals over three years, 286 customers (35 of them churned), 2,248 call notes on 900 deals, every vendor and source, the public counts, the results from the other desks, and the three segment tests. The demo's AI answers come from deterministic stand-ins written in code, not from Claude; the segment story stand-in is written to fail its check on the Enterprise segment so the withheld state shows. Live Claude answers exist only in the eval recordings.
+**Simulated:** the seller (Lumen Ledger, the same invented company Account Desk sells for), its team, 18,005 companies (with `.example` domains), 1,661 new-business and 166 expansion deals over three years, 286 customers (35 of them churned), 2,248 call notes on 900 deals, every vendor and source, the public counts, the results from the other desks, and the three segment tests. The demo's AI answers come from deterministic stand-ins written in code, not from Claude; the segment story stand-in is written to fail its check on the Enterprise segment so the withheld state shows. Live Claude answers exist only in the eval recordings.
 
 **Planted on purpose**, in `PLANTED` in `src/market/sim/world.py`; the desk's own rules find each one:
 
@@ -124,11 +124,11 @@ Three live runs cost $1.92 in all against a $15 cap. The first run judged only 3
 | P3 | Healthcare software loses on compliance | Clearly lower: 16 of 189; compliance is 61% of its losses; proposed as an exclude |
 | P4 | Salesforce users win more only because they are the right size | Explained by size: 27% against 10% for deals without it, and the difference goes away within size bands |
 | P5 | Brazil: 9 opportunities, all marketplaces, 5 won | Too few to tell; never a rule |
-| P6 | Buying roles in DACH are hard to find (about 40% against 85%) | DACH's SAM is $9.1M to $19.5M against a TAM of $24.3M to $51.5M |
+| P6 | Buying roles in DACH are hard to find (about 40% against 85%) | DACH's SAM is $9.1M to $19.4M against a TAM of $24.3M to $51.6M |
 | P7 | Two finished segment tests: fintech 120 to 499 books meetings at 22% worked against 11% held back; developer tools at 11% against 11% | A clear difference and an open proposal to expand fintech; no clear difference for developer tools |
 | P8 | HQ city and founding year carry no effect | Not one of them is clear |
 
-The world was tuned until the rules found what was planted; the rules were not tuned to the world (`docs/DECISIONS.md`). Other figures that hold up to a look, over all three years: a 21% win rate on closed new business, an 81-day median won-deal cycle, a $38,655 median deal. Not like the plan: 15% of new-business deals are open (the plan said about 5%; the desks' results opened deals in the last weeks), and the public counts hold 991 cells, not about 1,200.
+The world was tuned until the rules found what was planted; the rules were not tuned to the world (`docs/DECISIONS.md`). Other figures that hold up to a look, over all three years: a 21% win rate on closed new business, an 81-day median won-deal cycle, a $38,655 median deal. Not like the plan: 16% of new-business deals are open (the plan said about 5%; the desks' results opened deals in the last weeks), and the public counts hold 991 cells, not about 1,200.
 
 ## Not yet proven
 
@@ -144,7 +144,17 @@ The world was tuned until the rules found what was planted; the rules were not t
 
 | Word | Means |
 |---|---|
-| Profile | The ideal customer profile: weighted rules, penalties and excludes, versioned |
+| Profile, ICP | The ideal customer profile: weighted rules that add to a company's score, penalties that take away, and excludes that make it never a fit; versioned |
+| Travels, stays here | Whether Account Desk can read a rule: it has no pricing model or segment field, so those rules stay here and are listed as dropped in its book |
+| Signer | The role that signed most won deals in a segment |
+| Values tested | How many trait values had enough deals to test; the bar for a clear result tightens as this grows |
+| Shrunk win rate, win rate used | A segment's win rate pulled toward the overall rate as if it had 20 more deals at the overall rate, so a few lucky deals do not carry it |
+| Balanced, territory mean | A territory is balanced when each person's expected value is within 15% of the territory's mean and nobody is over their hours |
+| Worked | In a segment test, the accounts Account Desk works; the others are held back |
+| Expand, drop, extend | The decisions on a read test: give the segment weight in the profile, stop, or run it 60 more days |
+| Ramp | A new hire's share of full selling hours, rising over their first three months |
+| Withheld | The AI's wording failed its check twice, so the screen shows the figures alone |
+| Not applied: read by AI | An exclude that would have matched a value the AI read from a description; the AI never excludes a company |
 | Tier | A, B or C by fit score under the published profile; X is excluded, a customer, an open deal or a competitor |
 | Not judged | Less than 60% of the profile's weight is known for the company, so it gets no tier |
 | Scored on | The share of the profile's weight known for a company |
@@ -157,7 +167,7 @@ The world was tuned until the rules found what was planted; the rules were not t
 | Segment | A group of companies the profile names, such as Fintech, 120 to 499 |
 | TAM | Tier A and B companies times deal size |
 | SAM | The same, for companies in our regions whose signer a contact source can find |
-| SOM, 12 months | What the active plan's people can work in a year, times the share that becomes a deal, times the win rate, times deal size |
+| SOM, 12 months | What the active plan's people can work in a year, times the share that becomes a deal, times the win rate, times deal size. Segment SOMs add up to the total; region SOMs use the overall rates, so they do not |
 | Coverage | Companies in our universe against the public count for the same countries, industries and sizes |
 | Reachable | Companies whose signer a contact source can find |
 | What moves | The companies whose tier would change if a draft were published |
