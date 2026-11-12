@@ -49,12 +49,12 @@ Deals closed in this many months count as evidence.
 Deals opened from these accounts.
 Decisions only you can make right now.
 Each person's expected value is within 15% of the territory average and nobody is over capacity.
-Each seller's book goes to CRM Desk, and each SDR's to Account Desk
 Every account that changes owner if this draft is activated, customers and open deals included, so it can differ from the A and B count beside each person.
 Every other deal with a known value for the same trait.
 Extra SDRs at full hours it would take to work every unassigned A and B account in the plan's regions.
 Fewer than 30 deals or 5 wins.
 Fewer than 30 opportunities or 5 wins.
+Handoffs exports these books for Account Desk
 Hours a month it would take to work every unassigned A and B account.
 Hours a month one tier A account needs while it is worked. Our assumption.
 Hours a month one tier B account needs while it is worked. Our assumption.
