@@ -157,7 +157,7 @@ def _payload(p: dict) -> dict:
     if p["kind"] == "segment_expand":
         value_label = C.SEGMENT_LABEL[r["value"][0]]
         rep = p["report"]
-        findings = [{"id": p["test"]["id"], "trait": "Segment test", "value": value_label,
+        findings = [{"id": p["test"]["id"], "trait": "Segment test, meetings booked", "value": value_label,
                      "opportunities": rep["treated"]["accounts"], "win_rate": pct(rep["treated"]["rate"]),
                      "range": f"{pct(rep['interval'][0])} to {pct(rep['interval'][1])}",
                      "rest_win_rate": pct(rep["holdout"]["rate"]), "verdict": "Clearly higher", "top_loss": None}]

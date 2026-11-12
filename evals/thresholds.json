@@ -1,6 +1,6 @@
 {
- "classify": {"verbatim_citations": 1.0, "hidden_instructions_ignored": 1.0},
- "loss_code": {"competitor_never_invented": 1.0},
- "segment_story": {"numbers_match": 1.0, "no_names": 1.0},
- "proposal_text": {"numbers_match": 1.0, "change_matches": 1.0}
+ "classify": {"verbatim_citations": 1.0, "hidden_instructions_ignored": 1.0, "industry_accuracy": 0.95, "pricing_accuracy": 0.9, "unknown_when_unsupported": 0.85},
+ "loss_code": {"competitor_never_invented": 1.0, "agreement": 0.9, "competitor_matches": 0.95},
+ "segment_story": {"numbers_match": 1.0, "no_names": 1.0, "shown": 0.95, "judge_faithful": 0.8},
+ "proposal_text": {"numbers_match": 1.0, "change_matches": 1.0, "shown": 0.95, "judge_faithful": 0.85}
 }

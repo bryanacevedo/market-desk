@@ -16,7 +16,7 @@ export function ProposalWords({ p }: { p: any }) {
   return (
     <dl className="kv small">
       <dt>Change</dt><dd>{p.change.field_label}: {p.change.value_label}</dd>
-      {f ? <><dt>Win rate</dt><dd>{f.win_rate} ({f.range}), the rest {f.rest_win_rate}</dd><dt>Deals</dt><dd>{f.opportunities}</dd></> : null}
+      {f ? <><dt>Win rate</dt><dd>{f.win_rate} ({f.range})</dd><dt>Others</dt><dd>{f.rest_win_rate}</dd><dt>Deals</dt><dd>{Number(f.opportunities).toLocaleString("en-US")}</dd></> : null}
     </dl>
   );
 }
@@ -48,7 +48,7 @@ export function Changes() {
                 <div className="prop-top">
                   {revops ? <input type="checkbox" aria-label="Choose for a draft" checked={picked.includes(p.id)} onChange={() => toggle(p.id)} /> : null}
                   <button className="link-row" onClick={() => openSheet("proposal", p.id)}>
-                    <span className="t prop-kind">{KIND[p.kind]}</span> <span className="mute">{p.change.field_label}: {p.change.value_label}</span>
+                    <span className="t prop-kind">{KIND[p.kind]}: {p.change.value_label}</span>
                   </button>
                   <span className="grow" />
                   {p.text_status === "withheld" ? <Status kind="none">Withheld</Status> : null}

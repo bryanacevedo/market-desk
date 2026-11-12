@@ -21,7 +21,7 @@ export function Market() {
     </div>
   );
   if (error) return <div className="page">{head}<Failed error={error} retry={reload} /></div>;
-  if (!data) return <div className="page">{head}<Loading /></div>;
+  if (!data || (data as any).by !== by) return <div className="page">{head}<Loading /></div>;
   const f = data.figures;
   const seg = by === "segment";
   const cols = seg ? "minmax(150px,1.2fr) 70px minmax(170px,1.6fr) 74px 82px minmax(118px,1fr) minmax(118px,1fr) minmax(118px,1fr) 110px"
@@ -38,7 +38,7 @@ export function Market() {
       <div className="ledger market wide-table" role="table" aria-label={seg ? "Segments" : "Regions"}>
         <div className="row head" role="row" style={{ gridTemplateColumns: cols }}>
           <span>{seg ? "Segment" : "Region"}</span><span className="num">Companies</span><span>Tiers</span>
-          <span className="num">Coverage</span><span className="num">Reachable</span><span className="num">TAM</span>
+          <span className="num">Covered</span><span className="num">Reachable</span><span className="num">TAM</span>
           <span className="num">SAM</span><span className="num">SOM, 12 months</span>{seg ? <span className="num">Win rate</span> : null}
         </div>
         {data.rows.map((r) => (

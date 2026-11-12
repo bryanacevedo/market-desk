@@ -32,7 +32,8 @@ const KIND: Record<string, { label: string; icon: typeof X }> = {
   book: { label: "Book", icon: BookOpen }, source: { label: "Source", icon: Database },
 };
 
-function Frame({ kind, crumb, children, foot }: { kind: string; crumb?: ReactNode; children: ReactNode; foot?: ReactNode }) {
+// The sheet's title names the thing, so the header carries only the kind; `crumb` is kept for the call sites' clarity.
+function Frame({ kind, children, foot }: { kind: string; crumb?: ReactNode; children: ReactNode; foot?: ReactNode }) {
   const k = KIND[kind];
   const KIcon = k.icon;
   const from = new URLSearchParams(window.location.search).get("from");
@@ -58,7 +59,7 @@ function Frame({ kind, crumb, children, foot }: { kind: string; crumb?: ReactNod
         <div className="sheet-top">
           {from ? <button className="iconbtn" onClick={back} aria-label="Back"><ArrowLeft size={18} /></button> : null}
           <div className="sheet-kind"><span className="kind-mark" aria-hidden="true"><KIcon size={15} weight="bold" /></span>{k.label}</div>
-          <div className="crumb clip">{crumb}</div>
+          <span className="grow" />
           <button className="iconbtn" onClick={closeSheet} aria-label="Close"><X size={18} /></button>
         </div>
         <div className="sheet-body">{children}</div>
@@ -96,6 +97,8 @@ const Title = ({ children, sub }: { children: ReactNode; sub?: ReactNode }) => (
 
 // ---------------------------------------------------------------- Segment
 
+const QUOTE_KIND: Record<string, string> = { reason_to_buy: "Why", objection: "Objection", competitor: "Competitor" };
+
 function SegmentSheet({ id }: { id: string }) {
   return (
     <Wrap kind="segment" path={`/api/segments/${id}`}>{(d) => {
@@ -115,15 +118,11 @@ function SegmentSheet({ id }: { id: string }) {
           {z ? <Section title="Tiers"><TierMix a={z.fit_a} b={z.fit_b} c={z.fit_c} x={z.fit_x} nj={z.not_judged} /></Section> : null}
           <Section title="Why they buy">
             {d.story?.status === "ok" ? (
-              <div className="story">{d.story.sentences.map((s: any, i: number) => (
-                <div key={i} className="story-s"><p>{s.text}</p>{s.quote_ids.slice(0, 1).map((q: number) => d.story.quotes[q] ? <div key={q} className="quote small">{d.story.quotes[q].text}</div> : null)}</div>
-              ))}</div>
-            ) : (
-              <>
-                {d.story ? <Status kind="none">Withheld</Status> : null}
-                <div className="quotes">{d.quotes.slice(0, 4).map((q: any) => <div key={q.id} className="quote small">{q.text}</div>)}</div>
-              </>
-            )}
+              <div className="story">{d.story.sentences.map((s: any, i: number) => <p key={i}>{s.text}</p>)}</div>
+            ) : d.story ? <Status kind="none">Withheld</Status> : null}
+            <div className="quotes">{d.quotes.slice(0, 4).map((q: any) => (
+              <div key={q.id} className="said-q"><span className="said-kind">{QUOTE_KIND[q.kind]}</span><div className="quote small">{q.text}</div></div>
+            ))}</div>
           </Section>
           {d.roles.length ? (
             <Section title="Roles on won deals">
@@ -145,8 +144,8 @@ function SegmentSheet({ id }: { id: string }) {
                 <dt>SAM</dt><dd>{moneyRange(z.sam_low, z.sam_high)}</dd>
                 <dt>SOM, 12 months</dt><dd>{moneyRange(z.som_low, z.som_high)}</dd>
                 <dt>Deal size</dt><dd>{money(z.acv_basis.p25)} to {money(z.acv_basis.p75)}{z.acv_basis.from === "overall" ? <span className="mute">, all segments</span> : null}</dd>
-                <dt>Win rate used</dt><dd>{pct(z.win_rate_basis.low)} to {pct(z.win_rate_basis.high)}</dd>
-                <dt>Deals per worked account</dt><dd>{pct(z.capacity_basis.opp_low)} to {pct(z.capacity_basis.opp_high)}</dd>
+                <dt>Win rate range for sizing</dt><dd>{pct(z.win_rate_basis.low)} to {pct(z.win_rate_basis.high)}</dd>
+                <dt>Worked accounts that became deals</dt><dd>{pct(z.capacity_basis.opp_low)} to {pct(z.capacity_basis.opp_high)}</dd>
                 <dt>Accounts the plan can work</dt><dd>{n0(z.capacity_basis.capacity_accounts)}</dd>
               </dl>
             </Section>
@@ -160,12 +159,12 @@ function SegmentSheet({ id }: { id: string }) {
             <Section title="Tests">
               <div className="ledger">{d.tests.map((t: any) => (
                 <button key={t.id} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) auto" }} onClick={() => openSheet("test", t.id)}>
-                  <span>{day(t.started_on)} to {day(t.ends_on)}</span><Status kind={t.status === "running" ? "go" : "ok"}>{t.status === "running" ? "Running" : "Read"}</Status>
+                  <span className="cell-main"><span className="t">Segment test</span><span className="s">{day(t.started_on)} to {day(t.ends_on)}</span></span><Status kind={t.status === "running" ? "go" : "ok"}>{t.status === "running" ? "Running" : "Read"}</Status>
                 </button>
               ))}</div>
             </Section>
           ) : null}
-          <div className="actions"><button className="btn line sm" onClick={() => { closeSheet(); navigate(`/accounts?segment=${d.key}`); }}>Accounts in this segment</button></div>
+          <div className="actions"><button className="btn sm" onClick={() => { closeSheet(); navigate(`/accounts?segment=${d.key}`); }}>Accounts in this segment</button></div>
         </Frame>
       );
     }}</Wrap>
@@ -183,16 +182,17 @@ function FindingSheet({ id }: { id: string }) {
       <Frame kind="finding" crumb={f.trait_label}>
         <Title sub={f.trait_label}>{f.value}</Title>
         <Verdict v={f.verdict} />
+        {f.trait === "segment" && f.segment_key ? <div className="actions"><button className="btn line sm" onClick={() => openSheet("segment", f.segment_key)}>Open the segment</button></div> : null}
         <div className="figs">
           <Fig sm value={n0(f.opps)} label="Deals" />
           <Fig sm value={pct(f.rate)} label="Win rate" />
-          <Fig sm value={pct(f.rest_rate)} label="The rest" />
+          <Fig sm value={pct(f.rest_rate)} label="Others" />
           {f.cycle ? <Fig sm value={`${Math.round(f.cycle.median)}`} unit=" days" label="Won-deal cycle" /> : null}
         </div>
         <dl className="kv">
-          <dt>Win rate</dt><dd><Rate rate={f.rate} low={f.low} high={f.high} /></dd>
-          <dt>The rest</dt><dd>{pct(f.rest_rate)}, {n0(f.rest_opps)} deals</dd>
-          {f.cycle ? <><dt>Won-deal cycle</dt><dd>{Math.round(f.cycle.median)} days ({Math.round(f.cycle.low)} to {Math.round(f.cycle.high)})</dd></> : null}
+          <dt>Win rate range</dt><dd><Rate rate={f.rate} low={f.low} high={f.high} /></dd>
+          <dt>Others</dt><dd>{n0(f.rest_opps)} deals</dd>
+          {f.cycle ? <><dt>Cycle range</dt><dd>{Math.round(f.cycle.low)} to {Math.round(f.cycle.high)} days</dd></> : null}
           {f.acv_median !== undefined && f.acv_median !== null ? <><dt>Deal size</dt><dd>{money(f.acv_median)} ({money(f.acv_p25)} to {money(f.acv_p75)})</dd></> : null}
           {f.churn !== null ? <><dt>Left within a year</dt><dd>{pct(f.churn)} of {n0(f.churn_n)}</dd></> : null}
         </dl>
@@ -214,7 +214,7 @@ function FindingSheet({ id }: { id: string }) {
         ) : null}
         <Section title="The deals" count={f.deal_count}>
           <div className="ledger scrolly">
-            {f.deals.map((d: any) => (
+            {f.deals.slice(0, 100).map((d: any) => (
               <button key={d.id} className="row" style={{ gridTemplateColumns: "24px minmax(0,1fr) 90px 80px" }} onClick={() => openSheet("company", d.company)}>
                 <Logo domain={d.primary_domain} name={d.name} size={24} />
                 <span className="cell-main"><span className="t">{d.name}</span><span className="s">{day(d.closed_at)}{d.loss_code ? `, ${LOSS[d.loss_code].toLowerCase()}` : ""}</span></span>
@@ -231,6 +231,7 @@ function FindingSheet({ id }: { id: string }) {
 
 // ---------------------------------------------------------------- Company
 
+const PRICING: Record<string, string> = { usage: "Usage-based", seat: "Per seat", transaction: "Per transaction", mixed: "Mixed", unknown: "Unknown" };
 const SOURCE_WORD: Record<string, string> = { firmographics: "Company data vendor", technographics: "Technology vendor", funding_db: "Funding database", model: "AI, from the description", crm: "CRM" };
 const FIELD: Record<string, string> = { industry: "Industry", employees: "Employees", revenue_band: "Revenue", pricing_model: "Pricing model", tech: "Technology" };
 
@@ -245,14 +246,14 @@ function CompanySheet({ id }: { id: string }) {
             <div className="figs">
               <Fig sm value={f.judged ? f.tier : "Not judged"} label={`Tier, v${f.version}`} />
               {f.judged && f.score !== null ? <Fig sm value={f.score} label="Score" /> : null}
-              <Fig sm value={pct(f.scored_out_of)} label="Scored on" />
-              <Fig sm value={c.owner?.name || "Unassigned"} label="Owner" />
+              <Fig sm value={pct(f.scored_out_of)} label="Of the profile known" />
             </div>
           ) : null}
           {f ? (
             <Section title="Fit">
               {f.excluded ? <div className="notice">{f.excluded}</div> : null}
               <div className="ledger">
+                <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) 90px 50px" }}><span>Rule</span><span /><span className="num">Points</span></div>
                 {(f.breakdown.factors || []).map((x: any, i: number) => (
                   <div key={i} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) 90px 50px" }}>
                     <span>{x.label}</span>
@@ -280,7 +281,7 @@ function CompanySheet({ id }: { id: string }) {
               {c.fields.map((x: any, i: number) => (
                 <div key={i} className="row" style={{ gridTemplateColumns: "110px minmax(0,1fr) minmax(0,1fr)" }}>
                   <span className="mute">{FIELD[x.field] || x.field}</span>
-                  <span className="clip">{Array.isArray(x.value) ? x.value.join(", ") || "None" : String(x.value)}</span>
+                  <span className="clip">{Array.isArray(x.value) ? x.value.join(", ") || "None" : typeof x.value === "number" ? x.value.toLocaleString("en-US") : PRICING[x.value] || String(x.value)}</span>
                   <span className="cell-main"><span className="s">{SOURCE_WORD[x.source] || x.source_label}, {day(x.observed_at)}</span>{x.quote ? <span className="s">{x.quote}</span> : null}</span>
                 </div>
               ))}
@@ -309,7 +310,7 @@ function CompanySheet({ id }: { id: string }) {
               <div className="ledger">{c.results.map((r: any) => (
                 <div key={r.id} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) 80px 90px" }}>
                   <span className="cell-main"><span className="t">{r.destination === "events_desk" ? "Events Desk" : r.held_back ? "Held back" : "Account Desk"}</span><span className="s">{day(r.period_start)} to {day(r.period_end)}</span></span>
-                  <span className="num">{r.meetings} met</span><span className="num">{r.opportunities} opp.</span>
+                  <span className="num" data-label="Meetings">{r.meetings}</span><span className="num" data-label="Deals opened">{r.opportunities}</span>
                 </div>
               ))}</div>
             </Section>
@@ -318,7 +319,7 @@ function CompanySheet({ id }: { id: string }) {
             <Section title="Tests">
               <div className="ledger">{c.tests.map((t: any) => (
                 <button key={t.id} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) auto" }} onClick={() => openSheet("test", t.id)}>
-                  <span>Test {t.id}</span><Status kind={t.grp === "held_back" ? "none" : "ok"}>{t.grp === "held_back" ? "Held back" : "Worked"}</Status>
+                  <span>{t.segment_label}</span><Status kind={t.grp === "held_back" ? "none" : "ok"}>{t.grp === "held_back" ? "Held back" : "Worked"}</Status>
                 </button>
               ))}</div>
             </Section>
@@ -370,8 +371,7 @@ function VersionSheet({ id }: { id: string }) {
     <Wrap kind="version" path={`/api/profile/versions/${id}`}>{(v) => (
       <Frame kind="version" crumb={`Version ${v.number}`}
         foot={v.status === "draft" ? <>
-          {!v.can_publish ? <span className="small mute grow">Publishing needs someone other than {v.author}.</span> : null}
-          <button className="btn" disabled={busy || !v.can_publish} onClick={() => run(() => api(`/api/profile/versions/${v.id}/publish`, { method: "POST" }), "Published.")}>Publish</button>
+          <button className="btn" disabled={busy || !v.can_publish} title={v.can_publish ? undefined : "A manager other than the author publishes"} onClick={() => run(() => api(`/api/profile/versions/${v.id}/publish`, { method: "POST" }), "Published.")}>Publish</button>
         </> : undefined}>
         <Title sub={`${v.author}, ${day(v.created_at)}${v.publisher ? `. Published by ${v.publisher}, ${day(v.published_at)}` : ""}`}>Version {v.number}</Title>
         <Status kind={v.status === "published" ? "ok" : v.status === "draft" ? "wait" : "off"}>{v.status === "published" ? "Published" : v.status === "draft" ? "Draft" : "Retired"}</Status>
@@ -387,7 +387,7 @@ function VersionSheet({ id }: { id: string }) {
           <div className="ledger">{v.rules.map((r: any) => (
             <button key={r.kind + r.key} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) 44px 150px" }} disabled={!r.finding} onClick={() => r.finding && openSheet("finding", r.finding.id)}>
               <span className="cell-main"><span className="t">{r.label}</span><span className="s">{r.kind === "factors" ? "Adds" : r.kind === "penalties" ? "Takes away" : "Never a fit"}{!r.travels ? ", stays here" : ""}</span></span>
-              <span className="num">{r.weight ?? ""}</span>{r.finding ? <Verdict v={r.finding.verdict} /> : <Status kind="none">Hypothesis</Status>}
+              <span className="num">{r.weight === null || r.weight === undefined ? "" : r.kind === "penalties" ? `−${r.weight}` : r.weight}</span>{r.finding ? <Verdict v={r.finding.verdict} /> : <Status kind="none">Hypothesis</Status>}
             </button>
           ))}</div>
         </Section>
@@ -479,14 +479,21 @@ const KIND_WORD: Record<string, string> = { add_rule: "Add a rule", drop_rule: "
   reweight: "Reweight", segment_expand: "Expand a segment", segment_drop: "Drop a segment" };
 
 function ProposalSheet({ id }: { id: string }) {
+  const [busy, run] = useBusy();
+  const me = useData<any>("/api/me").data;
   return (
     <Wrap kind="proposal" path={`/api/proposals/${id}`}>{(p) => (
-      <Frame kind="proposal" crumb={KIND_WORD[p.kind]}>
-        <Title sub={`${p.change.field_label}: ${p.change.value_label}`}>{KIND_WORD[p.kind]}</Title>
+      <Frame kind="proposal" crumb={KIND_WORD[p.kind]}
+        foot={p.status === "open" && me?.user.role === "revops" ? (
+          <button className="btn" disabled={busy} onClick={() => run(async () => { const r = await api<any>("/api/proposals/draft", { method: "POST", body: { ids: [p.id] } }); openSheet("version", r.version); }, "Draft made.")}>Make a draft</button>
+        ) : undefined}>
+        <Title sub={p.change.field_label}>{KIND_WORD[p.kind]}: {p.change.value_label}</Title>
         <Status kind={p.status === "open" ? "wait" : p.status === "dismissed" ? "off" : "ok"}>{p.status === "open" ? "Open" : p.status === "dismissed" ? "Dismissed" : "Made a draft"}</Status>
         {p.sentences ? <div className="prop-words">{p.sentences.map((s: any, i: number) => <p key={i}>{s.text}</p>)}</div> : <Status kind="none">Withheld</Status>}
         <Section title="Evidence">
-          <div className="ledger">{p.findings.map((f: any) => (
+          <div className="ledger">
+            <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) 70px 90px 150px" }}><span /><span className="num">{p.test_ids.length ? "Accounts" : "Deals"}</span><span className="num">{p.test_ids.length ? "Meetings" : "Win rate"}</span><span>Verdict</span></div>
+            {p.findings.map((f: any) => (
             <button key={f.id} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) 70px 90px 150px" }}
               onClick={() => (p.finding_ids.length ? openSheet("finding", f.id) : openSheet("test", p.test_ids[0]))}>
               <span className="cell-main"><span className="t">{f.value}</span><span className="s">{f.trait}</span></span>
@@ -543,7 +550,7 @@ function SourceSheet({ id }: { id: string }) {
         <Title sub={s.adapter === "sim" ? "Simulated" : "Live"}>{s.label}</Title>
         <dl className="kv">
           <dt>Runs every</dt><dd>{s.cadence_hours >= 48 ? `${Math.round(s.cadence_hours / 24)} days` : `${s.cadence_hours} hours`}</dd>
-          <dt>Cost</dt><dd>{s.paid ? (s.price_cents_per_unit !== undefined ? `${(s.price_cents_per_unit / 100).toFixed(3)} dollars a ${s.unit}, our assumption` : "Paid") : "Free"}</dd>
+          <dt>Cost</dt><dd>{s.paid ? (s.price_cents_per_unit !== undefined ? <>{`$${(s.price_cents_per_unit / 100).toFixed(2)} a ${s.unit}`} <span className="mute">our assumption</span></> : "Paid") : "Free"}</dd>
           <dt>Licence</dt><dd>{s.licence_note}</dd>
           {s.no_redistribution ? <><dt>In books</dt><dd>Never: its values stay out of every file</dd></> : null}
         </dl>

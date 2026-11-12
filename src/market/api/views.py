@@ -162,7 +162,8 @@ def finding(cur, fid: int, allowed: bool) -> dict | None:
         if ok:
             picked.append({k: d[k] for k in ("id", "outcome", "created_at", "closed_at", "amount_cents", "loss_code",
                                              "competitor", "company", "name", "primary_domain")})
-    return strip({**finding_row(f), "strata": strata, "deals": picked[:200], "deal_count": len(picked),
+    return strip({**finding_row(f), "segment_key": f["value"] if f["trait"] == "segment" else None,
+                  "strata": strata, "deals": picked[:200], "deal_count": len(picked),
                   "loss_labels": C.LOSS_LABEL}, allowed)
 
 
@@ -187,7 +188,7 @@ def profile(cur, u: dict) -> dict:
     drafts = [v for v in versions if v["status"] == "draft"]
     return {"published": {"id": pub["id"], "number": pub["number"], "tiers": pub["rules"]["tiers"],
                           "rules": _rules_view(cur, pub["rules"]), "published_at": pub["published_at"]},
-            "drafts": [{**d, "can_publish": u["role"] in ("manager", "revops") and d["author_id"] != u["id"]} for d in drafts],
+            "drafts": [{**d, "can_publish": u["role"] == "manager" and d["author_id"] != u["id"]} for d in drafts],
             "versions": versions,
             "job": db.one(cur, "select status, count(*) as n from jobs where kind = 'rescore_batch' and status <> 'done' group by status limit 1")}
 
@@ -217,7 +218,7 @@ def version(cur, vid: int, u: dict) -> dict | None:
     return {"id": v["id"], "number": v["number"], "status": v["status"], "note": v["note"], "author": v["author_name"],
             "publisher": v["publisher"], "created_at": v["created_at"], "published_at": v["published_at"],
             "tiers": v["rules"]["tiers"], "rules": _rules_view(cur, v["rules"]), "diff": diff,
-            "can_publish": v["status"] == "draft" and u["role"] in ("manager", "revops") and v["author"] != u["id"],
+            "can_publish": v["status"] == "draft" and u["role"] == "manager" and v["author"] != u["id"],
             "is_author": v["author"] == u["id"],
             "dropped": handoff.compile_for_account_desk(v["rules"])[1]}
 
@@ -259,7 +260,9 @@ def accounts(cur, u: dict, *, q: str, tier: str, segment: str, owner: str, page:
         left join assignments a on a.company = c.id and a.plan = %s left join users u on u.id = a.owner
         where {' and '.join(where)}"""
     total = db.val(cur, "select count(*) " + sql, pub["id"], plan, *args)
-    rows = db.all(cur, """select c.id, c.name, c.primary_domain, c.lifecycle, c.industry, c.employees, c.region_group,
+    rows = db.all(cur, """select c.id, c.name, c.primary_domain, c.lifecycle, c.employees, c.region_group, c.region,
+                          coalesce(c.industry, (select v.value #>> '{}' from field_values v where v.company = c.id
+                                                and v.field = 'industry' and v.source = 'model' limit 1)) as industry,
                           f.tier, f.judged, f.score, f.scored_out_of, f.segment, u.name as owner, a.reason_code,
                           (select r.meetings from desk_results r where r.company = c.id order by r.period_end desc limit 1) as last_meetings,
                           (select r.destination from desk_results r where r.company = c.id order by r.period_end desc limit 1) as last_dest
@@ -267,6 +270,9 @@ def accounts(cur, u: dict, *, q: str, tier: str, segment: str, owner: str, page:
                    pub["id"], plan, *args, PAGE, (page - 1) * PAGE)
     for r in rows:
         r["segment_label"] = C.SEGMENT_LABEL.get(r["segment"], r["segment"])
+        # A tier A prospect in our regions that nobody has hours for (SPEC 7: shown, never demoted).
+        r["over_capacity"] = (r["tier"] == "A" and r["judged"] and r["lifecycle"] == "prospect" and not r["owner"]
+                              and r["region"] in C.SERVED_REGIONS)
     owners = db.all(cur, "select id, name from users where role in ('sdr','ae') and active order by name")
     return {"rows": rows, "total": total, "page": page, "pages": max(1, -(-total // PAGE)), "owners": owners,
             "segments": [{"key": s["key"], "label": s["label"]} for s in C.SEGMENTS] + [C.OUTSIDE]}
@@ -295,6 +301,8 @@ def company(cur, cid: int, u: dict, allowed: bool | None = None) -> dict | None:
     results = db.all(cur, "select * from desk_results where company = %s order by period_end desc", cid)
     tests = db.all(cur, """select t.id, t.segment, t.status, m.grp from segment_test_members m join segment_tests t on t.id = m.test
                            where m.company = %s""", cid)
+    for t in tests:
+        t["segment_label"] = C.SEGMENT_LABEL.get(t["segment"], t["segment"])
     breakdown = cur_fit["breakdown"] if cur_fit else {}
     for f in breakdown.get("factors", []):
         f["label"] = labels.get(f["key"], f["key"])
@@ -330,7 +338,7 @@ def territories(cur, plan_id: int | None, allowed: bool) -> dict:
         return {"plans": plans, "plan": None}
     people = db.all(cur, """select s.*, u.name, u.role, u.started_on, u.ramp_months, u.selling_hours_month from capacity_snapshots s
                             join users u on u.id = s.user_id where s.plan = %s order by u.role desc, u.name""", plan_id)
-    terrs = db.all(cur, """select t.id, t.key, t.label, t.rule, u.name as ae from territories t left join users u on u.id = t.paired_ae
+    terrs = db.all(cur, """select t.id, t.key, t.label, t.rule, u.name as ae, t.paired_ae as paired_ae_id from territories t left join users u on u.id = t.paired_ae
                            where t.plan = %s order by t.id""", plan_id)
     names = {u["id"]: u["name"] for u in db.all(cur, "select id, name from users")}
     evs = {p["user_id"]: p["expected_value_cents"] for p in people}
@@ -344,7 +352,8 @@ def territories(cur, plan_id: int | None, allowed: bool) -> dict:
         t["balance"] = (plan["balance_report"] or {}).get(t["key"])
     for p in people:
         p["ev"] = p.pop("expected_value_cents")
-        t = next((t for t in terrs if p["user_id"] in t["rule"]["people"]), None)
+        t = next((t for t in terrs if p["user_id"] in t["rule"]["people"]), None) or \
+            next((t for t in terrs if t.get("paired_ae_id") == p["user_id"]), None)
         p["territory"] = t["label"] if t else None
         p["ev_mean"] = t["ev_mean"] if t else None
     gap = terr.hiring_gap(cur, plan_id)
@@ -358,8 +367,9 @@ def territories(cur, plan_id: int | None, allowed: bool) -> dict:
     a_total = db.val(cur, """select count(*) from account_fit f join companies c on c.id = f.company where f.icp_version = %s
                              and f.tier = 'A' and f.judged and c.lifecycle = 'prospect' and c.region = any(%s)""", pub["id"], C.SERVED_REGIONS)
     if ch:
-        ch = {"changes": ch["changes"], "gains": [{"name": names[k], "n": v} for k, v in ch["gains"].items()],
-              "losses": [{"name": names[k], "n": v} for k, v in ch["losses"].items()], "crossing": len(ch["crossing"])}
+        people_ids = sorted(set(ch["gains"]) | set(ch["losses"]), key=lambda k: names[k])
+        ch = {"changes": ch["changes"], "crossing": len(ch["crossing"]),
+              "people": [{"name": names[k], "gains": ch["gains"].get(k, 0), "losses": ch["losses"].get(k, 0)} for k in people_ids]}
     return strip({"plans": plans, "plan": plan, "people": people, "territories": terrs, "gap": gap, "changes": ch,
                   "manual": manual, "hours_per_tier": s["hours_per_tier"]["value"], "hours_note": s["hours_per_tier"]["note"],
                   "a_capacity": {"held": a_cap["held"] or 0, "tier_a": a_total}}, allowed)

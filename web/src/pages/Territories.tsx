@@ -1,4 +1,4 @@
-import { MapTrifold, UsersThree, WarningCircle } from "@phosphor-icons/react";
+import { MapTrifold, UsersThree } from "@phosphor-icons/react";
 import { api } from "../api";
 import { Empty, Failed, Fig, Loading, Section, Seg, Status, day, money, n0, navigate, useBusy, useData, usePath, withParam } from "../lib";
 import { Hours } from "../parts";
@@ -27,8 +27,8 @@ export function Territories() {
           onChange={(v) => navigate(withParam("plan", v), true)} />
         {plan.status === "draft" ? (
           <div className="actions">
-            {!canActivate ? <span className="small mute">{me?.user.id === plan.author_id ? "A manager other than the author activates it." : "A manager activates it."}</span> : null}
             <button className="btn" disabled={busy || !canActivate}
+              title={canActivate ? undefined : "A manager other than the author activates it"}
               onClick={() => run(() => api(`/api/plans/${plan.id}/activate`, { method: "POST" }), "Activated. Owners moved.")}>Activate</button>
           </div>
         ) : <span className="mute small">Active since {day(plan.activated_at)}, by {plan.activated_by}</span>}
@@ -40,25 +40,25 @@ export function Territories() {
 
 function PlanView({ data, money: showMoney }: { data: any; money: boolean }) {
   const plan = data.plan;
-  const cols = "minmax(0,1.1fr) minmax(0,1.1fr) 58px 58px minmax(160px,1.1fr)" + (showMoney ? " 150px" : "");
+  const cols = "minmax(0,1.1fr) minmax(0,1.1fr) 58px 58px minmax(160px,1.1fr)" + (showMoney ? " 110px 110px" : "");
   return (
     <>
       <div className="figs">
         <Fig value={n0(data.people.reduce((s: number, p: any) => s + p.accounts_by_tier.A + p.accounts_by_tier.B, 0))} label="A and B owned" />
         <Fig value={n0(data.gap.accounts)} label="A and B unassigned" />
-        <Fig value={n0(data.gap.people)} label="People to cover them" />
+        <Fig value={n0(data.gap.people)} label="People needed" />
         <Fig value={`${n0(data.a_capacity.held)} of ${n0(data.a_capacity.tier_a)}`} label="Tier A worked" />
       </div>
       <Section title="People" icon={UsersThree}>
         <div className="ledger">
-          <div className="row head" style={{ gridTemplateColumns: cols }}><span>Person</span><span>Territory</span><span className="num">A</span><span className="num">B</span><span>Hours a month</span>{showMoney ? <span className="num">Expected value</span> : null}</div>
+          <div className="row head" style={{ gridTemplateColumns: cols }}><span>Person</span><span>Territory</span><span className="num">A</span><span className="num">B</span><span>Hours a month</span>{showMoney ? <><span className="num">Expected value</span><span className="num">Territory mean</span></> : null}</div>
           {data.people.map((p: any) => (
             <button key={p.user_id} className="row" style={{ gridTemplateColumns: cols }} onClick={() => openSheet("person", p.user_id)}>
               <span className="cell-main"><span className="t">{p.name}</span><span className="s">{p.role === "ae" ? "AE" : "SDR"}{p.effective_fte < 1 ? `, ramping` : ""}</span></span>
               <span className="clip mute">{p.territory}</span>
-              <span className="num">{n0(p.accounts_by_tier.A)}</span><span className="num">{n0(p.accounts_by_tier.B)}</span>
+              <span className="num" data-label="Tier A">{n0(p.accounts_by_tier.A)}</span><span className="num" data-label="Tier B">{n0(p.accounts_by_tier.B)}</span>
               <Hours used={p.hours_required} of={p.hours_available} />
-              {showMoney ? <span className="num">{money(p.ev)}<small className="mute"> of {money(p.ev_mean)}</small></span> : null}
+              {showMoney ? <><span className="num" data-label="Expected value">{money(p.ev)}</span><span className="num mute" data-label="Territory mean">{p.ev_mean ? money(p.ev_mean) : ""}</span></> : null}
             </button>
           ))}
         </div>
@@ -69,7 +69,7 @@ function PlanView({ data, money: showMoney }: { data: any; money: boolean }) {
             <div key={t.id} className="row" style={{ gridTemplateColumns: "minmax(0,1.2fr) minmax(0,1fr) 80px 130px" }}>
               <span className="cell-main"><span className="t">{t.label}</span><span className="s">{t.segments.join(", ")}</span></span>
               <span className="clip">{t.people.map((p: any) => p.name).join(", ")}{t.ae ? <span className="mute">, with {t.ae}</span> : null}</span>
-              <span className="num">{n0(t.accounts)}</span>
+              <span className="num" data-label="Accounts">{n0(t.accounts)}</span>
               {t.balance ? <Status kind={t.balance.balanced ? "ok" : "hold"}>{t.balance.balanced ? "Balanced" : "Not balanced"}</Status> : <span />}
             </div>
           ))}
@@ -77,10 +77,15 @@ function PlanView({ data, money: showMoney }: { data: any; money: boolean }) {
       </Section>
       {plan.status === "draft" && data.changes ? (
         <Section title="What changes" count={data.changes.changes}>
-          {data.changes.crossing ? <div className="notice"><WarningCircle size={16} />{data.changes.crossing} open deals would change owner</div> : null}
-          <div className="two">
-            <div className="ledger">{data.changes.gains.map((g: any) => <div key={g.name} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) auto" }}><span>{g.name}</span><span className="num">+{n0(g.n)}</span></div>)}</div>
-            <div className="ledger">{data.changes.losses.map((g: any) => <div key={g.name} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) auto" }}><span>{g.name}</span><span className="num">{"−"}{n0(g.n)}</span></div>)}</div>
+          {data.changes.crossing ? <Status kind="stop">{`${n0(data.changes.crossing)} open deals would leave their owner`}</Status> : null}
+          <div className="ledger">
+            <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) 80px 80px 80px" }}><span>Person</span><span className="num">Gains</span><span className="num">Losses</span><span className="num">Net</span></div>
+            {data.changes.people.map((g: any) => (
+              <div key={g.name} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) 80px 80px 80px" }}>
+                <span>{g.name}</span><span className="num" data-label="Gains">{n0(g.gains)}</span><span className="num" data-label="Losses">{n0(g.losses)}</span>
+                <span className="num" data-label="Net">{g.gains - g.losses > 0 ? "+" : ""}{n0(g.gains - g.losses)}</span>
+              </div>
+            ))}
           </div>
         </Section>
       ) : null}
@@ -110,7 +115,6 @@ function CapacityView({ data }: { data: any }) {
         <Fig value={`${h.C}`} unit=" h" label="Tier C, a month" />
         <Fig value={n0(data.gap.hours)} unit=" h" label="Hours short" />
       </div>
-      <div className="small mute">{data.hours_note}</div>
       <Section title="Roster" icon={UsersThree}>
         <div className="ledger">
           <div className="row head" style={{ gridTemplateColumns: "minmax(0,1.2fr) 110px 80px 70px minmax(160px,1.2fr)" }}><span>Person</span><span>Started</span><span className="num">Ramp</span><span className="num">Effective</span><span>Hours a month</span></div>
@@ -127,7 +131,7 @@ function CapacityView({ data }: { data: any }) {
         <div className="figs">
           <Fig value={n0(data.gap.by_tier.A || 0)} label="Tier A unassigned" />
           <Fig value={n0(data.gap.by_tier.B || 0)} label="Tier B unassigned" />
-          <Fig value={n0(data.gap.people)} label="People at 100 hours" />
+          <Fig value={n0(data.gap.people)} label="People needed" />
         </div>
       </Section>
     </>

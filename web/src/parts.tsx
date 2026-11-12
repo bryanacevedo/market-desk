@@ -33,7 +33,7 @@ export function TierMix({ a, b, c, x, nj }: { a: number; b: number; c: number; x
   return (
     <span className="tiermix" role="img" aria-label={parts.map(([k, v]) => `${k === "NJ" ? "Not judged" : "Tier " + k} ${v}`).join(", ")}>
       <span className="tm-bar">{parts.map(([k, v, cls]) => (v ? <i key={k} className={cls} style={{ width: `${(100 * v) / total}%` }} /> : null))}</span>
-      <span className="tm-key">{parts.filter(([, v]) => v).map(([k, v]) => <span key={k}><b>{k}</b>{v.toLocaleString("en-US")}</span>)}</span>
+      <span className="tm-key">{parts.filter(([, v]) => v).map(([k, v]) => <span key={k}><b>{k === "NJ" ? "Not judged" : k}</b>{v.toLocaleString("en-US")}</span>)}</span>
     </span>
   );
 }

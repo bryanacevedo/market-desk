@@ -96,6 +96,7 @@ def demo_versions() -> list[dict]:
     v1["tiers"] = {"A": 80, "B": 60}
     v1["penalties"] = []
     v2 = copy.deepcopy(v3)
+    v2["penalties"] = []
     v2["factors"] = [f for f in v2["factors"] if f["key"] != "revenue"] + [
         {"key": "revenue", "field": "revenue_band", "op": "in", "value": ["$20M-$100M", "$100M-$500M", "$500M+"], "weight": 15}]
     v4 = copy.deepcopy(v3)

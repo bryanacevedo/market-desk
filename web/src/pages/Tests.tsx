@@ -4,6 +4,8 @@ import { api } from "../api";
 import { Empty, Failed, Loading, Section, Status, day, n0, pct, useBusy, useData } from "../lib";
 import { openSheet } from "../sheets";
 
+const DECISION: Record<string, string> = { expand: "Expanded", drop: "Dropped", extend: "Extended" };
+
 export function testState(t: any): [any, string] {
   if (t.status === "draft") return ["wait", "Draft"];
   if (t.status === "running" && !t.report.enough) return ["wait", "Needs more accounts"];
@@ -42,16 +44,16 @@ export function Tests() {
       <div className="head"><h1>Tests</h1></div>
       {data.rows.length ? (
         <div className="ledger">
-          <div className="row head" style={{ gridTemplateColumns: cols }}><span>Segment</span><span>Started</span><span className="num">Worked</span><span className="num">Held back</span><span>Result</span></div>
+          <div className="row head" style={{ gridTemplateColumns: cols }}><span>Segment</span><span>Started</span><span className="num">Worked, met</span><span className="num">Held back, met</span><span>Result</span></div>
           {data.rows.map((t: any) => {
             const [g, w] = testState(t);
             return (
               <button key={t.id} className="row" style={{ gridTemplateColumns: cols }} onClick={() => openSheet("test", t.id)}>
-                <span className="cell-main"><span className="t">{t.segment_label}</span><span className="s">{n0(t.members)} accounts{t.decision ? `, decided: ${t.decision}` : ""}</span></span>
+                <span className="cell-main"><span className="t">{t.segment_label}</span><span className="s">{n0(t.members)} accounts</span></span>
                 <span className="mute">{t.started_on ? day(t.started_on) : "Not started"}</span>
                 <span className="num">{pct(t.report.treated.rate)}</span>
                 <span className="num">{pct(t.report.holdout.rate)}</span>
-                <Status kind={g}>{w}</Status>
+                <span className="cell-main"><Status kind={g}>{w}</Status>{t.decision ? <span className="s">{DECISION[t.decision]}</span> : null}</span>
               </button>
             );
           })}

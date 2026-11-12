@@ -9,6 +9,7 @@ from . import llm
 
 NUM = re.compile(r"\$?\d[\d,]*(?:\.\d+)?[%kKmM]?")
 QUOTED = re.compile(r"[\"“]([^\"”]{3,})[\"”]")
+LINK = re.compile(r"(https?://|www\.|\b[\w-]+\.(com|io|net|org|example)\b|@)", re.I)
 NEED = re.compile(r"\b(the buyer needs|buyers need|they need|you need|needs to)\b", re.I)
 
 
@@ -97,8 +98,10 @@ def story_gate(payload: dict, out: dict, forbidden: list[str]) -> list[str]:
         if extra:
             fails.append(f"sentence {i + 1} has numbers that are not figures given: {sorted(extra)}")
         for name in forbidden:
-            if name and re.search(rf"\b{re.escape(name)}\b", s["text"]):
+            if name and re.search(rf"\b{re.escape(name)}\b", s["text"], re.I):
                 fails.append(f"sentence {i + 1} names {name}")
+        if LINK.search(s["text"]):
+            fails.append(f"sentence {i + 1} has a link or an address")
     return fails
 
 
@@ -158,6 +161,8 @@ def proposal_gate(payload: dict, out: dict) -> list[str]:
             low = low.replace(t, " ")
     if NEED.search(text):
         fails.append("says what someone needs")
+    if LINK.search(text):
+        fails.append("has a link or an address")
     return fails
 
 

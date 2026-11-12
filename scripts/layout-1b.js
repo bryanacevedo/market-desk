@@ -4,7 +4,7 @@
 (() => {
   const out = [];
   for (const row of document.querySelectorAll(".figs")) {
-    const figs = [...row.querySelectorAll(":scope > .fig")].map((p) => ({ b: p.querySelector("b")?.getBoundingClientRect(), s: p.querySelector("span")?.getBoundingClientRect(), p: p.getBoundingClientRect() })).filter((f) => f.b && f.s);
+    const figs = [...row.querySelectorAll(":scope > .fig")].map((p) => ({ b: p.querySelector("b")?.getBoundingClientRect(), s: p.querySelector(":scope > span")?.getBoundingClientRect(), p: p.getBoundingClientRect() })).filter((f) => f.b && f.s);
     for (const f of figs) if (Math.abs((f.b.left + f.b.right) / 2 - (f.s.left + f.s.right) / 2) > 2 && Math.abs(f.b.left - f.s.left) > 2) out.push(`figure label not aligned with its figure (${Math.round(f.s.left)}px)`);
     const lines = new Map();
     for (const f of figs) { const key = [...lines.keys()].find((t) => Math.abs(t - f.p.bottom) < 30) ?? f.p.bottom; lines.set(key, [...(lines.get(key) ?? []), f]); }

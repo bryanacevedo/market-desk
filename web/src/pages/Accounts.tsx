@@ -58,7 +58,7 @@ export function Accounts() {
                 <span className="clip mute">{r.segment_label}</span>
                 <span className="num"><Tier tier={r.tier} judged={r.judged} />{r.judged && r.score !== null ? <small className="mute"> {r.score}</small> : null}</span>
                 <span className="num mute">{pct(r.scored_out_of)}</span>
-                <span className="cell-main"><span className="t" style={{ fontWeight: 450 }}>{r.owner || <span className="faint">Unassigned</span>}</span>{r.owner ? <span className="s">{reasonWord(r.reason_code)}</span> : null}</span>
+                <span className="cell-main">{r.over_capacity ? <Status kind="hold">A over capacity</Status> : <span className="t" style={{ fontWeight: 450 }}>{r.owner || <span className="faint">Unassigned</span>}</span>}{r.owner ? <span className="s">{reasonWord(r.reason_code)}</span> : null}</span>
                 <span className="num mute">{r.last_dest ? (r.last_meetings ? <Status kind="ok">Meeting</Status> : "No meeting") : ""}</span>
               </button>
             ))}
@@ -87,7 +87,7 @@ export function MyBook() {
       <div className="figs">
         <Fig value={n0(by("A").length)} label="Tier A" />
         <Fig value={n0(by("B").length)} label="Tier B" />
-        <Fig value={n0(data.rows.length - by("A").length - by("B").length)} label="Customers and others" />
+        <Fig value={n0(data.rows.length - by("A").length - by("B").length)} label="Customers and open deals" />
       </div>
       {data.capacity ? <div style={{ maxWidth: 420 }}><Hours used={data.capacity.hours_required} of={data.capacity.hours_available} /></div> : null}
       {data.rows.length ? ["A", "B", "C", "X"].map((t) => by(t).length ? (

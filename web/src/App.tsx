@@ -4,7 +4,7 @@ import {
   Scales, Target,
 } from "@phosphor-icons/react";
 import { setActingAs } from "./api";
-import { Toaster, changed, navigate, setNow, useData, usePath } from "./lib";
+import { Failed, Toaster, changed, navigate, setNow, useData, usePath } from "./lib";
 import { SheetHost } from "./sheets";
 import { Market } from "./pages/Market";
 import { Evidence } from "./pages/Evidence";
@@ -39,7 +39,16 @@ const ROLE: Record<string, string> = { revops: "RevOps", manager: "Manager", sdr
 
 export function App() {
   const [path] = usePath();
-  const { data: me } = useData<Me>("/api/me");
+  const { data: me, error: meError, reload } = useData<Me>("/api/me");
+  useEffect(() => {
+    // A first visit opens as RevOps, who sees the whole desk; the choice is kept after that.
+    let chosen: string | null = null;
+    try { chosen = localStorage.getItem("acting-as"); } catch { /* private mode */ }
+    if (me && !chosen) {
+      const revops = me.users.find((u) => u.role === "revops");
+      if (revops && me.user.id !== revops.id) { setActingAs(revops.id); changed(); }
+    }
+  }, [me]);
   useEffect(() => { if (me?.now) setNow(me.now); }, [me?.now]);
   const routes = ROUTES.filter((r) => me && r.roles.includes(me.user.role));
   const bar = routes.filter((r) => r.bar);
@@ -51,6 +60,7 @@ export function App() {
     // A page this role does not have lands on the role's first page.
     if (me && route && path !== route.path && path !== "/more") navigate(route.path + window.location.search, true);
   }, [me, path, route]);
+  if (meError && !me) return <div className="app"><main className="main"><div className="page"><Failed error={meError} retry={reload} /></div></main></div>;
   if (!route) return <Toaster />;
   const Page = route.page;
   const pick = (id: number) => { setActingAs(id); changed(); };

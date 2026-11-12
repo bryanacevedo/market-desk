@@ -19,7 +19,7 @@ export function RuleRows({ rules }: { rules: any[] }) {
                 onClick={() => r.finding && openSheet("finding", r.finding.id)} disabled={!r.finding}>
                 <span className="cell-main"><span className="t">{r.label}</span>{r.reason ? <span className="s">{r.reason}</span> : null}
                   {!r.travels ? <span className="s">Account Desk cannot read this rule</span> : null}</span>
-                <span className="num">{r.weight ?? ""}</span>
+                <span className="num">{r.weight === null || r.weight === undefined ? "" : k === "penalties" ? `−${r.weight}` : r.weight}</span>
                 {r.finding ? <Verdict v={r.finding.verdict} /> : <Status kind="none">Hypothesis</Status>}
               </button>
             ))}
@@ -88,11 +88,10 @@ export function Profile() {
           right={<div className="actions">
             <button className="btn line sm" onClick={() => openSheet("version", d.id)}>Open</button>
             <button className="btn sm" disabled={busy || !d.can_publish}
-              title={d.can_publish ? undefined : d.author_id === undefined ? "" : "Someone other than the author publishes"}
+              title={d.can_publish ? undefined : "A manager other than the author publishes"}
               onClick={() => run(() => api(`/api/profile/versions/${d.id}/publish`, { method: "POST" }), "Published. Every company is being rescored.")}>Publish</button>
           </div>}>
           <div className="small mute">{d.author}, {day(d.created_at)}. {d.note}</div>
-          {!d.can_publish ? <div className="small">Publishing needs someone other than {d.author}.</div> : null}
           <Moves id={d.id} />
         </Section>
       ))}

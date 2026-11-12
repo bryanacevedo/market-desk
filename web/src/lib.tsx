@@ -127,7 +127,8 @@ export function useNowIso(): number { return NOW; }
 
 export function day(iso: string | null | undefined): string {
   if (!iso) return "";
-  const d = new Date(iso);
+  // A date with no time is a calendar day, never shifted by the reader's time zone.
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(iso + "T12:00:00") : new Date(iso);
   return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
 }
 export function dayTime(iso: string | null | undefined): string {
@@ -252,7 +253,7 @@ export function Failed({ error, retry }: { error: string; retry: () => void }) {
 export function Section({ title, count, right, icon: Ic, children }: { title: string; count?: number; right?: ReactNode; icon?: Icon; children: ReactNode }) {
   return (
     <section className="section">
-      <header><h2>{Ic ? <Ic size={17} className="h-icon" aria-hidden="true" /> : null}{title}{count !== undefined ? <span className="count">{count}</span> : null}</h2>{right}</header>
+      <header><h2>{Ic ? <Ic size={17} className="h-icon" aria-hidden="true" /> : null}{title}{count !== undefined ? <span className="count">{count.toLocaleString("en-US")}</span> : null}</h2>{right}</header>
       {children}
     </section>
   );

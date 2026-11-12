@@ -85,8 +85,11 @@ def _proposal(p: dict) -> dict:
     verb = {"add_rule": "Add a rule for", "drop_rule": "Drop the rule on", "penalty": "Lower the score of",
             "add_exclude": "Exclude", "reweight": "Reweight the rule on", "segment_expand": "Add weight for"}.get(ch["kind"], "Change")
     first = f"{verb} {ch['field_label'].lower()}: {ch['value_label']}."
-    second = (f"{f['value']} won {f['win_rate']} of {f['opportunities']} opportunities, against {f['rest_win_rate']} for the rest."
-              if f else "The deals behind it are in the findings.")
+    if f and f["trait"].startswith("Segment test"):
+        second = f"In the test, {f['win_rate']} of {f['opportunities']} worked accounts booked a meeting, against {f['rest_win_rate']} held back."
+    else:
+        second = (f"{f['value']} won {f['win_rate']} of {f['opportunities']} opportunities, against {f['rest_win_rate']} for the rest."
+                  if f else "The deals behind it are in the findings.")
     if f and f.get("top_loss") and ch["kind"] == "add_exclude":
         second = second.rstrip(".") + f"; the most common loss was {f['top_loss']}."
     return {"describes": {"kind": ch["kind"], "field": ch["field"], "value_label": ch["value_label"]},

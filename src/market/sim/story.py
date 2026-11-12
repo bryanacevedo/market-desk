@@ -283,5 +283,7 @@ def build_demo(n_companies: int = 18_000, seed: int = 7) -> dict:
             proposals.dismiss(cur, region, elena, "We only sell where we have a team and entities: North America and Europe.")
         info["stories"] = segments.stories(cur)
         clock(cur, world.NOW)
+        for plan in db.all(cur, "select id from territory_plans where status in ('active', 'draft')"):
+            territories.snapshot(cur, plan["id"])
         info["alerts"] = monitors.run_all(cur)
     return info
