@@ -4,7 +4,9 @@
 
 ## Where it stands
 
-Built end to end on a simulated world, overnight 2026-11-11 to 12, in one pass at the Account Desk bar. Not yet published or deployed (see the gate log).
+Built end to end on a simulated world, overnight 2026-11-11 to 12. Public at https://github.com/bryanacevedo/market-desk; live at https://market-desk-3kou.onrender.com (first deploy healthy, pages not yet walked live).
+
+**Stopped mid-redesign (usage limit, 2026-11-12).** Done: gate 8 findings fixed in the engine (commit on main), ochre accent, Archivo display type and steel-blue waiting status applied through `web/src/market.css`; the signature parts (range lines, nested TAM/SAM/SOM ranges, the market field) exist in `web/src/parts.tsx` but are not yet used on the pages. Left: use them on Market, Evidence and the Segment sheet; the halo on the one decision per page; the Spirit section in DESIGN-CHECKLIST and the colour decision in DECISIONS; gate 8a doc fixes (P4 wording, floors set after results, equivalence and export-stability wording, private references); README product-page top with screenshots; a fresh three-desk design review; gate 9 doc sweep; gate 10 live walk; the BRYAN-PROJECTS line.
 
 Checked by running, on the demo database built from seed 7:
 - 18,005 companies; 1,647 new-business and 166 expansion deals over 36 months; 286 customers, 35 of them churned; 2,248 call notes on 900 deals; 1,163 deals in the 24-month evidence window, 79 trait values tested; 53 tests passing; 45 rules-against-data checks passing.
@@ -25,9 +27,9 @@ Every gate was run by a fresh agent that had not seen the build (never a fork), 
 | 5 Compliance (Risk: legal, medium. Counsel to confirm.) | 2026-11-12 | 1 blocker (no erasure path), 7 majors. Fixed: erasure of a team member and of a company's notes, with tests; redaction now catches case, initials, accents, non-Latin script, particles, hyphenated names, profile links and names after "with", "to", "CFO"; the 50-name test uses names from outside the generator's lists; the Events Desk document and the world export leave out sole traders and restricted or model-read values; the export refuses outside the demo (decisions 27, 28). Known limit in README. |
 | 6 Security | 2026-11-12 | 1 blocker (an SDR could read deal sizes through a profile version), 8 majors. Fixed: role checks on versions and findings; `MODE=live` needs header auth; JSON-only writes (CSRF); webhook body cap, replay refusal, row validation and rate limit; recordings written only by the eval runner; per-visitor rate limit behind Render's proxy and a 1 MB body cap; link gate and case-free name gate on the model's prose; CSV formula guard; generic errors; HSTS; API docs off on the demo; MCP strips money itself. |
 | 7 Eval floors | 2026-11-12 | Passed on the live run and on replay (`tests/test_evals.py`). Safety floors 100%; judge-faithful 85% (stories) and 90% (proposals) after prompt fixes forced by the first run (35% and 55%). Three live runs, $1.92 in all. |
-| 8 Final whole-system goldfish | | Running |
+| 8 Final whole-system goldfish | 2026-11-12 | Two reviewers. Code and demo: 1 blocker (Expand accepted a test that did worse), 11 majors; fixed in the engine (expand needs a lift, drops only weak rules, SOM adds up, capacity only to worked segments, test hours, results by book date, the Events Desk document says only what evidence says). Docs: 7 majors, not yet fixed (see above). |
 | 9 Deep doc sweep | | Not run yet |
-| 10 Deploy and live check | | Not run yet |
+| 10 Deploy and live check | 2026-11-12 | Deployed; `/api/health` ok. Pages not yet walked live. |
 
 ## Proven and not proven
 
