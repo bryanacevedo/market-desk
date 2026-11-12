@@ -11,7 +11,7 @@ VERDICT = {"clear_higher": "Clearly higher", "clear_lower": "Clearly lower", "no
            "too_few": "Too few to tell", "explained_by_size": "Explained by size"}
 MONEY_KEYS = {"tam_low", "tam_high", "sam_low", "sam_high", "som_low", "som_high", "acv_median", "acv_p25", "acv_p75",
               "acv_basis", "expected_value_cents", "pipeline_cents", "price_cents_per_unit", "spend_cents", "amount_cents",
-              "arr_cents", "ev"}
+              "arr_cents", "ev", "ev_mean", "pipeline"}
 
 
 def strip(obj, allowed: bool):
@@ -272,7 +272,7 @@ def accounts(cur, u: dict, *, q: str, tier: str, segment: str, owner: str, page:
             "segments": [{"key": s["key"], "label": s["label"]} for s in C.SEGMENTS] + [C.OUTSIDE]}
 
 
-def company(cur, cid: int, u: dict) -> dict | None:
+def company(cur, cid: int, u: dict, allowed: bool | None = None) -> dict | None:
     c = db.one(cur, "select * from companies where id = %s", cid)
     if not c:
         return None
@@ -281,7 +281,8 @@ def company(cur, cid: int, u: dict) -> dict | None:
                        left join users m on m.id = a.moved_from where a.plan = %s and a.company = %s""", plan, cid)
     if u["role"] in ("sdr", "ae") and (not a or a["owner"] != u["id"]):
         raise_forbidden()
-    allowed = u["role"] in ("revops", "manager")
+    if allowed is None:
+        allowed = u["role"] in ("revops", "manager")
     fields = db.all(cur, """select f.field, f.value, f.source, s.label as source_label, f.observed_at, f.confidence, f.quote
                             from field_values f join sources s on s.key = f.source where f.company = %s order by f.field, f.observed_at desc""", cid)
     history = db.all(cur, """select v.number, v.status, f.tier, f.judged, f.score from account_fit f join icp_versions v on v.id = f.icp_version

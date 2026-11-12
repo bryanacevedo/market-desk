@@ -191,14 +191,16 @@ def cost_cents(task: str, usage: dict) -> float:
     return (usage.get("input_tokens", 0) * pin + usage.get("output_tokens", 0) * pout) / 1_000_000 * 100
 
 
-def call(task: str, payload: dict, *, live: bool | None = None) -> tuple[dict, str, dict]:
-    """(output, source, usage) without touching the database. Used by the eval runners."""
+def call(task: str, payload: dict, *, live: bool | None = None, record: bool = False) -> tuple[dict, str, dict]:
+    """(output, source, usage) without touching the database. Only the eval runner records (record=True): the desk
+    itself never writes what it sends the model to disk, so live CRM text never lands in the repo or the image."""
     spec = TASKS[task]
     h = input_hash(task, payload)
     live = CONFIG.anthropic_live if live is None else live
     if live:
         out, usage = _live(task, payload)
-        _record(task, h, payload, out, usage)
+        if record:
+            _record(task, h, payload, out, usage)
         return spec["schema"].model_validate(out).model_dump(), "live", usage
     rec = recordings(task).get(h)
     if rec is not None:

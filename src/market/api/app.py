@@ -7,16 +7,16 @@ from __future__ import annotations
 
 import hashlib
 import hmac
-import io
 import json
 import logging
 import threading
 import time
 import uuid
-import zipfile
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
+from datetime import date
 from pathlib import Path
+from typing import Literal
 
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response
@@ -53,13 +53,20 @@ async def lifespan(_app):
     yield
 
 
-app = FastAPI(title="Market Desk", docs_url="/api/docs", openapi_url="/api/openapi.json", lifespan=lifespan)
+_docs = not (CONFIG.public_demo or CONFIG.mode == "live")
+app = FastAPI(title="Market Desk", docs_url="/api/docs" if _docs else None, openapi_url="/api/openapi.json" if _docs else None,
+              lifespan=lifespan)
+MAX_BODY = 1024 * 1024  # 1 MB for every request but the results webhook (5 MB)
 
 
 @app.middleware("http")
 async def headers_and_errors(request: Request, call_next):
     rid = uuid.uuid4().hex[:12]
     started = time.perf_counter()
+    limit = 5 * MAX_BODY if request.url.path == "/api/results" else MAX_BODY
+    length = request.headers.get("content-length")
+    if length and (not length.isdigit() or int(length) > limit):
+        return JSONResponse({"error": "Too large."}, status_code=413)
     try:
         response = await call_next(request)
     except Exception:
@@ -68,6 +75,7 @@ async def headers_and_errors(request: Request, call_next):
     response.headers["X-Request-Id"] = rid
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000"
     response.headers["Referrer-Policy"] = "same-origin"
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; "
@@ -86,6 +94,9 @@ def rate_limit(request: Request, limit: int = 120, window: float = 60.0) -> None
     key = request.client.host if request.client else "?"
     now = time.monotonic()
     with _hits_lock:
+        if len(_hits) > 10_000:
+            for k in [k for k, v in _hits.items() if not v or now - v[-1] > window]:
+                del _hits[k]
         q = _hits[key]
         while q and now - q[0] > window:
             q.popleft()
@@ -124,7 +135,8 @@ def current_user(request: Request) -> dict:
             raw = request.headers.get("X-Acting-As") or request.query_params.get("as")
             u = db.one(cur, "select * from users where id = %s and active", int(raw)) if raw and raw.isdigit() else None
             if u is None:
-                u = db.one(cur, "select * from users where role = 'revops' and active order by id limit 1")
+                # No choice made yet: the least-privileged view, never company money.
+                u = db.one(cur, "select * from users where role = 'sdr' and active order by id limit 1")
     if u is None:
         raise HTTPException(401, "Sign in to use the desk.")
     return u
@@ -141,6 +153,9 @@ def need(u: dict, *roles: str) -> None:
 
 def writer(request: Request, u: dict = Depends(current_user)) -> dict:
     rate_limit(request)
+    # A cross-site form cannot send a JSON content type, so every write must; the web app always does.
+    if not request.headers.get("content-type", "").startswith("application/json"):
+        raise HTTPException(415, "Writes take JSON.")
     if CONFIG.write_key and CONFIG.auth_mode == "demo" and not CONFIG.public_demo \
             and request.headers.get("X-Write-Key") != CONFIG.write_key:
         raise HTTPException(403, "This desk needs its write key for changes.")
@@ -150,7 +165,10 @@ def writer(request: Request, u: dict = Depends(current_user)) -> dict:
 def _fail(exc: Exception) -> HTTPException:
     if isinstance(exc, PermissionError):
         return HTTPException(403, str(exc))
-    return HTTPException(422, str(exc).splitlines()[0])
+    if isinstance(exc, ValueError):
+        return HTTPException(422, str(exc).splitlines()[0])
+    log.warning("write refused: %s", type(exc).__name__)
+    return HTTPException(422, "That could not be saved.")
 
 
 # ---------------------------------------------------------------- reads
@@ -186,6 +204,7 @@ def market(by: str = "segment", u: dict = Depends(current_user)) -> dict:
 
 @app.get("/api/segments/{key}")
 def segment(key: str, u: dict = Depends(current_user)) -> dict:
+    # SDRs and AEs read a segment's why-they-buy on My book; money is stripped for them.
     with db.tx() as cur:
         out = views.segment(cur, key, money(u))
     if out is None:
@@ -202,6 +221,7 @@ def evidence_page(u: dict = Depends(current_user)) -> dict:
 
 @app.get("/api/findings/{fid}")
 def finding(fid: int, u: dict = Depends(current_user)) -> dict:
+    need(u, "revops", "manager")
     with db.tx() as cur:
         out = views.finding(cur, fid, money(u))
     if out is None:
@@ -218,6 +238,7 @@ def profile(u: dict = Depends(current_user)) -> dict:
 
 @app.get("/api/profile/versions/{vid}")
 def profile_version(vid: int, u: dict = Depends(current_user)) -> dict:
+    need(u, "revops", "manager")
     with db.tx() as cur:
         out = views.version(cur, vid, u)
     if out is None:
@@ -399,7 +420,9 @@ class Publish(BaseModel):
 def publish(vid: int, u: dict = Depends(writer)) -> dict:
     try:
         with db.tx() as cur:
-            profiles.publish(cur, vid, u)
+            profiles.publish(cur, vid, u, rescore_now=True)
+            from .. import sizing
+            sizing.run(cur)
     except Exception as exc:
         raise _fail(exc) from exc
     return {"ok": True}
@@ -518,20 +541,51 @@ def new_book(body: NewBook, u: dict = Depends(writer)) -> dict:
 
 
 class SettingValue(BaseModel):
-    value: float | dict
+    value: float | dict[str, float] = Field(...)
 
 
 @app.post("/api/settings/{key}")
 def set_setting(key: str, body: SettingValue, u: dict = Depends(writer)) -> dict:
     need(u, "revops")
     with db.tx() as cur:
-        if not db.val(cur, "select 1 from settings where key = %s", key):
+        current = db.val(cur, "select value from settings where key = %s", key)
+        if current is None:
             raise HTTPException(404, "No such setting.")
+        if type(current) is not type(body.value) and not (isinstance(current, (int, float)) and isinstance(body.value, (int, float))):
+            raise HTTPException(422, "That setting takes a different kind of value.")
+        if isinstance(body.value, dict) and set(body.value) != set(current):
+            raise HTTPException(422, "That setting takes the same keys it has.")
+        if isinstance(body.value, (int, float)) and not (0 <= body.value <= 100_000):
+            raise HTTPException(422, "Out of range.")
         db.run(cur, "update settings set value = %s, updated_at = app_now(), updated_by = %s where key = %s",
                db.J(body.value), u["id"], key)
         from .. import audit
         audit.log(cur, u["name"], "setting_changed", "setting", None, {"key": key}, actor_id=u["id"])
     return {"ok": True}
+
+
+@app.post("/api/users/{uid}/erase")
+def erase_user(uid: int, u: dict = Depends(writer)) -> dict:
+    if CONFIG.public_demo:
+        raise HTTPException(403, "The public demo keeps its invented team.")
+    from .. import erasure
+    try:
+        with db.tx() as cur:
+            return erasure.erase_user(cur, uid, u)
+    except Exception as exc:
+        raise _fail(exc) from exc
+
+
+@app.post("/api/companies/{cid}/erase-notes")
+def erase_notes(cid: int, u: dict = Depends(writer)) -> dict:
+    if CONFIG.public_demo:
+        raise HTTPException(403, "The public demo keeps its invented notes.")
+    from .. import erasure
+    try:
+        with db.tx() as cur:
+            return erasure.erase_company_notes(cur, cid, u)
+    except Exception as exc:
+        raise _fail(exc) from exc
 
 
 @app.post("/api/evidence/run")
@@ -547,14 +601,35 @@ def run_evidence(u: dict = Depends(writer)) -> dict:
 MAX_RESULT_ROWS = 50_000
 
 
+class ResultRow(BaseModel):
+    domain: str = Field(max_length=255)
+    period_start: date
+    period_end: date
+    worked: bool = True
+    held_back: bool = False
+    test: int | None = None
+    meetings: int = Field(0, ge=0, le=1000)
+    opportunities: int = Field(0, ge=0, le=1000)
+    won: int = Field(0, ge=0, le=1000)
+    lost: int = Field(0, ge=0, le=1000)
+    pipeline_cents: int = Field(0, ge=0)
+
+
+class Results(BaseModel):
+    destination: Literal["account_desk", "events_desk"] | None = None
+    rows: list[ResultRow] = Field(max_length=MAX_RESULT_ROWS)
+
+
 @app.post("/api/results")
 async def results_webhook(request: Request) -> dict:
-    """Results by account from Account Desk or Events Desk, signed: X-Signature = hex HMAC SHA-256 of
-    "<timestamp>.<body>" with WEBHOOK_SECRET, X-Timestamp within five minutes. The public demo takes no uploads."""
+    """Results by account from Account Desk or Events Desk, or from the CRM for a test's held-back group, signed:
+    X-Signature = hex HMAC SHA-256 of "<timestamp>.<body>" with WEBHOOK_SECRET, X-Timestamp within five minutes. A
+    delivery is read once. The public demo takes no uploads."""
     if CONFIG.public_demo:
         raise HTTPException(403, "The public demo takes no uploads.")
+    rate_limit(request, limit=30)
     body = await request.body()
-    if len(body) > 5 * 1024 * 1024:
+    if len(body) > 5 * MAX_BODY:
         raise HTTPException(413, "Too large.")
     ts = request.headers.get("X-Timestamp", "")
     sig = request.headers.get("X-Signature", "")
@@ -563,23 +638,36 @@ async def results_webhook(request: Request) -> dict:
     good = hmac.new(CONFIG.webhook_secret.encode(), f"{ts}.".encode() + body, hashlib.sha256).hexdigest()
     if not hmac.compare_digest(good, sig):
         raise HTTPException(401, "Bad signature.")
-    data = json.loads(body)
-    rows = data.get("rows") or []
-    if not isinstance(rows, list) or len(rows) > MAX_RESULT_ROWS:
-        raise HTTPException(422, "rows must be a list of at most 50,000.")
-    n = 0
+    try:
+        data = Results.model_validate_json(body)
+    except Exception as exc:
+        raise HTTPException(422, "Rows do not match the contract.") from exc
     with db.tx() as cur:
-        for r in rows:
-            cid = db.val(cur, "select id from companies where primary_domain = lower(%s)", str(r.get("domain", ""))[:255])
-            if not cid:
-                continue
-            db.run(cur, """insert into desk_results (company, destination, period_start, period_end, worked, held_back,
-                           meetings, opportunities, won, lost, pipeline_cents, read_at)
-                           values (%s,%s,%s,%s,true,false,%s,%s,%s,%s,%s,app_now())""",
-                   cid, data.get("destination"), r["period_start"], r["period_end"], int(r.get("meetings", 0)),
-                   int(r.get("opportunities", 0)), int(r.get("won", 0)), int(r.get("lost", 0)), int(r.get("pipeline_cents", 0)))
-            n += 1
-    return {"read": n}
+        if not db.one(cur, "insert into webhook_deliveries (signature) values (%s) on conflict do nothing returning 1", sig):
+            raise HTTPException(409, "Already read.")
+        return {"read": read_results(cur, data.destination, [r.model_dump() for r in data.rows])}
+
+
+def read_results(cur, destination: str | None, rows: list[dict]) -> int:
+    """Shared by the webhook and the CSV import. Held-back rows carry no destination; a test id must be one the
+    company belongs to."""
+    n = 0
+    for r in rows:
+        if r["period_end"] < r["period_start"] or (r["worked"] and r["held_back"]):
+            continue
+        cid = db.val(cur, "select id from companies where primary_domain = lower(%s)", r["domain"])
+        if not cid:
+            continue
+        test = r.get("test")
+        if test and not db.val(cur, "select 1 from segment_test_members where test = %s and company = %s", test, cid):
+            test = None
+        db.run(cur, """insert into desk_results (company, destination, period_start, period_end, worked, held_back, test,
+                       meetings, opportunities, won, lost, pipeline_cents, read_at)
+                       values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,app_now())""",
+               cid, None if r["held_back"] else destination, r["period_start"], r["period_end"], r["worked"], r["held_back"],
+               test, r["meetings"], r["opportunities"], r["won"], r["lost"], r["pipeline_cents"])
+        n += 1
+    return n
 
 
 # ---------------------------------------------------------------- the web app
@@ -614,4 +702,3 @@ def start_worker() -> None:
     threading.Thread(target=loop, daemon=True, name="worker").start()
 
 
-_ = (io, zipfile)

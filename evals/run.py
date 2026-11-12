@@ -37,7 +37,7 @@ def make_ask(live: bool, cap: float):
             raise Missing(task)
         if live and SPENT["cents"] >= cap:
             raise OverCap()
-        out, source, usage = llm.call(task, payload, live=live)
+        out, source, usage = llm.call(task, payload, live=live, record=True)
         if source == "live":
             SPENT["cents"] += llm.cost_cents(task, usage)
         return out

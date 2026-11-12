@@ -28,6 +28,8 @@ class Config:
     worker_inline: bool = field(default_factory=lambda: not _flag("NO_WORKER"))
 
     def validate(self) -> None:
+        if self.mode == "live" and self.auth_mode != "header":
+            raise SystemExit("MODE=live needs AUTH_MODE=header: the demo's acting-as menu is not a login. Refusing to start.")
         if self.mode == "live" and not self.webhook_secret_set:
             raise SystemExit("MODE=live needs WEBHOOK_SECRET set. Refusing to start.")
         if self.auth_mode == "header" and not (self.access_team_domain and self.access_aud):

@@ -8,27 +8,47 @@ from market.privacy import redact
 from market.sim import names as N
 
 
+# Names from outside the generator's own lists, so the redaction cannot pass by agreeing with itself.
+OUTSIDE = ["Kevin Smith", "Siobhan O'Brien", "Hugo van der Berg", "Marta-Louise Klein", "José Núñez", "Dmitri Volkov",
+           "Priyanka Desai", "Chen Wei", "Fatima Zahra", "Liam Gallagher", "Ingrid Solberg", "Tomasz Nowak", "Aisha Bello",
+           "Rafael Ortega", "Yuki Tanabe", "Grace Okoye", "Henrik Lund", "Camille Durand", "Mateo Rossi", "Nora Haddad",
+           "Oliver Grant", "Zainab Musa", "Pedro Alves", "Sven Eriksson", "Leila Karimi"]
+
+
 def test_fifty_planted_names_never_reach_the_database(cur):
     rng = random.Random(11)
-    planted = []
     deal = db.val(cur, "select min(id) from deals")
+    planted = []
+    forms = [lambda f, r: f"Call with {f}, {r}. Said \"we bill by hand\".",
+             lambda f, r: f"Spoke to {f.split()[0]} ({r}) about pricing.",
+             lambda f, r: f"Follow-up with Mr. {f.split()[-1]} next week.",
+             lambda f, r: f"Email {f.split()[0].lower()}@acme.example the deck, cc {f}.",
+             lambda f, r: f"{f} called from +1 415 555 0134 to confirm.",
+             lambda f, r: f"{f.lower()} agreed on terms.",
+             lambda f, r: f"Note from {f.split()[0][0]}. {f.split()[-1]}: send the contract.",
+             lambda f, r: f"see linkedin.com/in/{f.replace(' ', '').lower()} before the call",
+             lambda f, r: f"Met {f} at the dinner.",
+             lambda f, r: f"The CFO, {f.split()[0]}, wants a pilot."]
     for i in range(50):
-        full = f"{rng.choice(N.FIRST)} {rng.choice(N.LAST)}"
+        full = OUTSIDE[i % len(OUTSIDE)] if i % 2 else f"{rng.choice(N.FIRST)} {rng.choice(N.LAST)}"
         planted.append(full)
         role = rng.choice(["controller", "finance leader", "revenue operations"])
-        style = i % 5
-        raw = [f"Call with {full}, {role}. Said \"we bill by hand\".",
-               f"Spoke to {full.split()[0]} ({role}) about pricing.",
-               f"Follow-up with Mr. {full.split()[-1]} next week.",
-               f"Email {full.split()[0].lower()}@acme.example the deck, cc {full}.",
-               f"{full} called from +1 415 555 0134 to confirm."][style]
-        contacts = [(full, role)] if style != 4 else []
+        raw = forms[i % len(forms)](full, role)
+        contacts = [(full, role)] if i % 3 or i % 10 == 5 else []  # a third are not in the CRM list (lower case always is)
         db.run(cur, "insert into call_notes (deal, written_at, text_redacted) values (%s, app_now(), %s)", deal, redact(raw, contacts))
-    texts = " ".join(r["text_redacted"] for r in db.all(cur, "select text_redacted from call_notes"))
+    texts = " ".join(r["text_redacted"] for r in db.all(cur, "select text_redacted from call_notes order by id desc limit 50")).lower()
+    import re as _re
+    words = set(_re.findall(r"[\w']+", texts))
     for full in planted:
-        assert full not in texts
-        assert f"Mr. {full.split()[-1]}" not in texts
-    assert "@acme.example" not in texts and "555 0134" not in texts
+        for part in full.replace("-", " ").split():
+            if part.lower() not in ("van", "der"):
+                assert part.lower() not in words, (full, part, texts)
+    assert "@acme.example" not in texts and "555 0134" not in texts and "linkedin.com/in" not in texts
+
+
+def test_redaction_keeps_business_words():
+    t = 'chose Billform, cheaper on overages. HIPAA BAA required. Lumen Ledger demo for Finance, after Q1 close.'
+    assert redact(t, []) == t
 
 
 def test_classify_gate():

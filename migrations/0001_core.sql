@@ -283,5 +283,7 @@ create table llm_calls (
   model text not null, input_hash text not null, input_tokens int not null default 0, output_tokens int not null default 0,
   cost_cents numeric not null default 0, source text not null check (source in ('live', 'recorded', 'sim')), output jsonb);
 
+create table webhook_deliveries (signature text primary key, at timestamptz not null default app_now());
+
 create table erasures (id serial primary key, kind text not null, subject text not null, at timestamptz not null default app_now(),
                        by_user int references users(id));

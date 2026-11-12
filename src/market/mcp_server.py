@@ -53,7 +53,11 @@ def find_accounts(query: str, limit: int = 10) -> list[dict]:
         select c.id, c.name, c.primary_domain, c.lifecycle, f.tier, f.judged, f.score, f.segment
         from companies c join account_fit f on f.company = c.id and f.icp_version = (select id from icp_versions where status = 'published')
         where c.name ilike %s or c.primary_domain ilike %s order by f.score desc nulls last limit %s""",
-        f"%{query}%", f"%{query}%", max(1, min(limit, 50))))
+        f"%{_like(query)}%", f"%{_like(query)}%", max(1, min(limit, 50))))
+
+
+def _like(q: str) -> str:
+    return q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")[:80]
 
 
 @server.tool(annotations=READ_ONLY)
@@ -64,7 +68,7 @@ def why_tier(account: str) -> dict:
         cid = _company(cur, account)
         if cid is None:
             return {"error": f"No company matches '{account}'."}
-        c = views.company(cur, cid, {"role": "revops", "id": 0})
+        c = views.company(cur, cid, {"role": "revops", "id": 0}, allowed=False)
         return {k: c[k] for k in ("name", "domain", "lifecycle", "industry", "employees", "country", "fit", "owner", "tests")}
     return _read(run)
 

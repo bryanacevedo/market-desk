@@ -62,9 +62,22 @@ def test_two_person_rules_through_the_api(client, ids):
     with db.tx() as cur:
         v4 = db.val(cur, "select id from icp_versions where number = 4")
         q1 = db.val(cur, "select id from territory_plans where status = 'draft'")
-    assert client.post(f"/api/profile/versions/{v4}/publish", headers=h(ids["Sam"])).status_code == 403
-    assert client.post(f"/api/profile/versions/{v4}/publish", headers=h(ids["Maya"])).status_code == 403
-    assert client.post(f"/api/plans/{q1}/activate", headers=h(ids["Sam"])).status_code == 403
+    assert client.post(f"/api/profile/versions/{v4}/publish", headers=h(ids["Sam"]), json={}).status_code == 403
+    assert client.post(f"/api/profile/versions/{v4}/publish", headers=h(ids["Maya"]), json={}).status_code == 403
+    assert client.post(f"/api/plans/{q1}/activate", headers=h(ids["Sam"]), json={}).status_code == 403
+
+
+def test_a_cross_site_form_cannot_write(client, ids):
+    with db.tx() as cur:
+        v4 = db.val(cur, "select id from icp_versions where number = 4")
+    r = client.post(f"/api/profile/versions/{v4}/publish", headers={**h(ids["Elena"]), "Content-Type": "application/x-www-form-urlencoded"},
+                    content=b"x=1")
+    assert r.status_code == 415
+
+
+def test_sdr_cannot_read_versions_or_findings(client, ids):
+    assert client.get("/api/profile/versions/3", headers=h(ids["Maya"])).status_code == 403
+    assert client.get("/api/findings/1", headers=h(ids["Maya"])).status_code == 403
     assert client.post("/api/proposals/1/dismiss", headers=h(ids["Maya"]), json={"reason": "no"}).status_code in (403, 422)
 
 
@@ -82,6 +95,11 @@ def test_results_webhook_needs_a_signature(client, monkeypatch):
     sig = hmac.new(CONFIG.webhook_secret.encode(), f"{ts}.".encode() + body, hashlib.sha256).hexdigest()
     r = client.post("/api/results", content=body, headers={"X-Timestamp": ts, "X-Signature": sig})
     assert r.status_code == 200 and r.json() == {"read": 0}
+    again = client.post("/api/results", content=body, headers={"X-Timestamp": ts, "X-Signature": sig})
+    assert again.status_code == 409  # a delivery is read once
+    bad = json.dumps({"rows": [{"domain": "x.example", "period_start": "not a date", "period_end": "2026-01-01"}]}).encode()
+    sig2 = hmac.new(CONFIG.webhook_secret.encode(), f"{ts}.".encode() + bad, hashlib.sha256).hexdigest()
+    assert client.post("/api/results", content=bad, headers={"X-Timestamp": ts, "X-Signature": sig2}).status_code == 422
     old = str(int(time.time()) - 900)
     sig = hmac.new(CONFIG.webhook_secret.encode(), f"{old}.".encode() + body, hashlib.sha256).hexdigest()
     assert client.post("/api/results", content=body, headers={"X-Timestamp": old, "X-Signature": sig}).status_code == 401
