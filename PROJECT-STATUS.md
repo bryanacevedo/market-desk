@@ -30,7 +30,7 @@ Every gate was run by a fresh agent that had not seen the build (never a fork), 
 | 7 Eval floors | 2026-11-12 | Passed on the live run and on replay (`tests/test_evals.py`). Safety floors 100%; judge-faithful 85% (stories) and 90% (proposals) after prompt fixes forced by the first run (35% and 55%). Three live runs, $1.92 in all. |
 | 8 Final whole-system goldfish | 2026-11-12 | Two reviewers. Code and demo: 1 blocker (Expand accepted a test that did worse), 11 majors; fixed in the engine (expand needs a lift, drops only weak rules, SOM adds up, capacity only to worked segments, test hours, results by book date, the Events Desk document says only what evidence says). Docs: 7 majors, not yet fixed (see above). |
 | 9 Deep doc sweep | | Not run yet |
-| 10 Deploy and live check | 2026-11-12 | Deployed; `/api/health` ok. Pages not yet walked live. |
+| 10 Deploy and live check | 2026-11-12 | Live at https://market-desk-3kou.onrender.com, serving the redesigned build (Render auto-deploy did not fire on later pushes; deploys are started through Render's API). Checked as a visitor: every page's endpoint as RevOps, the manager and an SDR (all 200; the SDR is refused Market and profile versions and receives no money fields); the Segment, Finding, Company, Proposal and Book sheets' endpoints; the results webhook refuses uploads on the demo; API docs are off; Territories at 375 wide with no sideways scroll. |
 
 ## Proven and not proven
 
