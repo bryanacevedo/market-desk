@@ -1,12 +1,35 @@
+<div align="center">
+
+<img src="docs/mark.svg" width="64" height="64" alt="Market Desk mark">
+
 # Market Desk
 
-**ICP, market and territories.**
+**Who a B2B team sells to, decided from its own deals.**
 
 [![ci](https://github.com/bryanacevedo/market-desk/actions/workflows/ci.yml/badge.svg)](https://github.com/bryanacevedo/market-desk/actions/workflows/ci.yml)
+![tests](https://img.shields.io/badge/tests-53%20on%20Postgres%2018-2F6B4F)
+[![license](https://img.shields.io/badge/license-PolyForm%20Noncommercial-5E6A62)](LICENSE.md)
+[![live demo](https://img.shields.io/badge/live%20demo-Render-A2671F)](https://market-desk-3kou.onrender.com)
 
-Market Desk decides who a B2B team sells to. It learns the ideal customer profile from every deal won, lost and churned, with each rule's win rate, range and verdict; it sizes every segment as ranges, counting only buyers the team can reach and accounts it can actually work in a year; it tiers every company and gives it to someone with hours to work it; it hands that book to [Account Desk](https://github.com/bryanacevedo/account-desk) and Events Desk; and it proposes changes to the profile only when their results say it was wrong, for a manager to publish.
+[Live demo](https://market-desk-3kou.onrender.com) · [How it works](#what-it-does) · [Decisions](docs/DECISIONS.md)
 
-**[Try the live demo](https://market-desk-3kou.onrender.com).** Pick who you are acting as in the sidebar (RevOps, the sales manager, an SDR or an AE). The company, its market, its deals and its sources are invented and simulated. If it has been idle, Render takes up to a minute to wake it. Read "What is real and what is simulated" before trusting any number in it.
+<img src="docs/screens/market-desktop.png" alt="The Market page: segments as a field of tiles sized by reachable market, and each segment's TAM, SAM and SOM drawn as nested ranges" width="900">
+
+</div>
+
+> [!NOTE]
+> **What is real and what is simulated.** The company (Lumen Ledger), its 18,005 companies, three years of deals, call notes, sources and the other desks' results are invented, built from a fixed seed. The statistics, the profile and fit formula, sizing, territories, the handoff files, the two-person rules and the AI checks are real code, tested on real Postgres. Eight relationships were planted in the data on purpose and the desk finds each with its own rules; [the full list](#what-is-real-and-what-is-simulated) says which.
+
+[The rules](#the-rules-it-is-built-on) · [What it does](#what-it-does) · [The other desks](#how-it-fits-with-the-other-two-desks) · [Shared world](#the-shared-world) · [Run it](#run-it) · [The AI, measured](#the-ai-measured) · [Real and simulated](#what-is-real-and-what-is-simulated) · [Not yet proven](#not-yet-proven) · [Words](#words-used-here)
+
+Market Desk learns the ideal customer profile from every deal won, lost and churned, with each rule's win rate, range and verdict; it sizes every segment as ranges, counting only buyers the team can reach and accounts it can actually work in a year; it tiers every company and gives it to someone with hours to work it; it hands that book to [Account Desk](https://github.com/bryanacevedo/account-desk) and [Events Desk](https://github.com/bryanacevedo/events-desk), the two desks that reach out to the accounts; and it proposes changes to the profile only when their results say it was wrong, for a manager to publish.
+
+Pick who you are acting as in the demo's sidebar (RevOps, the sales manager, an SDR or an AE). If it has been idle, Render takes up to a minute to wake it.
+
+<p align="center">
+<img src="docs/screens/evidence-desktop.png" alt="Evidence: each trait's win rate drawn as a range against the others, with a plain verdict" width="49%">
+<img src="docs/screens/territories-desktop.png" alt="Territories: each person's book against their hours" width="49%">
+</p>
 
 ## The rules it is built on
 
