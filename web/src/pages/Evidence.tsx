@@ -1,5 +1,5 @@
 import { Empty, Failed, Fig, Loading, Section, Seg, money, n0, navigate, useData, usePath, withParam } from "../lib";
-import { RangeLine, Verdict } from "../parts";
+import { RangeLine, VERDICT_WORD, Verdict } from "../parts";
 import { openSheet } from "../sheets";
 
 const monthsBetween = (a: string, b: string) => Math.round((new Date(b).getTime() - new Date(a).getTime()) / (30.44 * 86400000));
@@ -29,17 +29,6 @@ export function Evidence() {
         <Fig value={n0(data.run.tested)} label="Values tested" />
         <Fig value={clear} label="Clear" />
       </div>
-      {data.changes.length ? (
-        <Section title="Since the last run" count={data.changes.length}>
-          <div className="ledger">
-            {data.changes.map((c: any) => (
-              <button key={c.id} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) auto" }} onClick={() => openSheet("finding", c.id)}>
-                <span className="t">{c.value_label}</span><Verdict v={c.verdict} />
-              </button>
-            ))}
-          </div>
-        </Section>
-      ) : null}
       <div className="toolbar">
         <Seg label="Verdict" value={verdict} options={VERDICTS} onChange={(v) => navigate(withParam("verdict", v === "all" ? null : v), true)} />
         <select className="select" aria-label="Trait" value={trait} style={{ width: 200 }}
@@ -66,6 +55,17 @@ export function Evidence() {
           ))}
         </div>
       ) : <Empty title="No findings match" />}
+      {data.changes.length ? (
+        <Section title="Since the last run" count={data.changes.length}>
+          <div className="ledger">
+            {data.changes.map((c: any) => (
+              <button key={c.id} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) auto" }} onClick={() => openSheet("finding", c.id)}>
+                <span className="cell-main"><span className="t">{c.value_label}</span>{c.was ? <span className="s">Was {VERDICT_WORD[c.was]?.toLowerCase()}</span> : <span className="s">New</span>}</span><Verdict v={c.verdict} />
+              </button>
+            ))}
+          </div>
+        </Section>
+      ) : null}
     </div>
   );
 }

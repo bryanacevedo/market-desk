@@ -57,7 +57,10 @@ export function App() {
   const route = path === "/more" ? more : routes.find((r) => r.path === path) || routes[0];
   useEffect(() => { if (route) document.title = `${route.label}, Market Desk`; }, [route?.label]);
   useEffect(() => {
-    // A page this role does not have lands on the role's first page.
+    // A page this role does not have lands on the role's first page, once the role is settled.
+    let chosen: string | null = null;
+    try { chosen = localStorage.getItem("acting-as"); } catch { /* private mode */ }
+    if (!chosen) return;
     if (me && route && path !== route.path && path !== "/more") navigate(route.path + window.location.search, true);
   }, [me, path, route]);
   if (meError && !me) return <div className="app"><main className="main"><div className="page"><Failed error={meError} retry={reload} /></div></main></div>;
