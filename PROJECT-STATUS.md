@@ -74,3 +74,7 @@ Nothing from the plan's cut list so far. The MCP server is built (4 read-only to
 
 - MQA uses the tier CRM Desk holds: an account CRM Desk holds with no tier is untiered whatever this desk scored (an account outside the plan), so no mark fails CRM Desk's audit. Tests updated. Suite 151 passed.
 - In the full rehearsal Market Desk's MQA run decided 58 accounts qualify on world 1.2.0 (56 on the first run; engagement from Account Desk's replies and meetings, events, and the world's website forms), and its pull read 1,137 deals from the real CRM Desk and refused 509. The demo replays only the books and the pin, as before: replaying the pull would put 1,137 deals without roles in the demo and break its own deal rules, a question for the deals-import design.
+
+## Prompt caching (2026-11-13, Backlog bl_117, branch `cache/prompt-caching`)
+
+Cache markers, tests and cache-aware cost accounting are in; most prompts are under the 512-token cache minimum, and the live before and after measurement waits on an Anthropic key. See the newest decision.
