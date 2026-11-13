@@ -24,6 +24,8 @@ from .db import J
 
 log = logging.getLogger("market.llm")
 RECORDINGS = Path(__file__).resolve().parents[2] / "evals" / "recordings"
+# Cache reads per million input tokens (Opus 5.5 and Sonnet 5.5 list prices); a model not listed is charged a tenth of its input price.
+CACHE_READ_PRICES = {"claude-opus-5-5": 0.20, "claude-sonnet-5-5": 0.10}
 PRICES = {"claude-opus-5-5": (4.0, 20.0), "claude-sonnet-5-5": (2.0, 10.0), "claude-haiku-5-5": (0.10, 0.50)}
 MODEL = "claude-opus-5-5"
 JUDGE = "claude-sonnet-5-5"
@@ -171,25 +173,41 @@ def wrap_data(text: str) -> str:
     return "<data>" + text.replace("<data>", "&lt;data&gt;").replace("</data>", "&lt;/data&gt;") + "</data>"
 
 
+def system_blocks(task: str) -> list[dict]:
+    """The task's system prompt as one block marked as a cache breakpoint. It is the stable part of the request, so it
+    goes first; the per-request payload is the user message after it. A prefix under the model's minimum (512 tokens on
+    Opus 5.5) is silently not cached: the call still works and bills at the normal rate."""
+    return [{"type": "text", "text": TASKS[task]["system"], "cache_control": {"type": "ephemeral"}}]
+
+
+def usage_of(resp) -> dict:
+    u = resp.usage
+    return {"input_tokens": u.input_tokens, "output_tokens": u.output_tokens, "model": resp.model,
+            "cache_creation_input_tokens": getattr(u, "cache_creation_input_tokens", 0) or 0,
+            "cache_read_input_tokens": getattr(u, "cache_read_input_tokens", 0) or 0}
+
+
 def _live(task: str, payload: dict) -> tuple[dict, dict]:  # pragma: no cover - needs a key
     import anthropic
     spec = TASKS[task]
     client = anthropic.Anthropic()
     resp = client.messages.parse(
-        model=model_of(task), max_tokens=spec["max_tokens"], system=spec["system"],
+        model=model_of(task), max_tokens=spec["max_tokens"], system=system_blocks(task),
         messages=[{"role": "user", "content": json.dumps(payload, default=str)}],
         thinking={"type": "adaptive"}, output_config={"effort": spec["effort"]}, output_format=spec["schema"],
     )
     if resp.stop_reason == "refusal":
         raise RuntimeError(f"model refused the {task} task")
     out = resp.parsed_output.model_dump()
-    usage = {"input_tokens": resp.usage.input_tokens, "output_tokens": resp.usage.output_tokens, "model": resp.model}
-    return out, usage
+    return out, usage_of(resp)
 
 
 def cost_cents(task: str, usage: dict) -> float:
     pin, pout = PRICES.get(model_of(task), (4.0, 20.0))
-    return (usage.get("input_tokens", 0) * pin + usage.get("output_tokens", 0) * pout) / 1_000_000 * 100
+    pread = CACHE_READ_PRICES.get(model_of(task), pin * 0.1)
+    # Uncached input at the list price, cache writes at 1.25x, cache reads at the cache-read price.
+    return (usage.get("input_tokens", 0) * pin + usage.get("cache_creation_input_tokens", 0) * pin * 1.25
+            + usage.get("cache_read_input_tokens", 0) * pread + usage.get("output_tokens", 0) * pout) / 1_000_000 * 100
 
 
 def call(task: str, payload: dict, *, live: bool | None = None, record: bool = False) -> tuple[dict, str, dict]:
@@ -215,6 +233,6 @@ def run(cur, task: str, payload: dict) -> dict:
     out, source, usage = call(task, payload)
     db.run(cur, """insert into llm_calls (task, prompt_version, model, input_hash, input_tokens, output_tokens, cost_cents,
                    source, output) values (%s,%s,%s,%s,%s,%s,%s,%s,%s)""", task, prompt_version(task), model_of(task),
-           input_hash(task, payload), usage.get("input_tokens", 0), usage.get("output_tokens", 0),
-           cost_cents(task, usage) if source == "live" else 0, source, J(out))
+           input_hash(task, payload), usage.get("input_tokens", 0) + usage.get("cache_creation_input_tokens", 0) + usage.get("cache_read_input_tokens", 0),
+           usage.get("output_tokens", 0), cost_cents(task, usage) if source == "live" else 0, source, J(out))
     return out
