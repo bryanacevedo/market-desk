@@ -95,6 +95,7 @@ No results back from Account Desk yet
 Not sent to Account Desk
 Nothing goes to CRM Desk now. The new tiers go with the next plan you activate.
 Nothing goes to CRM Desk now. The tiers go with the next plan you activate.
+Nothing in this territory is left to move to this person
 Nothing to roll back to
 Only a draft can be published
 Open deals leave their owner
@@ -105,6 +106,7 @@ Overdue by # ##
 Page # of #
 Points the rule adds to, or removes from, a company's fit score out of 100.
 Points this rule adds to or removes from the company's score.
+Reason, sent to the other managers and RevOps
 Rolled back. Every company is rescored.
 Share held back in a test
 Share of a test's accounts kept unworked so the worked ones can be compared.
@@ -141,6 +143,7 @@ The territory's average expected value per person.
 The test has run its course and its result is in.
 The test is still running and has too few meetings to read a difference.
 The test was clear, so a change to give this segment weight is open on Changes.
+This becomes # proposals of # accounts at most, decided one at a time.
 Tick: the win rate measured
 Tier A accounts in the person's book.
 Tier A accounts someone owns in this plan, out of every tier A account, including regions no territory covers.

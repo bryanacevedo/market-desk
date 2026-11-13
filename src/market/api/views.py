@@ -206,14 +206,16 @@ def history(cur, actions: tuple[str, ...]) -> list[dict]:
             n = db.val(cur, "select number from icp_versions where id = %s", int(r["object_id"]))
             out.append({"at": r["at"], "who": r["actor"], "what": f"Published version {n}"})
         elif r["action"] == "profile_rolled_back":
-            out.append({"at": r["at"], "who": r["actor"], "what": f"Rolled back version {d.get('number')} to version {d.get('restored_number')}"})
+            out.append({"at": r["at"], "who": r["actor"], "what": f"Rolled back version {d.get('number')} to version {d.get('restored_number')}",
+                        "note": d.get("reason")})
         elif r["action"] == "plan_activated":
             n = db.val(cur, "select name from territory_plans where id = %s", int(r["object_id"]))
             out.append({"at": r["at"], "who": r["actor"], "what": f"Activated {n}", "figure": d.get("changes")})
         elif r["action"] == "plan_rolled_back":
             a = db.val(cur, "select name from territory_plans where id = %s", int(r["object_id"]))
             b = db.val(cur, "select name from territory_plans where id = %s", int(d.get("restored")))
-            out.append({"at": r["at"], "who": r["actor"], "what": f"Rolled back {a} to {b}", "figure": d.get("changes")})
+            out.append({"at": r["at"], "who": r["actor"], "what": f"Rolled back {a} to {b}", "figure": d.get("changes"),
+                        "note": d.get("reason")})
     return out
 
 
@@ -245,7 +247,9 @@ def move_options(cur) -> dict:
     people = db.all(cur, "select id, name, role from users where active and role in ('ae', 'sdr') order by role, name")
     terrs = db.all(cur, """select t.key, t.label, t.rule from territories t join territory_plans p on p.id = t.plan and p.status = 'active'
                            order by t.id""")
-    return {"people": people, "territories": [{"key": t["key"], "label": t["label"], "people": t["rule"]["people"]} for t in terrs],
+    return {"people": people, "territories": [{"key": t["key"], "label": t["label"], "people": t["rule"]["people"],
+                                              "regions": t["rule"].get("region_groups", []), "segments": [C.SEGMENT_LABEL.get(k, k) for k in t["rule"].get("segments", [])]}
+                                             for t in terrs],
             "today": db.val(cur, "select app_now()::date")}
 
 

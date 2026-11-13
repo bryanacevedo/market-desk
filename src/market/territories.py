@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 from datetime import date
 
-from . import audit, db
+from . import audit, db, notices
 from . import catalog as C
 from .db import J
 
@@ -374,23 +374,27 @@ def rollback_preview(cur, by: dict) -> dict:
             "waiting_batches": st["waiting"], "batches": crm.batch_count(cur, prev["id"])}
 
 
-def rollback(cur, by: dict) -> int:
+def rollback(cur, by: dict, reason: str = "") -> int:
     """Deactivate the active plan and bring back the one it replaced. Waiting batches are cancelled; the earlier plan's
     books are sent in their place. Batches the CRM already took stay there until the earlier plan's books overwrite them."""
     if by["role"] != "manager":
         raise PermissionError("A manager rolls a plan back.")
+    reason = (reason or "").strip()
+    if len(reason) < 3:
+        raise ValueError("A rollback needs a reason.")
     cur_plan, prev = _rollback_target(cur)
     rows = db.all(cur, """select a.company, a.owner as from_owner, b.owner as to_owner from assignments a
                           left join assignments b on b.plan = %s and b.company = a.company
                           where a.plan = %s and a.owner is distinct from b.owner""", prev["id"], cur_plan["id"])
-    db.run(cur, "update territory_plans set status = 'retired', rolled_back_by = %s, rolled_back_at = app_now() where id = %s",
-           by["id"], cur_plan["id"])
+    db.run(cur, """update territory_plans set status = 'retired', rolled_back_by = %s, rolled_back_at = app_now(), rolled_back_reason = %s
+                   where id = %s""", by["id"], reason, cur_plan["id"])
     db.run(cur, "update territory_plans set status = 'active', restored_by = %s, restored_at = app_now() where id = %s",
            by["id"], prev["id"])
     for r in rows:
         audit.log(cur, by["name"], "owner_moved", "company", r["company"], {"plan": prev["id"], "from": r["from_owner"],
                   "to": r["to_owner"], "rollback": True}, actor_id=by["id"])
-    audit.log(cur, by["name"], "plan_rolled_back", "plan", cur_plan["id"], {"restored": prev["id"], "changes": len(rows)}, actor_id=by["id"])
+    audit.log(cur, by["name"], "plan_rolled_back", "plan", cur_plan["id"], {"restored": prev["id"], "changes": len(rows), "reason": reason}, actor_id=by["id"])
+    notices.rolled_back(cur, "plan_rolled_back", by, subject=cur_plan["name"], restored=prev["name"], reason=reason, path="/territories")
     # A test that started while the rolled-back plan was active keeps its worked accounts.
     for t in db.all(cur, "select id from segment_tests where status = 'running'"):
         place_test_members(cur, t["id"])

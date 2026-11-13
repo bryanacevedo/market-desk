@@ -4,7 +4,7 @@ from __future__ import annotations
 import copy
 from datetime import datetime
 
-from . import audit, db, jobs
+from . import audit, db, jobs, notices
 from . import catalog as C
 from .db import J
 
@@ -90,19 +90,25 @@ def rollback_target(cur) -> tuple[dict, dict] | None:
     return now, db.one(cur, "select * from icp_versions where id = %s", now["replaced"])
 
 
-def rollback(cur, by: dict) -> int:
+def rollback(cur, by: dict, reason: str = "") -> int:
     """Publish the version that the published one replaced, again. The published one is retired; both stay in the history.
     The restored version keeps its original two-person approval; the restore is recorded with who and when."""
     if by["role"] != "manager":
         raise PermissionError("A manager rolls a profile back.")
+    reason = (reason or "").strip()
+    if len(reason) < 3:
+        raise ValueError("A rollback needs a reason.")
     t = rollback_target(cur)
     if t is None:
         raise ValueError("There is no earlier version to go back to.")
     now, prev = t
-    db.run(cur, "update icp_versions set status = 'retired', rolled_back_by = %s, rolled_back_at = app_now() where id = %s", by["id"], now["id"])
+    db.run(cur, """update icp_versions set status = 'retired', rolled_back_by = %s, rolled_back_at = app_now(), rolled_back_reason = %s
+                   where id = %s""", by["id"], reason, now["id"])
     db.run(cur, "update icp_versions set status = 'published', restored_by = %s, restored_at = app_now() where id = %s", by["id"], prev["id"])
     audit.log(cur, by["name"], "profile_rolled_back", "icp_version", now["id"],
-              {"number": now["number"], "restored": prev["id"], "restored_number": prev["number"]}, actor_id=by["id"])
+              {"number": now["number"], "restored": prev["id"], "restored_number": prev["number"], "reason": reason}, actor_id=by["id"])
+    notices.rolled_back(cur, "profile_rolled_back", by, subject=f"ICP version {now['number']}", restored=f"version {prev['number']}",
+                        reason=reason, path="/profile")
     from .fit import score_version
     score_version(cur, prev["id"])
     return prev["id"]

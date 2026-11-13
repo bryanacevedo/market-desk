@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { X } from "@phosphor-icons/react";
 import { api } from "./api";
-import { Empty, Fig, Section, Status, day, n0, navigate, toast, useBusy, useData, T } from "./lib";
+import { Empty, Fig, Section, Seg, Status, day, n0, navigate, toast, useBusy, useData, T } from "./lib";
 import { Tier } from "./parts";
 import { Frame, Title, Wrap, closeSheet, openSheet } from "./sheets";
 
@@ -80,12 +80,13 @@ export function PublishSheet({ id }: { id: string }) {
 export function RollbackSheet({ id }: { id: string }) {
   const [busy, run] = useBusy();
   const icp = id === "icp";
+  const [why, setWhy] = useState("");
   return (
     <Wrap kind="rollback" path={icp ? "/api/profile/rollback-preview" : "/api/plans/rollback-preview"}>{(p) => !p.available ? (
       <Frame kind="rollback"><Empty title="Nothing to roll back to" /></Frame>
     ) : (
-      <Frame kind="rollback" foot={<Foot busy={busy} label="Roll back" ok={p.can_roll_back}
-        onGo={() => run(async () => { await api(icp ? "/api/profile/rollback" : "/api/plans/rollback", { method: "POST" }); closeSheet(); },
+      <Frame kind="rollback" foot={<Foot busy={busy} label="Roll back" ok={p.can_roll_back && why.trim().length >= 3}
+        onGo={() => run(async () => { await api(icp ? "/api/profile/rollback" : "/api/plans/rollback", { method: "POST", body: { reason: why.trim() } }); closeSheet(); },
           icp ? "Rolled back. Every company is rescored." : "Rolled back. Owners restored.")} />}>
         <Title sub={icp ? `Replaces version ${p.from}` : `Replaces ${p.from}`}>
           Go back to {icp ? `version ${p.to}` : p.to}</Title>
@@ -113,6 +114,9 @@ export function RollbackSheet({ id }: { id: string }) {
               : <div className="small">No CRM is set, so nothing is sent.</div>}
           </>
         )}
+        <label className="form-field"><span className="small mute">Reason, sent to the other managers and RevOps</span>
+          <textarea className="input" rows={2} maxLength={500} value={why} onChange={(e) => setWhy(e.target.value)} />
+        </label>
       </Frame>
     )}</Wrap>
   );
@@ -134,6 +138,16 @@ function NewTransfer({ first }: { first: number | null }) {
   const [reason, setReason] = useState("");
   const [q, setQ] = useState("");
   const [found, setFound] = useState<any[]>([]);
+  const [mode, setMode] = useState<"list" | "rule">("list");
+  const [src, setSrc] = useState("");
+  const [match, setMatch] = useState<any>(null);
+  useEffect(() => {
+    if (mode !== "rule" || !src) { setMatch(null); return; }
+    let live = true;
+    api<any>(`/api/move-proposals/territory-preview?territory=${encodeURIComponent(src)}${to ? `&to=${to}` : ""}`)
+      .then((r) => { if (live) setMatch(r); }).catch(() => { if (live) setMatch(null); });
+    return () => { live = false; };
+  }, [mode, src, to]);
   useEffect(() => {
     if (first) api<any>(`/api/move-proposals/candidates?only=${first}`).then((r) => setPicked(r.accounts)).catch(() => undefined);
   }, [first]);
@@ -149,14 +163,21 @@ function NewTransfer({ first }: { first: number | null }) {
   const takers = opts.territories.filter((t: any) => t.people.includes(toId));
   const date = on || opts.today;
   const clash = picked.filter((a) => a.owner_id === toId).length;
-  const ok = !!to && !!reason.trim() && reason.trim().length >= 3 && picked.length > 0 && !clash && date >= opts.today;
+  const base = !!to && reason.trim().length >= 3 && date >= opts.today;
+  const ok = mode === "list" ? base && picked.length > 0 && !clash : base && !!match && match.eligible > 0;
   const submit = () => run(async () => {
+    if (mode === "rule") {
+      const r = await api<any>("/api/move-proposals/by-territory", { method: "POST", body: { territory: src, to: toId, to_territory: terr || null, reason, effective_on: date } });
+      if (r.ids.length === 1) openSheet("transfer", r.ids[0]); else closeSheet();
+      return;
+    }
     const r = await api<any>("/api/move-proposals", { method: "POST", body: { companies: picked.map((a) => a.id), to: toId, territory: terr || null, reason, effective_on: date } });
     openSheet("transfer", r.id);
-  }, "Proposed.");
+  }, mode === "rule" && match && match.proposals > 1 ? `Proposed in ${match.proposals} parts.` : "Proposed.");
   return (
-    <Frame kind="transfer" foot={<Foot busy={busy} label="Propose" ok={ok} onGo={submit} />}>
+    <Frame kind="transfer" foot={<Foot busy={busy} label={mode === "rule" && match && match.proposals > 1 ? `Propose ${match.proposals} moves` : "Propose"} ok={ok} onGo={submit} />}>
       <Title>Propose a move</Title>
+      <Seg label="Choose accounts" value={mode} options={[["list", "By account"], ["rule", "By territory"]]} onChange={setMode} />
       <label className="form-field"><span className="small mute">Move to</span>
         <select className="select" value={to} onChange={(e) => { setTo(e.target.value); setTerr(""); }}>
           <option value="">Choose a person</option>
@@ -177,7 +198,27 @@ function NewTransfer({ first }: { first: number | null }) {
       <label className="form-field"><span className="small mute">Reason</span>
         <textarea className="input" rows={3} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} />
       </label>
-      <Section title="Accounts" count={picked.length}>
+      {mode === "rule" ? (
+        <Section title="Territory">
+          <label className="form-field"><span className="small mute">Move everything in</span>
+            <select className="select" value={src} onChange={(e) => setSrc(e.target.value)}>
+              <option value="">Choose a territory</option>
+              {opts.territories.map((t: any) => <option key={t.key} value={t.key}>{t.label}</option>)}
+            </select>
+          </label>
+          {match ? <>
+            <div className="small mute">{match.regions.join(", ")}; {match.segments.join(", ")}</div>
+            <div className="figs">
+              <Fig sm value={n0(match.matched)} label="Accounts match the rule" />
+              <Fig sm value={n0(match.eligible)} label="Will move" />
+              {match.already_there ? <Fig sm value={n0(match.already_there)} label="Already theirs" /> : null}
+              {match.in_open_proposal ? <Fig sm value={n0(match.in_open_proposal)} label="In another open proposal" /> : null}
+            </div>
+            {match.proposals > 1 ? <div className="small">This becomes {match.proposals} proposals of {n0(match.cap)} accounts at most, decided one at a time.</div> : null}
+            {match.eligible === 0 ? <Status kind="stop">Nothing in this territory is left to move to this person</Status> : null}
+          </> : src ? <Empty title="Counting" /> : null}
+        </Section>
+      ) : <Section title="Accounts" count={picked.length}>
         <div className="actions">
           <input className="input" style={{ flex: "1 1 180px" }} placeholder="Find by name or domain" aria-label="Find an account" value={q} onChange={(e) => setQ(e.target.value)} />
           <select className="select" aria-label="Add everything one person owns" value="" onChange={(e) => {
@@ -204,7 +245,7 @@ function NewTransfer({ first }: { first: number | null }) {
           ))}
         </div> : <Empty title="No accounts chosen" />}
         {clash ? <Status kind="stop">{`${n0(clash)} already belong to this person`}</Status> : null}
-      </Section>
+      </Section>}
     </Frame>
   );
 }
@@ -230,6 +271,7 @@ function TransferView({ id }: { id: string }) {
         <dl className="kv">
           <dt><T>Effective</T></dt><dd>{day(p.effective_on)}</dd>
           {p.to_territory ? <><dt><T>Territory</T></dt><dd>{p.to_territory}</dd></> : null}
+          {p.by_territory ? <><dt><T>Accounts</T></dt><dd>Everything in {p.by_territory}</dd></> : null}
           <dt><T>Reason</T></dt><dd>{p.reason}</dd>
           {p.decided_by ? <><dt><T>{p.status === "approved" ? "Approved by" : "Rejected by"}</T></dt><dd>{p.decided_by}, {day(p.decided_at)}</dd></> : null}
           {p.decision_note ? <><dt><T>Why</T></dt><dd>{p.decision_note}</dd></> : null}
@@ -255,7 +297,7 @@ export function History({ rows, figure }: { rows: any[]; figure?: string }) {
     <div className="ledger">
       {rows.map((h: any, i: number) => (
         <div key={i} className="row" style={{ gridTemplateColumns: figure ? "110px minmax(0,1.4fr) minmax(0,0.8fr) 110px" : "110px minmax(0,1.4fr) minmax(0,0.8fr)" }}>
-          <span className="mute" data-label="When">{day(h.at)}</span><span className="cell-main"><span className="t">{h.what}</span></span><span className="clip" data-label="By">{h.who}</span>
+          <span className="mute" data-label="When">{day(h.at)}</span><span className="cell-main"><span className="t">{h.what}</span>{h.note ? <span className="s">{h.note}</span> : null}</span><span className="clip" data-label="By">{h.who}</span>
           {figure ? <span className="num" data-label={figure}>{h.figure !== undefined && h.figure !== null ? n0(h.figure) : ""}</span> : null}
         </div>
       ))}

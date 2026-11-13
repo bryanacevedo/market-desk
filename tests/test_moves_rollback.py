@@ -150,8 +150,8 @@ def test_rollback_restores_the_earlier_plan_and_records_who_and_when(cur, who, m
     pre = territories.rollback_preview(cur, who["Elena"])
     assert pre["available"] and pre["to"] == first["name"] and pre["owner_changes"] > 0 and pre["waiting_batches"] == st["waiting"]
     with pytest.raises(PermissionError):
-        territories.rollback(cur, who["Sam"])
-    territories.rollback(cur, who["Elena"])
+        territories.rollback(cur, who["Sam"], "Because")
+    territories.rollback(cur, who["Elena"], "Because")
     now = _active(cur)
     assert now["id"] == first["id"] and now["restored_by"] == who["Elena"]["id"] and now["restored_at"]
     gone = db.one(cur, "select * from territory_plans where id = %s", draft)
@@ -171,7 +171,7 @@ def test_rollback_reports_batches_already_sent(cur, who, monkeypatch):
     db.run(cur, "update crm_outbox set status = 'sent', sent_at = app_now() where id = (select min(id) from crm_outbox where plan = %s)", draft)
     pre = territories.rollback_preview(cur, who["Elena"])
     assert pre["sent_batches"] == 1 and pre["sent_accounts"] > 0
-    territories.rollback(cur, who["Elena"])
+    territories.rollback(cur, who["Elena"], "Because")
     assert crm.send_state(cur, draft)["sent"] == 1     # what the CRM took stays taken
 
 
@@ -179,7 +179,7 @@ def test_there_is_nothing_to_roll_back_to_on_a_fresh_plan(cur, who):
     db.run(cur, "update territory_plans set replaced = null where status = 'active'")
     assert territories.rollback_preview(cur, who["Elena"]) == {"available": False}
     with pytest.raises(ValueError):
-        territories.rollback(cur, who["Elena"])
+        territories.rollback(cur, who["Elena"], "Because")
 
 
 def test_publish_rollback_republishes_the_version_it_replaced(cur, who):
@@ -189,8 +189,8 @@ def test_publish_rollback_republishes_the_version_it_replaced(cur, who):
     profiles.publish(cur, draft["id"], by, rescore_now=True)
     assert db.val(cur, "select replaced from icp_versions where id = %s", draft["id"]) == pub["id"]
     with pytest.raises(PermissionError):
-        profiles.rollback(cur, who["Sam"])
-    profiles.rollback(cur, who["Elena"])
+        profiles.rollback(cur, who["Sam"], "Because")
+    profiles.rollback(cur, who["Elena"], "Because")
     assert profiles.published(cur)["id"] == pub["id"]
     back = db.one(cur, "select * from icp_versions where id = %s", pub["id"])
     assert back["restored_by"] == who["Elena"]["id"] and back["restored_at"]
@@ -218,8 +218,167 @@ def test_the_api_previews_and_refuses_the_wrong_person(client, demo):
     assert client.get(f"/api/plans/{draft}/activate-preview", headers=h("Maya")).status_code == 403
     pv = client.get(f"/api/profile/versions/{vdraft}/publish-preview", headers=h("Elena")).json()
     assert pv["companies"] > 10000 and pv["replaces"] >= 1 and "tier_moves" in pv
-    assert client.post("/api/plans/rollback", json={}, headers=h("Sam")).status_code == 403
-    assert client.post("/api/profile/rollback", json={}, headers=h("Sam")).status_code == 403
+    assert client.post("/api/plans/rollback", json={"reason": "Because"}, headers=h("Sam")).status_code == 403
+    assert client.post("/api/profile/rollback", json={"reason": "Because"}, headers=h("Sam")).status_code == 403
     assert client.post("/api/move-proposals", json={"companies": [1], "to": ids["Grace"], "reason": "x"}, headers=h("Sam")).status_code == 422
     assert client.get("/api/move-proposals", headers=h("Sam")).status_code == 200
     assert client.get("/api/move-proposals/options", headers=h("Sam")).json()["people"]
+
+
+# ---------------------------------------------------------------- rollback: a reason, and nobody is left unaware
+
+def test_a_rollback_needs_a_reason(cur, who):
+    draft = db.val(cur, "select id from territory_plans where status = 'draft' limit 1")
+    territories.activate(cur, draft, who["Elena"])
+    with pytest.raises(ValueError, match="reason"):
+        territories.rollback(cur, who["Elena"], "  ")
+    with pytest.raises(ValueError, match="reason"):
+        territories.rollback(cur, who["Elena"])
+    assert _active(cur)["id"] == draft
+
+
+def test_a_profile_rollback_needs_a_reason(cur, who):
+    pub = profiles.published(cur)
+    draft = db.one(cur, "select * from icp_versions where status = 'draft' order by number limit 1")
+    by = who["Elena"] if draft["author"] != who["Elena"]["id"] else who["Sam"]
+    profiles.publish(cur, draft["id"], by, rescore_now=False)
+    with pytest.raises(ValueError, match="reason"):
+        profiles.rollback(cur, who["Elena"], "")
+    assert profiles.published(cur)["id"] == draft["id"] and pub["id"] != draft["id"]
+
+
+def test_a_rollback_is_told_to_the_others_with_its_reason_and_shown_in_history(cur, who):
+    from market import notices
+    from market.api import views
+    second = db.one(cur, """insert into users (name, email, role, started_on) values ('Noor Haddad', 'noor@example.test', 'manager', '2024-01-01')
+                            returning *""")
+    draft = db.val(cur, "select id from territory_plans where status = 'draft' limit 1")
+    territories.activate(cur, draft, who["Elena"])
+    territories.rollback(cur, second, "It moved the wrong accounts")
+    other = who["Elena"]
+    assert notices.unseen(cur, second) == []                             # not the one who did it
+    for person in (other, who["Sam"]):                                   # the other manager, and RevOps
+        got = notices.unseen(cur, person)
+        assert len(got) == 1 and "It moved the wrong accounts" in got[0]["what"] and "Noor Haddad rolled back" in got[0]["what"]
+        assert got[0]["path"] == "/territories"
+    assert [u for u in who.values() if u["role"] not in ("manager", "revops") and notices.unseen(cur, u)] == []
+    notices.see(cur, got[0]["notice"], who["Sam"])
+    assert notices.unseen(cur, who["Sam"]) == [] and len(notices.unseen(cur, other)) == 1
+    hist = views.history(cur, ("plan_rolled_back",))
+    assert hist[0]["note"] == "It moved the wrong accounts" and hist[0]["who"] == "Noor Haddad"
+    assert db.val(cur, "select rolled_back_reason from territory_plans where id = %s", draft) == "It moved the wrong accounts"
+
+
+def test_a_profile_rollback_notice_and_history(cur, who):
+    from market import notices
+    from market.api import views
+    draft = db.one(cur, "select * from icp_versions where status = 'draft' order by number limit 1")
+    by = who["Elena"] if draft["author"] != who["Elena"]["id"] else who["Sam"]
+    profiles.publish(cur, draft["id"], by, rescore_now=False)
+    profiles.rollback(cur, who["Elena"], "Scores dropped for good fits")
+    got = notices.unseen(cur, who["Sam"])
+    assert got and got[0]["path"] == "/profile" and "Scores dropped for good fits" in got[0]["what"]
+    assert views.history(cur, ("profile_rolled_back",))[0]["note"] == "Scores dropped for good fits"
+
+
+def test_the_api_takes_the_reason_and_shows_the_notice(client, demo):
+    with db.tx() as cur:
+        ids = {u["name"].split()[0]: u["id"] for u in db.all(cur, "select id, name from users")}
+    h = lambda who: {"X-Acting-As": str(ids[who]), "content-type": "application/json"}  # noqa: E731
+    assert client.post("/api/plans/rollback", json={}, headers=h("Elena")).status_code == 422
+    assert client.post("/api/profile/rollback", json={"reason": "x"}, headers=h("Elena")).status_code == 422
+    with db.tx() as cur:
+        from market import notices
+
+        notices.rolled_back(cur, "plan_rolled_back", {"id": ids["Elena"]}, subject="A", restored="B", reason="Test reason", path="/territories")
+    me = client.get("/api/me", headers=h("Sam")).json()
+    mine = [w for w in me["waiting"] if w.get("notice")]
+    assert mine and "Test reason" in mine[0]["what"]
+    assert client.post(f"/api/notices/{mine[0]['notice']}/seen", json={}, headers=h("Sam")).status_code == 200
+    assert not [w for w in client.get("/api/me", headers=h("Sam")).json()["waiting"] if w.get("notice") == mine[0]["notice"]]
+    with db.tx() as cur:
+        db.run(cur, "delete from notices")
+
+
+# ---------------------------------------------------------------- move by territory rule
+
+def _territory(cur):
+    """The active plan's territory holding the most accounts, with a seller who is not its owner of all of them."""
+    a = _active(cur)
+    t = db.one(cur, """select t.id, t.key, t.label, count(*) n from territories t join assignments x on x.territory = t.id
+                       join companies c on c.id = x.company and not c.sole_trader
+                       where t.plan = %s group by t.id order by n desc limit 1""", a["id"])
+    to = db.val(cur, "select id from users where role = 'sdr' and active order by id limit 1")
+    return t, to
+
+
+def test_rule_matches_counts_what_the_territory_holds(cur, who):
+    t, to = _territory(cur)
+    m = moves.rule_matches(cur, t["key"], to)
+    assert m["matched"] == t["n"] and m["territory"] == t["label"] and m["regions"] and m["segments"]
+    assert m["matched"] == m["eligible"] + m["already_there"] + m["in_open_proposal"] == len(m["ids"]) + m["already_there"] + m["in_open_proposal"]
+    assert m["proposals"] == -(-m["eligible"] // moves.MAX_ACCOUNTS)
+    with pytest.raises(ValueError, match="not in the active plan"):
+        moves.rule_matches(cur, "nowhere")
+
+
+def test_a_move_by_territory_takes_every_account_the_rule_holds(cur, who):
+    t, to = _territory(cur)
+    m = moves.rule_matches(cur, t["key"], to)
+    ids = moves.propose_by_territory(cur, who["Sam"], territory=t["key"], to_owner=to, reason="Cover the whole territory", effective_on=_tomorrow(cur))
+    assert len(ids) == m["proposals"]
+    held = sum(db.val(cur, "select count(*) from move_proposal_accounts where proposal = %s", i) for i in ids)
+    assert held == m["eligible"] and all(db.val(cur, "select count(*) from move_proposal_accounts where proposal = %s", i) <= 200 for i in ids)
+    p = moves.detail(cur, ids[0], who["Elena"])
+    assert p["by_territory"] == t["label"] and p["can_decide"]
+    # the same accounts cannot be proposed again while these are open
+    assert moves.rule_matches(cur, t["key"], to)["eligible"] == 0
+
+
+def test_above_the_cap_a_territory_move_splits(cur, who, monkeypatch):
+    t, to = _territory(cur)
+    monkeypatch.setattr(moves, "MAX_ACCOUNTS", 40)
+    m = moves.rule_matches(cur, t["key"], to)
+    assert m["eligible"] > 80 and m["proposals"] == -(-m["eligible"] // 40) > 2
+    ids = moves.propose_by_territory(cur, who["Sam"], territory=t["key"], to_owner=to, reason="Cover the territory", effective_on=_tomorrow(cur))
+    sizes = [db.val(cur, "select count(*) from move_proposal_accounts where proposal = %s", i) for i in ids]
+    assert len(ids) == m["proposals"] and sum(sizes) == m["eligible"] and max(sizes) == 40
+    assert moves.detail(cur, ids[1], who["Elena"])["reason"].endswith(f"(part 2 of {len(ids)})")
+
+
+@pytest.mark.parametrize("crmdesk", [False, True])
+def test_a_territory_move_follows_the_usual_approval_and_activation(cur, who, monkeypatch, crmdesk):
+    if crmdesk:
+        monkeypatch.setenv("CRM", "crmdesk")
+    else:
+        monkeypatch.delenv("CRM", raising=False)
+    t, to = _territory(cur)
+    monkeypatch.setattr(moves, "MAX_ACCOUNTS", 25)
+    pid = moves.propose_by_territory(cur, who["Elena"], territory=t["key"], to_owner=to, reason="A new hire", effective_on=_tomorrow(cur))[0]
+    with pytest.raises(PermissionError):
+        moves.approve(cur, pid, who["Elena"])                                  # not the proposer
+    plan = moves.approve(cur, pid, who["Sam"])
+    pre = territories.activation_preview(cur, plan, who["Elena"])
+    assert pre["owner_changes"] == 25 and pre["crm"] is crmdesk
+    before = db.val(cur, "select count(*) from crm_outbox where status = 'queued'")
+    territories.activate(cur, plan, who["Elena"])
+    assert (db.val(cur, "select count(*) from crm_outbox where status = 'queued'") - before > 0) is crmdesk
+    assert db.val(cur, "select count(*) from assignments where plan = %s and owner = %s", plan, to) >= 25
+
+
+def test_the_api_previews_and_proposes_by_territory(client, demo):
+    with db.tx() as cur:
+        ids = {u["name"].split()[0]: u["id"] for u in db.all(cur, "select id, name from users")}
+        t, to = _territory(cur)
+        day = str(_tomorrow(cur))
+    h = lambda who: {"X-Acting-As": str(ids[who]), "content-type": "application/json"}  # noqa: E731
+    r = client.get(f"/api/move-proposals/territory-preview?territory={t['key']}&to={to}", headers=h("Sam")).json()
+    assert r["matched"] == t["n"] and "ids" not in r and r["eligible"] > 0
+    assert client.get(f"/api/move-proposals/territory-preview?territory={t['key']}", headers=h("Maya")).status_code == 403
+    body = {"territory": t["key"], "to": to, "reason": "Cover it", "effective_on": day}
+    assert client.post("/api/move-proposals/by-territory", json=body, headers=h("Maya")).status_code == 403
+    got = client.post("/api/move-proposals/by-territory", json=body, headers=h("Sam"))
+    assert got.status_code == 200 and len(got.json()["ids"]) == r["proposals"]
+    assert client.post("/api/move-proposals/by-territory", json=body, headers=h("Sam")).status_code == 422   # nothing left to move
+    with db.tx() as cur:
+        db.run(cur, "delete from move_proposals")

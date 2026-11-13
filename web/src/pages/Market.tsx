@@ -1,3 +1,4 @@
+import { api } from "../api";
 import { Failed, Fig, Loading, Seg, Status, T, n0, navigate, pct, useData, usePath, withParam, Tip } from "../lib";
 import { MarketField, Nest, NestAxis, RangeLine, RateAxis, TierMix, moneyRange, moneyScale } from "../parts";
 import { openSheet } from "../sheets";
@@ -15,7 +16,7 @@ export function Market() {
   const by = params.get("by") === "region" ? "region_group" : "segment";
   const { data, error, reload } = useData<{ by: string; rows: Row[]; figures: any }>(`/api/market?by=${by}`);
   const me = useData<any>("/api/me").data;
-  const waiting: { what: string; path: string }[] = me?.waiting || [];
+  const waiting: { what: string; path: string; notice?: number }[] = me?.waiting || [];
   const head = (
     <>
       <div className="head">
@@ -25,7 +26,10 @@ export function Market() {
       </div>
       {waiting.length ? (
         <div className="notice waiting"><Status kind="wait">Waiting on you</Status>
-          {waiting.map((w, i) => <button key={i} className="link" onClick={() => navigate(w.path)}>{w.what}</button>)}
+          {waiting.map((w, i) => <button key={i} className="link" onClick={() => {
+            if (w.notice) api(`/api/notices/${w.notice}/seen`, { method: "POST", body: {} }).catch(() => undefined);
+            navigate(w.path);
+          }}>{w.what}</button>)}
         </div>
       ) : null}
     </>

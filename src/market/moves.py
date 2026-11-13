@@ -6,6 +6,7 @@ from __future__ import annotations
 from datetime import date
 
 from . import audit, db, territories
+from . import catalog as C
 
 MAX_ACCOUNTS = 200
 
@@ -15,7 +16,7 @@ def _user(cur, uid: int) -> dict | None:
 
 
 def propose(cur, by: dict, *, companies: list[int], to_owner: int, reason: str, effective_on: date,
-            to_territory: str | None = None) -> int:
+            to_territory: str | None = None, by_territory: str | None = None) -> int:
     if by["role"] not in ("revops", "manager"):
         raise PermissionError("A manager or RevOps proposes a move.")
     reason = (reason or "").strip()
@@ -50,13 +51,54 @@ def propose(cur, by: dict, *, companies: list[int], to_owner: int, reason: str, 
                           join companies c on c.id = x.company where x.company = any(%s) limit 1""", companies)
     if busy:
         raise ValueError(f"{busy['name']} is already in an open proposal.")
-    pid = db.val(cur, """insert into move_proposals (to_owner, to_territory, reason, effective_on, proposed_by)
-                         values (%s,%s,%s,%s,%s) returning id""", to_owner, to_territory or None, reason, effective_on, by["id"])
+    pid = db.val(cur, """insert into move_proposals (to_owner, to_territory, reason, effective_on, proposed_by, by_territory)
+                         values (%s,%s,%s,%s,%s,%s) returning id""", to_owner, to_territory or None, reason, effective_on, by["id"],
+                         by_territory)
     for r in rows:
         db.run(cur, "insert into move_proposal_accounts (proposal, company, from_owner) values (%s,%s,%s)", pid, r["id"], r["owner"])
     audit.log(cur, by["name"], "move_proposed", "move_proposal", pid,
-              {"accounts": len(rows), "to": to_owner, "effective_on": str(effective_on), "reason": reason}, actor_id=by["id"])
+              {"accounts": len(rows), "to": to_owner, "effective_on": str(effective_on), "reason": reason,
+               "by_territory": by_territory}, actor_id=by["id"])
     return pid
+
+
+def rule_matches(cur, territory: str, to_owner: int | None = None) -> dict:
+    """The accounts a territory's rule (its regions and segments) holds in the active plan, counted for a move to one person.
+    Accounts that already belong to the new owner, or sit in an open proposal, are left out and counted apart."""
+    plan = db.one(cur, "select id from territory_plans where status = 'active'")
+    if not plan:
+        raise ValueError("There is no active plan to move accounts in.")
+    t = db.one(cur, "select id, label, rule from territories where plan = %s and key = %s", plan["id"], territory)
+    if not t:
+        raise ValueError("That territory is not in the active plan.")
+    rows = db.all(cur, """select c.id, a.owner,
+                          exists (select 1 from move_proposal_accounts x join move_proposals p on p.id = x.proposal and p.status = 'open'
+                                  where x.company = c.id) as busy
+                          from assignments a join companies c on c.id = a.company
+                          where a.plan = %s and a.territory = %s and not c.sole_trader order by c.id""", plan["id"], t["id"])
+    already = [r for r in rows if to_owner and r["owner"] == to_owner]
+    busy = [r for r in rows if r not in already and r["busy"]]
+    ids = [r["id"] for r in rows if r not in already and r not in busy]
+    return {"territory": t["label"], "regions": t["rule"].get("region_groups", []), "segments": [C.SEGMENT_LABEL.get(k, k) for k in t["rule"].get("segments", [])],
+            "matched": len(rows), "already_there": len(already), "in_open_proposal": len(busy), "eligible": len(ids),
+            "proposals": -(-len(ids) // MAX_ACCOUNTS), "cap": MAX_ACCOUNTS, "ids": ids}
+
+
+def propose_by_territory(cur, by: dict, *, territory: str, to_owner: int, reason: str, effective_on: date,
+                         to_territory: str | None = None) -> list[int]:
+    """One proposal for every account the territory's rule holds, or several of at most 200 when it holds more.
+    Each one is decided on its own, by the same path as a list of accounts."""
+    m = rule_matches(cur, territory, to_owner)
+    if not m["ids"]:
+        raise ValueError("No accounts in that territory are left to move to this person.")
+    ids, parts = m["ids"], m["proposals"]
+    out = []
+    for i in range(parts):
+        chunk = ids[i * MAX_ACCOUNTS:(i + 1) * MAX_ACCOUNTS]
+        suffix = f" (part {i + 1} of {parts})" if parts > 1 else ""
+        out.append(propose(cur, by, companies=chunk, to_owner=to_owner, reason=reason.strip()[:500 - len(suffix)] + suffix,
+                           effective_on=effective_on, to_territory=to_territory, by_territory=m["territory"]))
+    return out
 
 
 def can_decide(proposal: dict, by: dict) -> bool:
@@ -133,7 +175,7 @@ def detail(cur, pid: int, by: dict) -> dict | None:
                           left join account_fit f on f.company = c.id and f.icp_version = v.id
                           where x.proposal = %s order by c.name""", pid)
     return {"id": p["id"], "status": p["status"], "reason": p["reason"], "effective_on": p["effective_on"], "to_owner": p["to_owner_name"],
-            "to_territory": t, "proposed_by": p["proposer"], "proposed_at": p["proposed_at"], "decided_by": p["decider"],
+            "to_territory": t, "by_territory": p["by_territory"], "proposed_by": p["proposer"], "proposed_at": p["proposed_at"], "decided_by": p["decider"],
             "decided_at": p["decided_at"], "decision_note": p["decision_note"], "plan": p["plan"], "plan_name": p["plan_name"],
             "plan_status": p["plan_status"], "accounts": rows[:200], "count": len(rows),
             "can_decide": can_decide({**p, "proposer_role": p["proposer_role"]}, by)}

@@ -34,6 +34,12 @@ def erase_user(cur, user_id: int, by: dict) -> dict:
     for part in sorted({u["name"], u["name"].split()[0]}, key=len, reverse=True):
         db.run(cur, "update assignments set note = regexp_replace(note, %s, 'Erased team member', 'g') where note ~ %s",
                rf"\m{part}\M", rf"\m{part}\M")
+        db.run(cur, "update notices set reason = regexp_replace(reason, %s, 'Erased team member', 'g') where reason ~ %s",
+               rf"\m{part}\M", rf"\m{part}\M")
+        db.run(cur, "update territory_plans set rolled_back_reason = regexp_replace(rolled_back_reason, %s, 'Erased team member', 'g') where rolled_back_reason ~ %s",
+               rf"\m{part}\M", rf"\m{part}\M")
+        db.run(cur, "update icp_versions set rolled_back_reason = regexp_replace(rolled_back_reason, %s, 'Erased team member', 'g') where rolled_back_reason ~ %s",
+               rf"\m{part}\M", rf"\m{part}\M")
         db.run(cur, "update audit_log set detail = regexp_replace(detail::text, %s, 'Erased team member', 'g')::jsonb where detail::text ~ %s",
                rf"\m{part}\M", rf"\m{part}\M")
     db.run(cur, """update users set name = 'Erased team member', email = 'erased-' || id || '@erased.invalid',

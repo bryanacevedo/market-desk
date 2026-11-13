@@ -1,10 +1,12 @@
 # Market Desk: project status
 
-**Updated:** 2026-11-12. **Spec:** `docs/SPEC.md` (section 15 holds the gate 0 corrections and wins where they differ); decisions `docs/DECISIONS.md` 1 to 42.
+**Updated:** 2026-11-12. **Spec:** `docs/SPEC.md` (section 15 holds the gate 0 corrections and wins where they differ); decisions `docs/DECISIONS.md` 1 to 45.
 
 ## Where it stands
 
 **Pilot blockers fixed (2026-11-12, decisions 43 and 44):** territory move proposals (propose, approve or reject with who and when, an approval drafts a plan that moves only those accounts, then the usual activation and CRM books) and a confirmation with counts plus a recorded rollback on Publish ICP and Activate plan. Migration 0003. Tests in `tests/test_moves_rollback.py`.
+
+**Pilot blockers finished (2026-11-12, decision 45, migration 0004):** a move by territory rule (counts shown first, split into proposals of at most 200), and rollbacks that need a reason, notify the other managers and RevOps under "Waiting on you", and show the reason under History. Checked locally standalone and with `CRM=crmdesk`; live click-through in `~/Developer/market-desk-review/blockers-live/`.
 
 Built end to end on a simulated world, overnight 2026-11-11 to 12. Public at https://github.com/bryanacevedo/market-desk; live at https://market-desk-3kou.onrender.com (pages checked live in gate 10; every push to `main` now redeploys on Render by itself). Two roles sign in, RevOps and the manager; SDRs and AEs are plan data only (decision 39).
 

@@ -19,7 +19,7 @@ def _admin(url: str) -> str:
 
 @pytest.fixture(scope="session")
 def database():
-    name = f"mkb_test_{uuid.uuid4().hex[:8]}"
+    name = f"{os.environ.get('TEST_DB_PREFIX', 'mkb_test_')}{uuid.uuid4().hex[:8]}"
     with psycopg.connect(_admin(BASE), autocommit=True) as c:
         c.execute(f'create database "{name}"')
     url = BASE.rsplit("/", 1)[0] + "/" + name

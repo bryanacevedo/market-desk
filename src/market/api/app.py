@@ -33,6 +33,7 @@ from .. import (
     fit,
     handoff,
     jobs,
+    notices,
     profiles,
     proposals,
     territories,
@@ -233,7 +234,9 @@ def me(u: dict = Depends(current_user)) -> dict:
             waiting += [{"what": f"Decide a move of {r['n']} account{'s' if r['n'] != 1 else ''}", "path": "/territories"} for r in db.all(cur,
                         """select (select count(*) from move_proposal_accounts x where x.proposal = p.id) as n from move_proposals p
                            where p.status = 'open' and p.proposed_by <> %s order by p.id""", u["id"])]
-        elif u["role"] == "revops":
+        if u["role"] in notices.RECIPIENT_ROLES:
+            waiting += notices.unseen(cur, u)
+        if u["role"] == "revops":
             n = open_changes
             if n:
                 waiting.append({"what": f"{n} open change{'s' if n != 1 else ''}", "path": "/changes"})
@@ -418,6 +421,17 @@ def move_candidates(q: str = "", owner: int | None = None, only: int | None = No
         return {"accounts": moves_.candidates(cur, q=q[:80], owner=owner, only=only, limit=moves_.MAX_ACCOUNTS if owner else 30)}
 
 
+@app.get("/api/move-proposals/territory-preview")
+def move_territory_preview(territory: str, to: int | None = None, u: dict = Depends(current_user)) -> dict:
+    need(u, "revops", "manager")
+    try:
+        with db.tx() as cur:
+            m = moves_.rule_matches(cur, territory[:60], to)
+    except Exception as exc:
+        raise _fail(exc) from exc
+    return {k: v for k, v in m.items() if k != "ids"}
+
+
 @app.get("/api/move-proposals/{pid}")
 def move_proposal(pid: int, u: dict = Depends(current_user)) -> dict:
     need(u, "revops", "manager")
@@ -570,6 +584,13 @@ class Reason(BaseModel):
     reason: str = Field(min_length=3, max_length=500)
 
 
+@app.post("/api/notices/{nid}/seen")
+def notice_seen(nid: int, u: dict = Depends(writer)) -> dict:
+    with db.tx() as cur:
+        notices.see(cur, nid, u)
+    return {"ok": True}
+
+
 @app.post("/api/proposals/{pid}/dismiss")
 def proposal_dismiss(pid: int, body: Reason, u: dict = Depends(writer)) -> dict:
     try:
@@ -591,10 +612,10 @@ def activate(pid: int, u: dict = Depends(writer)) -> dict:
 
 
 @app.post("/api/profile/rollback")
-def profile_rollback(u: dict = Depends(writer)) -> dict:
+def profile_rollback(body: Reason, u: dict = Depends(writer)) -> dict:
     try:
         with db.tx() as cur:
-            vid = profiles.rollback(cur, u)
+            vid = profiles.rollback(cur, u, body.reason)
             from .. import sizing
             sizing.run(cur)
     except Exception as exc:
@@ -603,10 +624,10 @@ def profile_rollback(u: dict = Depends(writer)) -> dict:
 
 
 @app.post("/api/plans/rollback")
-def plan_rollback(u: dict = Depends(writer)) -> dict:
+def plan_rollback(body: Reason, u: dict = Depends(writer)) -> dict:
     try:
         with db.tx() as cur:
-            pid = territories.rollback(cur, u)
+            pid = territories.rollback(cur, u, body.reason)
     except Exception as exc:
         raise _fail(exc) from exc
     return {"ok": True, "plan": pid}
@@ -629,6 +650,25 @@ def new_move_proposal(body: Proposal, u: dict = Depends(writer)) -> dict:
     except Exception as exc:
         raise _fail(exc) from exc
     return {"id": pid}
+
+
+class TerritoryProposal(BaseModel):
+    territory: str = Field(max_length=60)
+    to: int
+    to_territory: str | None = Field(None, max_length=60)
+    reason: str = Field(min_length=3, max_length=500)
+    effective_on: date
+
+
+@app.post("/api/move-proposals/by-territory")
+def new_territory_proposal(body: TerritoryProposal, u: dict = Depends(writer)) -> dict:
+    try:
+        with db.tx() as cur:
+            ids = moves_.propose_by_territory(cur, u, territory=body.territory, to_owner=body.to, reason=body.reason,
+                                              effective_on=body.effective_on, to_territory=body.to_territory)
+    except Exception as exc:
+        raise _fail(exc) from exc
+    return {"ids": ids}
 
 
 @app.post("/api/move-proposals/{pid}/approve")
