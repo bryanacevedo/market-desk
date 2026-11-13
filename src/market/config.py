@@ -25,9 +25,20 @@ class Config:
     access_aud: str = field(default_factory=lambda: os.environ.get("CF_ACCESS_AUD", ""))
     seller: str = field(default_factory=lambda: os.environ.get("SELLER", "Lumen Ledger"))
     anthropic_live: bool = field(default_factory=lambda: _flag("ANTHROPIC_LIVE"))
+    # The other desks present (shared-world DESIGN.md 2b): crm_desk, account_desk, events_desk. Unset means alone.
+    integrated_with: frozenset = field(default_factory=lambda: frozenset(
+        x.strip().lower() for x in os.environ.get("INTEGRATED_WITH", "").split(",") if x.strip()))
     worker_inline: bool = field(default_factory=lambda: not _flag("NO_WORKER"))
 
     def validate(self) -> None:
+        crm = os.environ.get("CRM", "").strip().lower()
+        if crm not in ("", "default", "crmdesk"):
+            raise SystemExit(f"CRM={crm} is not a CRM this desk has an adapter for. Use crmdesk, or leave CRM unset. "
+                             "A Salesforce adapter implements deals_in.CrmReader and the books and scores sends.")
+        unknown = self.integrated_with - {"crm_desk", "account_desk", "events_desk"}
+        if unknown:
+            raise SystemExit(f"INTEGRATED_WITH names desks this desk does not know: {', '.join(sorted(unknown))}. "
+                             "Use crm_desk, account_desk or events_desk.")
         if self.mode == "live" and self.auth_mode != "header":
             raise SystemExit("MODE=live needs AUTH_MODE=header: the demo's acting-as menu is not a login. Refusing to start.")
         if self.mode == "live" and not self.webhook_secret_set:

@@ -7,6 +7,10 @@
   import-results FILE  read results by account from a CSV (domain, period_start, period_end, worked, held_back,
                        test, meetings, opportunities, won, lost, pipeline_cents; at most 5 MB and 50,000 rows)
   mcp                  read-only MCP server on stdio
+  import-deals FILE   read the deal history from a CSV (opportunity_id, account_domain, account_name, created_date, stage,
+                       is_closed, is_won, amount, type, ...). A dry run unless --commit; --system csv|salesforce|hubspot;
+                       --blank-type new treats a blank type as new business. At most 5 MB and 50,000 rows.
+  crm-pull            read opportunities and accounts from CRM Desk now (CRM=crmdesk), the same way CRM_PULL=1 does every 15 minutes
   crm-sync             send the active plan's books to the CRM now (CRM=crmdesk), and print what it refused
 """
 from __future__ import annotations
@@ -65,6 +69,29 @@ def main(argv: list[str]) -> int:
                 time.sleep(exc.retry_after)  # CRM Desk asked to wait; the row is still queued
         with db.tx() as cur:
             print(json.dumps({"requests": sent, **crm.summary(cur)}, default=str, indent=1))
+        db.close()
+    elif cmd == "import-deals":
+        from . import deals_in
+        args = argv[2:]
+        flag = lambda n: n in args  # noqa: E731
+        opt = lambda n, d=None: args[args.index(n) + 1] if n in args else d  # noqa: E731
+        files = [a for i, a in enumerate(args) if not a.startswith("--") and (i == 0 or args[i - 1] not in ("--system", "--blank-type"))]
+        if len(files) != 1:
+            raise SystemExit("Usage: python -m market import-deals FILE [--commit] [--system csv|salesforce|hubspot] [--blank-type new]")
+        rep = deals_in.import_file(files[0], opt("--system", "csv"), commit=flag("--commit"), blank_type=opt("--blank-type"))
+        print(json.dumps(rep, default=str, indent=1))
+        if not rep["committed"]:
+            print("Dry run: nothing was written. Add --commit to write the rows.")
+        elif rep["inserted"] or rep["updated"]:
+            print("Run Evidence and Sizing again (Evidence page) so the new deals are counted.")
+        db.close()
+    elif cmd == "crm-pull":
+        from . import crm, deals_in
+        if not crm.enabled():
+            raise SystemExit("No CRM is set: CRM=crmdesk with CRM_DESK_URL and CRM_DESK_KEY.")
+        if CONFIG.public_demo:
+            raise SystemExit("The public demo holds invented data only. It reads nothing from a CRM.")
+        print(json.dumps(deals_in.pull(crm.CrmDeskReader.from_env()), default=str))
         db.close()
     elif cmd == "world-export":
         from . import world_export

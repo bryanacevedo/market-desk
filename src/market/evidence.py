@@ -38,7 +38,8 @@ def deal_traits(snap: dict, source: str) -> list[tuple[str, str, object]]:
         out.append(("pricing_model", C.PRICING_LABEL[pm], pm))
     for t in snap.get("tech") or []:
         out.append(("tech", t, t))
-    out.append(("source", source.capitalize(), source))
+    if source:  # a deal from a file may have no source we could map: unknown is not a trait value
+        out.append(("source", source.capitalize(), source))
     if snap.get("hq_city"):
         out.append(("hq_city", snap["hq_city"], snap["hq_city"]))
     fb = C.founded_band(snap.get("founded_year"))
@@ -57,7 +58,9 @@ def _known(trait: str, snap: dict, source: str) -> bool:
         return C.size_band(snap.get("employees")) is not None
     if trait == "founded":
         return snap.get("founded_year") is not None
-    if trait in ("tech", "source", "segment"):
+    if trait == "source":
+        return bool(source)
+    if trait in ("tech", "segment"):
         return True
     return bool(snap.get(trait))
 
@@ -103,7 +106,7 @@ def run(cur) -> int:
         select d.id, d.company, d.outcome, d.created_at, d.closed_at, d.amount_cents, d.loss_code, d.source, d.snapshot
         from deals d where d.kind = 'new' and d.outcome in ('won','lost') and d.closed_at >= %s and d.closed_at <= %s""",
                    start, now)
-    churn = {r["company"]: r for r in db.all(cur, "select company, started_on, churned_on from customers")}
+    churn = {r["company"]: r for r in db.all(cur, "select company, started_on, churned_on from customers where origin = 'universe'")}
     per: dict[tuple[str, object], list[dict]] = defaultdict(list)
     labels: dict[tuple[str, object], str] = {}
     for d in deals:

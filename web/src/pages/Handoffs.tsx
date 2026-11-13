@@ -67,6 +67,7 @@ export function Handoffs() {
           <div className="figs">
             <Fig value={n0(data.crm.sent)} label={data.crm.last_sent_at ? `Accounts sent, ${day(data.crm.last_sent_at)}` : "Accounts sent"} />
             <Fig value={n0(data.crm.refusals.length)} label="Refused" />
+            {data.crm.icp?.published ? <Fig value={n0(data.crm.icp.accounts_on_published)} label={`On profile version ${data.crm.icp.published}`} /> : null}
             {data.crm.queued ? <Fig value={n0(data.crm.queued)} label="Waiting to send" /> : null}
             {data.crm.errors.length ? <Fig value={n0(data.crm.errors.length)} label="Not taken" /> : null}
           </div>

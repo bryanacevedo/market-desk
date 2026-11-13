@@ -75,6 +75,10 @@ flowchart LR
   TS --> B
 ```
 
+## Deals, from a file or a CRM
+
+With no CRM, the desk can still run on your own deal history: `python -m market import-deals deals.csv` checks the file (a dry run), and `--commit` writes it. Required columns: `opportunity_id, account_domain, account_name, created_date, stage, is_closed, is_won, amount, type`, plus `close_date` for a closed deal and `country` for a company the desk does not hold yet; Salesforce's column names work too. Importing the same file again updates deals instead of adding them. Run Evidence and Sizing again afterwards. With `CRM=crmdesk` and `CRM_PULL=1`, the same deals are read from CRM Desk instead (decisions 47 and 48). `INTEGRATED_WITH=crm_desk` turns the file import off, because CRM Desk then owns the opportunities. Publishing a profile version with `CRM=crmdesk` sends the active plan's accounts their new tier, without owners (decision 46).
+
 ## The shared world
 
 Market Desk's companies, deals, customers and call notes now come from Lumen Ledger's shared world, `lumen-world`, which every desk's demo reads. Its slice for this desk is vendored in `world/` (decision 40): the same 18,005 companies this desk used to draw for itself (27 renamed because they carried the seller's name), the history moved into working hours and cut at 13 August 2026, the one team roster, and counts of findable roles per company. The slice holds no people, and call notes arrive with the names they mention and are redacted before anything is stored (decision 1). `WORLD=legacy` rebuilds the desk's own world from `src/market/sim/world.py`.

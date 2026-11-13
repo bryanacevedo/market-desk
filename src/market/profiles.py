@@ -2,9 +2,9 @@
 from __future__ import annotations
 
 import copy
-from datetime import datetime
+from datetime import datetime, timedelta
 
-from . import audit, db, jobs, notices
+from . import audit, crm, db, jobs, notices
 from . import catalog as C
 from .db import J
 
@@ -79,8 +79,11 @@ def publish(cur, version_id: int, by: dict, *, at: datetime | None = None, resco
     if rescore_now:
         from .fit import score_version
         score_version(cur, version_id)
+        crm.queue_scores(cur, version_id)
     else:
         jobs.enqueue(cur, "rescore_version", {"version": version_id}, dedupe_key=f"rescore_version:{version_id}")
+        if crm.enabled():  # the tiers are made by the rescore jobs; the CRM send waits for them (crm.crm_scores)
+            jobs.enqueue(cur, "crm_scores", {"version": version_id}, delay=timedelta(seconds=30), dedupe_key=f"crm_scores:{version_id}")
 
 
 def rollback_target(cur) -> tuple[dict, dict] | None:
@@ -111,6 +114,7 @@ def rollback(cur, by: dict, reason: str = "") -> int:
                         reason=reason, path="/profile")
     from .fit import score_version
     score_version(cur, prev["id"])
+    crm.queue_scores(cur, prev["id"])
     return prev["id"]
 
 

@@ -212,7 +212,8 @@ def health() -> dict:
         dead = db.val(cur, "select count(*) from jobs where status = 'dead'")
         now = db.val(cur, "select app_now()")
     return {"ok": backlog < 50 and dead == 0, "now": now, "job_backlog": backlog, "dead_jobs": dead,
-            "mode": CONFIG.mode, "public_demo": CONFIG.public_demo}
+            "mode": CONFIG.mode, "public_demo": CONFIG.public_demo,
+            "integrated_with": sorted(CONFIG.integrated_with)}
 
 
 @app.get("/api/me")
@@ -931,6 +932,9 @@ def spa(path: str):
 
 def start_worker() -> None:
     db.pool()
+    if crm.pull_enabled():
+        with db.tx() as cur:
+            jobs.enqueue(cur, "crm_pull", {}, dedupe_key="crm_pull")
     if not CONFIG.worker_inline:
         return
 

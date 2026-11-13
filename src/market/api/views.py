@@ -228,7 +228,7 @@ def publish_preview(cur, vid: int, u: dict) -> dict | None:
     mv = fit.what_moves(cur, vid, pub["id"]) if v["status"] == "draft" else {"total": 0, "moves": []}
     return {"id": vid, "number": v["number"], "status": v["status"], "replaces": pub["number"], "rule_changes": len(v["diff"]),
             "companies": db.val(cur, "select count(*) from companies"), "tier_moves": mv["total"], "moves": mv["moves"][:6],
-            "crm": crm.enabled(), "can_publish": v["can_publish"]}
+            "crm": crm.enabled(), "batches": crm.score_batches(cur), "can_publish": v["can_publish"]}
 
 
 def profile_rollback_preview(cur, u: dict) -> dict:
@@ -239,7 +239,7 @@ def profile_rollback_preview(cur, u: dict) -> dict:
     mv = fit.what_moves(cur, prev["id"], now["id"])
     return {"available": True, "can_roll_back": u["role"] == "manager", "from": now["number"], "to": prev["number"],
             "companies": db.val(cur, "select count(*) from companies"), "tier_moves": mv["total"], "moves": mv["moves"][:6],
-            "crm": crm.enabled()}
+            "crm": crm.enabled(), "batches": crm.score_batches(cur)}
 
 
 def move_options(cur) -> dict:

@@ -93,8 +93,6 @@ No CRM is set, so nothing is sent.
 No evidence behind this rule yet.
 No results back from Account Desk yet
 Not sent to Account Desk
-Nothing goes to CRM Desk now. The new tiers go with the next plan you activate.
-Nothing goes to CRM Desk now. The tiers go with the next plan you activate.
 Nothing in this territory is left to move to this person
 Nothing to roll back to
 Only a draft can be published
@@ -127,6 +125,7 @@ That did not go through.
 The AI's wording failed its check twice, so only the figures show.
 The ICP version in use now, here and in the files sent to Account Desk and Events Desk.
 The account's tier under each ICP version, newest last.
+The active plan's accounts go back to CRM Desk with the earlier version's tier. Owners are not sent.
 The average expected value of everyone in the person's territory. Balanced means each person is within 15% of it. AEs mostly hold customers and open deals, so their figures are small.
 The buyers' own words from call notes, with a short summary.
 The difference could be chance.
@@ -164,6 +163,7 @@ What the active plan's people can work in 12 months, times the share that become
 What the active plan's people can work in 12 months, times the share that becomes a deal, times the win rate, times deal size. Low end uses the low rates, high end the high ones.
 What the evidence says about this trait: clearly higher, clearly lower, explained by size, not clear, or too few to tell.
 What the person's book should win in 12 months: for each account, the chance it becomes a deal and is won, times deal size, weighted by how well it fits, added up.
+When the rescore finishes, the active plan's accounts go to CRM Desk with their new tier. Owners are not sent, so pins there stay as they are.
 Whether worked accounts booked meetings clearly more often than held-back ones.
 Who took part in won deals, and who signed.
 Who works the account in the active plan, and why: a territory rule, a segment test, a hand move, or an existing customer or deal.

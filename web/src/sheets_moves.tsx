@@ -69,9 +69,10 @@ export function PublishSheet({ id }: { id: string }) {
           <Fig sm value={n0(p.companies)} label="Companies rescored" />
           <Fig sm value={n0(p.tier_moves)} label="Change tier" />
           <Fig sm value="0" label="Accounts change owner" />
+          {p.crm ? <Fig sm value={n0(p.batches)} label="Requests to CRM Desk" /> : null}
         </div>
         {tierMoves(p.moves)}
-        {p.crm ? <div className="small">Nothing goes to CRM Desk now. The new tiers go with the next plan you activate.</div> : null}
+        {p.crm ? <div className="small">When the rescore finishes, the active plan's accounts go to CRM Desk with their new tier. Owners are not sent, so pins there stay as they are.</div> : null}
       </Frame>
     )}</Wrap>
   );
@@ -96,9 +97,10 @@ export function RollbackSheet({ id }: { id: string }) {
             <div className="figs">
               <Fig sm value={n0(p.companies)} label="Companies rescored" />
               <Fig sm value={n0(p.tier_moves)} label="Change tier" />
+              {p.crm ? <Fig sm value={n0(p.batches)} label="Requests to CRM Desk" /> : null}
             </div>
             {tierMoves(p.moves)}
-            {p.crm ? <div className="small">Nothing goes to CRM Desk now. The tiers go with the next plan you activate.</div> : null}
+            {p.crm ? <div className="small">The active plan's accounts go back to CRM Desk with the earlier version's tier. Owners are not sent.</div> : null}
           </>
         ) : (
           <>

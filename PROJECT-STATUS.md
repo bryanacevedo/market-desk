@@ -1,8 +1,10 @@
 # Market Desk: project status
 
-**Updated:** 2026-11-12. **Spec:** `docs/SPEC.md` (section 15 holds the gate 0 corrections and wins where they differ); decisions `docs/DECISIONS.md` 1 to 45.
+**Updated:** 2026-11-13. **Spec:** `docs/SPEC.md` (section 15 holds the gate 0 corrections and wins where they differ); decisions `docs/DECISIONS.md` 1 to 45.
 
 ## Where it stands
+
+**Shared world, Phase 3 step 4 (2026-11-13, decisions 46 to 48, migration 0005):** publishing a profile version (and a profile rollback) sends the active plan's accounts their new tier to CRM Desk, without owners (`crm_outbox` kind `scores`); a deals CSV import (`python -m market import-deals FILE [--commit]`, dry run by default) lets the desk run on its own deal history with no CRM, keyed by `(source_system, external_id)` so a re-import updates; a Salesforce-shaped read interface (`deals_in.CrmReader`, Opportunity and Account) with CRM Desk as the first adapter (`CRM_PULL=1`, or `python -m market crm-pull`); `CRM` must be empty or `crmdesk`; `INTEGRATED_WITH` lists the other desks present (for this desk it turns the file import off when `crm_desk` is named). The journal replay is unchanged for old lines. Tests: `tests/test_phase3_step4.py` (31). A fresh Opus review of the decisions against the code found 1 blocker and 7 majors, all fixed. Not done: Evidence and Sizing do not yet say "deals changed since the last run" on screen (the import command tells the operator to run them again); not proven against a running CRM Desk (stubs and a mock transport only); a file row and a CRM row of one opportunity are stored twice if both are loaded (load history from one source).
 
 **Pilot blockers fixed (2026-11-12, decisions 43 and 44):** territory move proposals (propose, approve or reject with who and when, an approval drafts a plan that moves only those accounts, then the usual activation and CRM books) and a confirmation with counts plus a recorded rollback on Publish ICP and Activate plan. Migration 0003. Tests in `tests/test_moves_rollback.py`.
 
@@ -23,7 +25,7 @@ Checked by running, on the demo database built from the shared world (2026-11-12
 - `make test` passing on real Postgres 18, including the books to CRM Desk, a refusal cleared by a later answer, a refused send shown, the rehearsal's pinned SDR, the links and the truth guard. `node scripts/design-lint.mjs` and the web build clean.
 - Every planted relationship P1 to P8 still found by the desk's own rules (`docs/SCENARIO-COVERAGE.md`, regenerated).
 - The demo builds in about 15 seconds locally. `WORLD=legacy` still builds the old world (52 checks passing) with no `world/` folder.
-- Not built in Phase 2, moved to Phase 3 (shared-world DESIGN.md 13): the deals CSV import that lets Market Desk be sold without a CRM's history, a Salesforce-shaped CRM interface (the adapter is CRM Desk's only), a configuration test that picks exactly one CRM. Evidence still reads this desk's own copy of the history, not CRM Desk's feeds (Phase 5).
+- Not built in Phase 2, built in Phase 3 step 4 (above): the deals CSV import, a Salesforce-shaped CRM read interface, a configuration test that picks exactly one CRM. Evidence still reads this desk's own copy of the history, not CRM Desk's feeds (Phase 5).
 
 ## Review gates
 

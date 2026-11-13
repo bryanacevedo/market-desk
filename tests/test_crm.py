@@ -78,7 +78,7 @@ def test_activation_queues_the_books_in_the_same_transaction(cur, monkeypatch):
 
 
 def test_a_refused_send_is_shown_not_retried(cur, monkeypatch):
-    monkeypatch.setattr(crm, "_send", lambda body: (401, {"error": "That key is not valid.", "code": "unauthorized"}))
+    monkeypatch.setattr(crm, "_send", lambda body, *a: (401, {"error": "That key is not valid.", "code": "unauthorized"}))
     db.run(cur, "insert into crm_outbox (kind, payload) values ('books', %s)", J({"items": [{"domain": "x.example"}]}))
     row = db.one(cur, "select * from crm_outbox where status = 'queued' order by id desc limit 1")
     crm.deliver(cur, row)
