@@ -36,7 +36,7 @@ OWNER = "market_desk"
 SCHEMA_VERSION = 1
 # The numbers CRM Desk starts with (its DEFAULT_MQA). Today's rule is the newest published version, so a change is a
 # new version with a name on it, never an edit.
-DEFAULT_RULE = {"tiers": ["A", "B"], "untiered": True, "min_points": 20, "min_people": 2, "window_days": 30}
+DEFAULT_RULE = {"tiers": ["A", "B"], "untiered": False, "min_points": 20, "min_people": 2, "window_days": 30}
 ACCOUNT_TYPES = ["former_customer", "other", "prospect"]        # a customer, a partner or a competitor is not marketed to as a prospect
 POINT_KINDS = ("form", "meeting", "email_reply", "call_connected", "attended", "linkedin_accepted")
 RUN_EVERY = timedelta(hours=1)

@@ -23,7 +23,7 @@ def test_the_first_read_publishes_version_one_and_the_hash_is_crm_desks_hash(cur
     d = mqa.current(cur)
     assert (d["name"], d["owner_desk"], d["version"], d["changed_by"]) == ("mqa", "market_desk", 1, "system")
     assert d["hash"] == mqa.hash_of(d["body"]) and d["hash"].startswith("sha256:") and len(d["hash"]) == 71
-    assert d["body"]["rule"] == {"tiers": ["A", "B"], "untiered": True, "min_points": 20, "min_people": 2, "window_days": 30}
+    assert d["body"]["rule"] == {"tiers": ["A", "B"], "untiered": False, "min_points": 20, "min_people": 2, "window_days": 30}
     assert d["body"]["points_from"]["owner_desk"] == "crm_desk"
     assert mqa.current(cur)["version"] == 1                      # reading again publishes nothing
 
@@ -115,21 +115,22 @@ def test_decide_needs_the_fit_the_points_the_people_a_prospect_that_may_be_prosp
              "cust": _facts(domains["A"], type="customer"), "dnp": _facts(domains["A"], do_not_prospect=True),
              "gone": _facts(domains["A"], deleted=True), "none": _facts(domains["none"])}
     got = mqa.decide(cur, {k: v for k, v in found.items()}, {k: v for k, v in facts.items() if k not in ("few", "low")}, r)
-    # "a" and the unscored company qualify; C is not a tier the rule names; a customer, a flagged and a deleted account never do
-    assert set(got) == {domains["A"], domains["none"]} and got[domains["A"]] == (25, 2)
+    # "a" qualifies; the unscored company does not (a tier is required); C is not a tier the rule names; a customer, a flagged and a deleted account never do
+    assert set(got) == {domains["A"]} and got[domains["A"]] == (25, 2)
     # the one-person account fails on people and the 19-point one on points, even with the facts at hand
     assert mqa.decide(cur, {"few": (25, 1), "low": (19, 3)}, {"few": _facts(domains["A"]), "low": _facts(domains["A"])}, r) == {}
 
 
-def test_untiered_is_the_rules_choice(cur, domains):
-    r = {**mqa.rule(cur), "untiered": False}
-    assert mqa.decide(cur, {"n": (30, 2)}, {"n": _facts(domains["none"])}, r) == {}
+def test_a_tier_is_required_by_default_and_untiered_is_the_rules_choice(cur, domains):
+    assert mqa.rule(cur)["untiered"] is False  # Bryan, 2026-11-13: MQA requires a tier
+    assert mqa.decide(cur, {"n": (30, 2)}, {"n": _facts(domains["none"])}, mqa.rule(cur)) == {}
+    assert mqa.decide(cur, {"n": (30, 2)}, {"n": _facts(domains["none"])}, {**mqa.rule(cur), "untiered": True})
 
 
 def test_a_company_this_desk_does_not_hold_is_judged_by_the_tier_crm_desk_holds(cur):
     r = mqa.rule(cur)
     unknown = lambda tier: mqa.decide(cur, {"n": (30, 2)}, {"n": _facts("not-ours.example", tier=tier)}, r)  # noqa: E731
-    assert unknown("A") and unknown(None) and unknown("Not judged") and not unknown("C")
+    assert unknown("A") and not unknown(None) and not unknown("Not judged") and not unknown("C")
 
 
 # ---------------------------------------------------------------- what is sent
