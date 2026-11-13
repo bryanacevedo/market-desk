@@ -75,6 +75,29 @@ def queue_plan(cur, plan_id: int) -> int:
     return len(items)
 
 
+def batch_count(cur, plan_id: int) -> int:
+    """How many requests activating this plan sends to the CRM: 0 with no CRM set."""
+    if not enabled():
+        return 0
+    n = db.val(cur, "select count(*) from assignments a join companies c on c.id = a.company where a.plan = %s and not c.sole_trader", plan_id)
+    return -(-n // CHUNK)
+
+
+def send_state(cur, plan_id: int) -> dict:
+    """What a plan's books have done so far: requests already sent (these cannot be pulled back), still waiting, and refused."""
+    rows = db.all(cur, "select status, count(*) as n, coalesce(sum(jsonb_array_length(payload->'items')), 0) as accounts "
+                       "from crm_outbox where plan = %s group by status", plan_id)
+    by = {r["status"]: r for r in rows}
+    g = lambda k, f: int(by[k][f]) if k in by else 0  # noqa: E731
+    return {"sent": g("sent", "n"), "sent_accounts": g("sent", "accounts"), "waiting": g("queued", "n"), "failed": g("failed", "n")}
+
+
+def cancel_unsent(cur, plan_id: int) -> int:
+    """Batches of this plan still waiting are cancelled. Batches already sent stay sent: the CRM keeps what it took."""
+    return db.run(cur, "update crm_outbox set status = 'cancelled', last_error = 'Rolled back before it was sent' "
+                       "where plan = %s and status = 'queued'", plan_id)
+
+
 class CrmDown(Exception):
     """CRM Desk did not answer with a decision. `retry_after` is the seconds it asked to wait, when it said."""
 

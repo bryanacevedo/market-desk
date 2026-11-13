@@ -71,15 +71,41 @@ def publish(cur, version_id: int, by: dict, *, at: datetime | None = None, resco
         raise PermissionError("A manager publishes a profile.")
     if v["author"] == by["id"]:
         raise PermissionError("Someone other than the author publishes a profile.")
+    before = db.val(cur, "select id from icp_versions where status = 'published'")
     db.run(cur, "update icp_versions set status = 'retired' where status = 'published'")
-    db.run(cur, "update icp_versions set status = 'published', published_by = %s, published_at = coalesce(%s, app_now()) where id = %s",
-           by["id"], at, version_id)
-    audit.log(cur, by["name"], "profile_published", "icp_version", version_id, {"number": v["number"]}, actor_id=by["id"])
+    db.run(cur, "update icp_versions set status = 'published', published_by = %s, published_at = coalesce(%s, app_now()), "
+                "replaced = %s, restored_by = null, restored_at = null where id = %s", by["id"], at, before, version_id)
+    audit.log(cur, by["name"], "profile_published", "icp_version", version_id, {"number": v["number"], "replaced": before}, actor_id=by["id"])
     if rescore_now:
         from .fit import score_version
         score_version(cur, version_id)
     else:
         jobs.enqueue(cur, "rescore_version", {"version": version_id}, dedupe_key=f"rescore_version:{version_id}")
+
+
+def rollback_target(cur) -> tuple[dict, dict] | None:
+    now = db.one(cur, "select * from icp_versions where status = 'published'")
+    if not now or not now["replaced"]:
+        return None
+    return now, db.one(cur, "select * from icp_versions where id = %s", now["replaced"])
+
+
+def rollback(cur, by: dict) -> int:
+    """Publish the version that the published one replaced, again. The published one is retired; both stay in the history.
+    The restored version keeps its original two-person approval; the restore is recorded with who and when."""
+    if by["role"] != "manager":
+        raise PermissionError("A manager rolls a profile back.")
+    t = rollback_target(cur)
+    if t is None:
+        raise ValueError("There is no earlier version to go back to.")
+    now, prev = t
+    db.run(cur, "update icp_versions set status = 'retired', rolled_back_by = %s, rolled_back_at = app_now() where id = %s", by["id"], now["id"])
+    db.run(cur, "update icp_versions set status = 'published', restored_by = %s, restored_at = app_now() where id = %s", by["id"], prev["id"])
+    audit.log(cur, by["name"], "profile_rolled_back", "icp_version", now["id"],
+              {"number": now["number"], "restored": prev["id"], "restored_number": prev["number"]}, actor_id=by["id"])
+    from .fit import score_version
+    score_version(cur, prev["id"])
+    return prev["id"]
 
 
 def published(cur) -> dict | None:

@@ -309,18 +309,126 @@ def activate(cur, plan_id: int, by: dict) -> None:
         raise PermissionError("A manager activates a plan.")
     if plan["author"] == by["id"]:
         raise PermissionError("Someone other than the author activates a plan.")
+    active = db.val(cur, "select id from territory_plans where status = 'active'")
+    if plan["drafted_from"] and plan["drafted_from"] != active:
+        raise ValueError("The active plan changed after these moves were drafted. Propose them again.")
     ch = what_changes(cur, plan_id)
     if ch["crossing"]:
         raise ValueError(f"{len(ch['crossing'])} open deals would change owner without a note.")
     db.run(cur, "update territory_plans set status = 'retired' where status = 'active'")
-    db.run(cur, "update territory_plans set status = 'active', activated_by = %s, activated_at = app_now() where id = %s",
-           by["id"], plan_id)
+    db.run(cur, "update territory_plans set status = 'active', activated_by = %s, activated_at = app_now(), replaced = %s, "
+                "restored_by = null, restored_at = null where id = %s", by["id"], active, plan_id)
     for r in ch["all"]:
         audit.log(cur, by["name"], "owner_moved", "company", r["company"], {"plan": plan_id, "from": r["from_owner"],
                   "to": r["to_owner"]}, actor_id=by["id"])
-    audit.log(cur, by["name"], "plan_activated", "plan", plan_id, {"changes": ch["changes"]}, actor_id=by["id"])
+    audit.log(cur, by["name"], "plan_activated", "plan", plan_id, {"changes": ch["changes"], "replaced": active}, actor_id=by["id"])
     from . import crm  # the books go to a CRM when one is set (shared-world DESIGN.md 7, step 1)
     crm.queue_plan(cur, plan_id)
+
+
+def activation_preview(cur, plan_id: int, by: dict) -> dict:
+    """What pressing Activate does, in counts, before it is pressed."""
+    from . import crm
+    plan = db.one(cur, "select p.*, a.name as author_name from territory_plans p join users a on a.id = p.author where p.id = %s", plan_id)
+    if plan is None:
+        raise ValueError("No such plan.")
+    active = db.one(cur, "select id, name from territory_plans where status = 'active'")
+    ch = what_changes(cur, plan_id)
+    names = {u["id"]: u["name"] for u in db.all(cur, "select id, name from users")}
+    ids = sorted(set(ch["gains"]) | set(ch["losses"]), key=lambda k: names[k])
+    today = db.val(cur, "select app_now()::date")
+    why = None
+    if plan["status"] != "draft":
+        why = "Only a draft plan can be activated."
+    elif by["role"] != "manager" or plan["author"] == by["id"]:
+        why = "A manager other than the author activates it."
+    elif plan["drafted_from"] and plan["drafted_from"] != (active or {}).get("id"):
+        why = "The active plan changed after these moves were drafted."
+    elif ch["crossing"]:
+        why = f"{len(ch['crossing'])} open deals would change owner without a note."
+    return {"id": plan_id, "name": plan["name"], "status": plan["status"], "effective_on": plan["effective_on"], "today": today,
+            "replaces": active and active["name"], "owner_changes": ch["changes"], "crossing": len(ch["crossing"]),
+            "people": [{"name": names[k], "gains": ch["gains"].get(k, 0), "losses": ch["losses"].get(k, 0)} for k in ids],
+            "crm": crm.enabled(), "batches": crm.batch_count(cur, plan_id), "can_activate": why is None, "blocked": why}
+
+
+def _rollback_target(cur) -> tuple[dict, dict]:
+    cur_plan = db.one(cur, "select * from territory_plans where status = 'active' for update")
+    if not cur_plan or not cur_plan["replaced"]:
+        raise ValueError("There is no earlier plan to go back to.")
+    prev = db.one(cur, "select * from territory_plans where id = %s", cur_plan["replaced"])
+    return cur_plan, prev
+
+
+def rollback_preview(cur, by: dict) -> dict:
+    from . import crm
+    cur_plan = db.one(cur, "select * from territory_plans where status = 'active'")
+    if not cur_plan or not cur_plan["replaced"]:
+        return {"available": False}
+    prev = db.one(cur, "select * from territory_plans where id = %s", cur_plan["replaced"])
+    changes = db.val(cur, """select count(*) from assignments a left join assignments b on b.plan = %s and b.company = a.company
+                             where a.plan = %s and a.owner is distinct from b.owner""", prev["id"], cur_plan["id"])
+    st = crm.send_state(cur, cur_plan["id"])
+    return {"available": True, "can_roll_back": by["role"] == "manager", "from": cur_plan["name"], "to": prev["name"],
+            "owner_changes": changes, "crm": crm.enabled(), "sent_batches": st["sent"], "sent_accounts": st["sent_accounts"],
+            "waiting_batches": st["waiting"], "batches": crm.batch_count(cur, prev["id"])}
+
+
+def rollback(cur, by: dict) -> int:
+    """Deactivate the active plan and bring back the one it replaced. Waiting batches are cancelled; the earlier plan's
+    books are sent in their place. Batches the CRM already took stay there until the earlier plan's books overwrite them."""
+    if by["role"] != "manager":
+        raise PermissionError("A manager rolls a plan back.")
+    cur_plan, prev = _rollback_target(cur)
+    rows = db.all(cur, """select a.company, a.owner as from_owner, b.owner as to_owner from assignments a
+                          left join assignments b on b.plan = %s and b.company = a.company
+                          where a.plan = %s and a.owner is distinct from b.owner""", prev["id"], cur_plan["id"])
+    db.run(cur, "update territory_plans set status = 'retired', rolled_back_by = %s, rolled_back_at = app_now() where id = %s",
+           by["id"], cur_plan["id"])
+    db.run(cur, "update territory_plans set status = 'active', restored_by = %s, restored_at = app_now() where id = %s",
+           by["id"], prev["id"])
+    for r in rows:
+        audit.log(cur, by["name"], "owner_moved", "company", r["company"], {"plan": prev["id"], "from": r["from_owner"],
+                  "to": r["to_owner"], "rollback": True}, actor_id=by["id"])
+    audit.log(cur, by["name"], "plan_rolled_back", "plan", cur_plan["id"], {"restored": prev["id"], "changes": len(rows)}, actor_id=by["id"])
+    # A test that started while the rolled-back plan was active keeps its worked accounts.
+    for t in db.all(cur, "select id from segment_tests where status = 'running'"):
+        place_test_members(cur, t["id"])
+    from . import crm
+    crm.cancel_unsent(cur, cur_plan["id"])
+    crm.queue_plan(cur, prev["id"])
+    return prev["id"]
+
+
+def copy_with_moves(cur, *, name: str, author: int, on: date, moves: list[dict], note: str, by: int) -> int:
+    """A draft plan that is the active plan with only these accounts moved: nothing else is assigned afresh, so
+    activating it changes exactly the accounts listed. moves: [{company, to_owner, to_territory}]."""
+    active = db.one(cur, "select * from territory_plans where status = 'active'")
+    if not active:
+        raise ValueError("There is no active plan to move accounts in.")
+    vid = db.val(cur, "select id from icp_versions where status = 'published'")
+    pid = db.val(cur, """insert into territory_plans (name, status, based_on, author, effective_on, balance_report, drafted_from)
+                         values (%s, 'draft', %s, %s, %s, %s, %s) returning id""", name, vid, author, on,
+                 J(active["balance_report"] or {}), active["id"])
+    db.run(cur, """insert into territories (plan, key, label, rule, owner, paired_ae)
+                   select %s, key, label, rule, owner, paired_ae from territories where plan = %s""", pid, active["id"])
+    db.run(cur, """insert into assignments (plan, company, territory, owner, reason_code, note, moved_from, created_by)
+                   select %s, a.company, n.id, a.owner, a.reason_code, a.note, a.moved_from, a.created_by
+                   from assignments a left join territories o on o.id = a.territory
+                   left join territories n on n.plan = %s and n.key = o.key where a.plan = %s""", pid, pid, active["id"])
+    for m in moves:
+        cur_row = db.one(cur, "select * from assignments where plan = %s and company = %s", pid, m["company"])
+        terr = cur_row["territory"] if cur_row else None
+        if m.get("to_territory"):
+            terr = db.val(cur, "select id from territories where plan = %s and key = %s", pid, m["to_territory"]) or terr
+        db.run(cur, """insert into assignments (plan, company, territory, owner, reason_code, note, moved_from, created_by)
+                       values (%s,%s,%s,%s,'manual',%s,%s,%s)
+                       on conflict (plan, company) do update set owner = excluded.owner, territory = excluded.territory,
+                       reason_code = 'manual', note = excluded.note, moved_from = excluded.moved_from, created_by = excluded.created_by""",
+               pid, m["company"], terr, m["to_owner"], note, cur_row["owner"] if cur_row else None, by)
+    snapshot(cur, pid)
+    audit.log(cur, "user", "plan_drafted", "plan", pid, {"name": name, "from_plan": active["id"], "moves": len(moves)}, actor_id=author)
+    return pid
 
 
 def hiring_gap(cur, plan_id: int) -> dict:

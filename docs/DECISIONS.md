@@ -151,3 +151,11 @@ With `CRM=crmdesk`, activating a plan queues every assigned account (name and ve
 ## 42. Links to the other desks only when told
 
 `DESK_LINKS` (`crm_desk=https://...`) adds "Open in CRM Desk" on a company sheet and wakes the linked desk's service when a page loads; unset, Market Desk links to nothing and calls nothing. `/go/account/world:<id>` (or `domain:`) opens a company sheet for the other desks' links.
+
+## 43. Territory moves are proposed, decided, then planned
+
+A manager or RevOps person proposes moving accounts (up to 200) to an AE or SDR, optionally into a territory, with a reason and an effective date. A different person decides: a manager decides RevOps proposals; RevOps or another manager decides a manager's. The decision, who and when, is kept (`move_proposals`). An approval drafts a plan that is a copy of the active plan with only those accounts moved (reason `manual`, the reason as the note), so activating it changes exactly those accounts. Activation is the usual one: a manager other than the author, with the same CRM books. A move plan remembers the plan it was copied from and refuses to activate if the active plan has changed since. Not built: moving by territory rule rather than by account list.
+
+## 44. Confirm before Publish ICP and Activate plan, and a way back
+
+Both open a sheet that states in counts what will change: for Activate, accounts changing owner, open deals leaving their owner, who gains and loses, and requests to CRM Desk (none without a CRM); for Publish, rules changed, companies rescored, tier changes, and that nothing goes to CRM Desk until the next plan is activated. Roll back re-publishes the version the published one replaced, or reactivates the plan the active one replaced. Each is recorded (who, when) and shown under History. The restored version or plan keeps its original two-person approval. A plan rollback cancels batches still waiting, queues the earlier plan's books, and says plainly that batches CRM Desk already took stay taken until those books overwrite them; owners pinned in CRM Desk stay as they are. The plan's start date only affects capacity, not when owners change; the Activate sheet says so when the date is in the future.

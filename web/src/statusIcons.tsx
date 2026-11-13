@@ -10,7 +10,7 @@ export const STATUS_ICONS: Record<string, Icon> = {
   "Explained by size": Ruler, "Hypothesis": Question,
   // profile versions, plans, proposals
   "Published": CheckCircle, "Draft": PencilSimpleLine, "Retired": MinusCircle, "Active": CheckCircle,
-  "Open": Lightbulb, "Made a draft": PencilSimpleLine, "Dismissed": XCircle,
+  "Open": Lightbulb, "Made a draft": PencilSimpleLine, "Dismissed": XCircle, "Approved": CheckCircle, "Rejected": XCircle,
   // tests
   "Running": Flask, "Read": CheckCircle, "Stopped": MinusCircle, "Needs more accounts": HourglassLow,
   "Clear difference": ArrowUp, "No clear difference": Scales, "Held back": EyeSlash, "Worked": CheckCircle,

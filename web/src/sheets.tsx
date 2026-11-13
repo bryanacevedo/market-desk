@@ -1,11 +1,12 @@
 import { TIPS } from "./tips";
 import { useEffect, useRef, type ReactNode } from "react";
 import {
-  ArrowLeft, ArrowsLeftRight, BookOpen, Buildings, ChartPieSlice, Database, Flask, Lightbulb, ListChecks, Scales, UserCircle, X,
+  ArrowLeft, ArrowsLeftRight, ArrowCounterClockwise, BookOpen, CheckCircle, Swap, Buildings, ChartPieSlice, Database, Flask, Lightbulb, ListChecks, Scales, UserCircle, X,
 } from "@phosphor-icons/react";
 import { api } from "./api";
 import { Logo } from "./marks";
 import { Bar, Empty, Failed, Fig, Loading, Section, Status, day, money, n0, navigate, pct, useBusy, useData, T, Tip } from "./lib";
+import { ActivateSheet, PublishSheet, RollbackSheet, TransferSheet } from "./sheets_moves";
 import { Hours, Nest, RangeLine, Tier, TierMix, Verdict, moneyScale, RateAxis } from "./parts";
 
 // ---------------------------------------------------------------- the sheet frame (Account Desk's, with this desk's kinds)
@@ -31,10 +32,12 @@ const KIND: Record<string, { label: string; icon: typeof X }> = {
   version: { label: "Profile version", icon: ListChecks }, move: { label: "Plan move", icon: ArrowsLeftRight },
   test: { label: "Test", icon: Flask }, proposal: { label: "Change", icon: Lightbulb },
   book: { label: "Book", icon: BookOpen }, source: { label: "Source", icon: Database },
+  activate: { label: "Activate plan", icon: CheckCircle }, publish: { label: "Publish profile", icon: ListChecks },
+  rollback: { label: "Roll back", icon: ArrowCounterClockwise }, transfer: { label: "Move proposal", icon: Swap },
 };
 
 // The sheet's title names the thing, so the header carries only the kind; `crumb` is kept for the call sites' clarity.
-function Frame({ kind, children, foot }: { kind: string; crumb?: ReactNode; children: ReactNode; foot?: ReactNode }) {
+export function Frame({ kind, children, foot }: { kind: string; crumb?: ReactNode; children: ReactNode; foot?: ReactNode }) {
   const k = KIND[kind];
   const KIcon = k.icon;
   const from = new URLSearchParams(window.location.search).get("from");
@@ -80,19 +83,20 @@ export function SheetHost() {
   const P: Record<string, (p: { id: string }) => JSX.Element> = {
     segment: SegmentSheet, finding: FindingSheet, company: CompanySheet, person: PersonSheet, version: VersionSheet,
     move: MoveSheet, test: TestSheet, proposal: ProposalSheet, book: BookSheet, source: SourceSheet,
+    activate: ActivateSheet, publish: PublishSheet, rollback: RollbackSheet, transfer: TransferSheet,
   };
   const C = P[kind];
   return C ? <C key={sheet} id={id} /> : null;
 }
 
-function Wrap({ kind, path, children }: { kind: string; path: string; children: (d: any) => ReactNode }) {
+export function Wrap({ kind, path, children }: { kind: string; path: string; children: (d: any) => ReactNode }) {
   const { data, error, reload } = useData<any>(path);
   if (error) return <Frame kind={kind}><Failed error={error} retry={reload} /></Frame>;
   if (!data) return <Frame kind={kind}><Loading rows={5} /></Frame>;
   return <>{children(data)}</>;
 }
 
-const Title = ({ children, sub }: { children: ReactNode; sub?: ReactNode }) => (
+export const Title = ({ children, sub }: { children: ReactNode; sub?: ReactNode }) => (
   <div className="who"><div><div className="sheet-title">{children}</div>{sub ? <div className="mute small">{sub}</div> : null}</div></div>
 );
 
@@ -250,11 +254,12 @@ function OtherDesk({ worldId }: { worldId: string }) {
 }
 
 function CompanySheet({ id }: { id: string }) {
+  const me = useData<any>("/api/me").data;
   return (
     <Wrap kind="company" path={`/api/companies/${id}`}>{(c) => {
       const f = c.fit;
       return (
-        <Frame kind="company" crumb={c.name}>
+        <Frame kind="company" crumb={c.name} foot={me?.user ? <button className="btn line" onClick={() => openSheet("transfer", `new-${id}`)}>Propose a move</button> : undefined}>
           <div className="who"><Logo domain={c.domain} name={c.name} size={44} /><div className="grow"><div className="sheet-title">{c.name}</div><div className="mute small">{c.domain}, {c.country}</div></div>
             <OtherDesk worldId={c.world_id} /></div>
           {f ? (
@@ -381,12 +386,11 @@ function PersonSheet({ id }: { id: string }) {
 // ---------------------------------------------------------------- Profile version
 
 function VersionSheet({ id }: { id: string }) {
-  const [busy, run] = useBusy();
   return (
     <Wrap kind="version" path={`/api/profile/versions/${id}`}>{(v) => (
       <Frame kind="version" crumb={`Version ${v.number}`}
         foot={v.status === "draft" ? <>
-          <button className="btn" disabled={busy || !v.can_publish} title={v.can_publish ? undefined : "A manager other than the author publishes"} onClick={() => run(() => api(`/api/profile/versions/${v.id}/publish`, { method: "POST" }), "Published.")}>Publish</button>
+          <button className="btn" disabled={!v.can_publish} title={v.can_publish ? undefined : "A manager other than the author publishes"} onClick={() => openSheet("publish", v.id)}>Publish</button>
         </> : undefined}>
         <Title sub={`${v.author}, ${day(v.created_at)}${v.publisher ? `. Published by ${v.publisher}, ${day(v.published_at)}` : ""}`}>Version {v.number}</Title>
         <Status kind={v.status === "published" ? "ok" : v.status === "draft" ? "wait" : "off"}>{v.status === "published" ? "Published" : v.status === "draft" ? "Draft" : "Retired"}</Status>

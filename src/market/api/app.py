@@ -38,6 +38,9 @@ from .. import (
     territories,
     tests_seg,
 )
+from .. import (
+    moves as moves_,
+)
 from ..config import CONFIG
 from . import views
 
@@ -227,6 +230,9 @@ def me(u: dict = Depends(current_user)) -> dict:
                         "select number from icp_versions where status = 'draft' and author <> %s order by number", u["id"])]
             waiting += [{"what": f"Activate {r['name']}", "path": "/territories"} for r in db.all(cur,
                         "select name from territory_plans where status = 'draft' and author <> %s order by id", u["id"])]
+            waiting += [{"what": f"Decide a move of {r['n']} account{'s' if r['n'] != 1 else ''}", "path": "/territories"} for r in db.all(cur,
+                        """select (select count(*) from move_proposal_accounts x where x.proposal = p.id) as n from move_proposals p
+                           where p.status = 'open' and p.proposed_by <> %s order by p.id""", u["id"])]
         elif u["role"] == "revops":
             n = open_changes
             if n:
@@ -350,6 +356,75 @@ def plan_move(plan: int, cid: int, u: dict = Depends(current_user)) -> dict:
         out = views.plan_move(cur, plan, cid)
     if out is None:
         raise HTTPException(404, "No such assignment.")
+    return out
+
+
+@app.get("/api/profile/versions/{vid}/publish-preview")
+def publish_preview(vid: int, u: dict = Depends(current_user)) -> dict:
+    need(u, "revops", "manager")
+    with db.tx() as cur:
+        cur.execute("set transaction read only")
+        out = views.publish_preview(cur, vid, u)
+    if out is None:
+        raise HTTPException(404, "No such version.")
+    return out
+
+
+@app.get("/api/profile/rollback-preview")
+def profile_rollback_preview(u: dict = Depends(current_user)) -> dict:
+    need(u, "revops", "manager")
+    with db.tx() as cur:
+        cur.execute("set transaction read only")
+        return views.profile_rollback_preview(cur, u)
+
+
+@app.get("/api/plans/rollback-preview")
+def plan_rollback_preview(u: dict = Depends(current_user)) -> dict:
+    need(u, "revops", "manager")
+    with db.tx() as cur:
+        cur.execute("set transaction read only")
+        return territories.rollback_preview(cur, u)
+
+
+@app.get("/api/plans/{pid}/activate-preview")
+def activate_preview(pid: int, u: dict = Depends(current_user)) -> dict:
+    need(u, "revops", "manager")
+    with db.tx() as cur:
+        cur.execute("set transaction read only")
+        try:
+            return territories.activation_preview(cur, pid, u)
+        except ValueError as exc:
+            raise HTTPException(404, str(exc)) from exc
+
+
+@app.get("/api/move-proposals")
+def move_proposals(u: dict = Depends(current_user)) -> dict:
+    need(u, "revops", "manager")
+    with db.tx() as cur:
+        return {"proposals": moves_.listing(cur)}
+
+
+@app.get("/api/move-proposals/options")
+def move_options(u: dict = Depends(current_user)) -> dict:
+    need(u, "revops", "manager")
+    with db.tx() as cur:
+        return views.move_options(cur)
+
+
+@app.get("/api/move-proposals/candidates")
+def move_candidates(q: str = "", owner: int | None = None, only: int | None = None, u: dict = Depends(current_user)) -> dict:
+    need(u, "revops", "manager")
+    with db.tx() as cur:
+        return {"accounts": moves_.candidates(cur, q=q[:80], owner=owner, only=only, limit=moves_.MAX_ACCOUNTS if owner else 30)}
+
+
+@app.get("/api/move-proposals/{pid}")
+def move_proposal(pid: int, u: dict = Depends(current_user)) -> dict:
+    need(u, "revops", "manager")
+    with db.tx() as cur:
+        out = moves_.detail(cur, pid, u)
+    if out is None:
+        raise HTTPException(404, "No such proposal.")
     return out
 
 
@@ -510,6 +585,67 @@ def activate(pid: int, u: dict = Depends(writer)) -> dict:
     try:
         with db.tx() as cur:
             territories.activate(cur, pid, u)
+    except Exception as exc:
+        raise _fail(exc) from exc
+    return {"ok": True}
+
+
+@app.post("/api/profile/rollback")
+def profile_rollback(u: dict = Depends(writer)) -> dict:
+    try:
+        with db.tx() as cur:
+            vid = profiles.rollback(cur, u)
+            from .. import sizing
+            sizing.run(cur)
+    except Exception as exc:
+        raise _fail(exc) from exc
+    return {"ok": True, "version": vid}
+
+
+@app.post("/api/plans/rollback")
+def plan_rollback(u: dict = Depends(writer)) -> dict:
+    try:
+        with db.tx() as cur:
+            pid = territories.rollback(cur, u)
+    except Exception as exc:
+        raise _fail(exc) from exc
+    return {"ok": True, "plan": pid}
+
+
+class Proposal(BaseModel):
+    companies: list[int] = Field(min_length=1, max_length=200)
+    to: int
+    territory: str | None = Field(None, max_length=60)
+    reason: str = Field(min_length=3, max_length=500)
+    effective_on: date
+
+
+@app.post("/api/move-proposals")
+def new_move_proposal(body: Proposal, u: dict = Depends(writer)) -> dict:
+    try:
+        with db.tx() as cur:
+            pid = moves_.propose(cur, u, companies=body.companies, to_owner=body.to, reason=body.reason,
+                                 effective_on=body.effective_on, to_territory=body.territory)
+    except Exception as exc:
+        raise _fail(exc) from exc
+    return {"id": pid}
+
+
+@app.post("/api/move-proposals/{pid}/approve")
+def approve_move(pid: int, u: dict = Depends(writer)) -> dict:
+    try:
+        with db.tx() as cur:
+            plan = moves_.approve(cur, pid, u)
+    except Exception as exc:
+        raise _fail(exc) from exc
+    return {"ok": True, "plan": plan}
+
+
+@app.post("/api/move-proposals/{pid}/reject")
+def reject_move(pid: int, body: Reason, u: dict = Depends(writer)) -> dict:
+    try:
+        with db.tx() as cur:
+            moves_.reject(cur, pid, u, body.reason)
     except Exception as exc:
         raise _fail(exc) from exc
     return {"ok": True}

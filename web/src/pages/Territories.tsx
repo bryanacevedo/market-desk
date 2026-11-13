@@ -1,8 +1,8 @@
-import { MapTrifold, UsersThree } from "@phosphor-icons/react";
-import { api } from "../api";
-import { Empty, Failed, Fig, Loading, Section, Seg, Status, day, money, n0, navigate, useBusy, useData, usePath, withParam, T, Tip } from "../lib";
+import { ClockCounterClockwise, MapTrifold, Swap, UsersThree } from "@phosphor-icons/react";
+import { Empty, Failed, Fig, Loading, Section, Seg, Status, day, money, n0, navigate, useData, usePath, withParam, T, Tip } from "../lib";
 import { CapacityRange, PlanShift } from "../parts";
 import { openSheet } from "../sheets";
+import { History } from "../sheets_moves";
 
 export function Territories() {
   const [, params] = usePath();
@@ -11,16 +11,16 @@ export function Territories() {
   const { data, error, reload } = useData<any>(`/api/territories${planParam ? `?plan=${planParam}` : ""}`);
   const me = useData<any>("/api/me").data;
   const activeData = useData<any>("/api/territories").data;
-  const [busy, run] = useBusy();
+  const proposals = useData<any>("/api/move-proposals").data;
   if (error) return <div className="page"><Failed error={error} retry={reload} /></div>;
   if (!data) return <div className="page"><div className="head"><h1>Territories</h1></div><Loading /></div>;
   const plan = data.plan;
   if (!plan) return <div className="page"><div className="head"><h1>Territories</h1></div><Empty title="No plan yet" /></div>;
   const canActivate = plan.status === "draft" && me?.user.role === "manager" && me?.user.id !== plan.author_id;
   const activateButton = <div className="actions">
-            <button className="btn" disabled={busy || !canActivate}
+            <button className="btn" disabled={!canActivate}
               title={canActivate ? undefined : "A manager other than the author activates it"}
-              onClick={() => run(() => api(`/api/plans/${plan.id}/activate`, { method: "POST" }), "Activated. Owners moved.")}>Activate</button>
+              onClick={() => openSheet("activate", plan.id)}>Activate</button>
   </div>;
   return (
     <div className="page">
@@ -33,9 +33,10 @@ export function Territories() {
           onChange={(v) => navigate(withParam("plan", v), true)} />
         {plan.status === "draft" ? (
           canActivate ? activateButton : <span className="small mute">Waiting for a manager to activate</span>
-        ) : <span className="mute small">Active since {day(plan.activated_at)}, by {plan.activated_by}</span>}
+        ) : <span className="actions"><span className="mute small">{plan.status === "active" ? `Active since ${day(plan.restored_at || plan.activated_at)}, by ${plan.activated_by}` : plan.status === "retired" ? "Retired" : ""}</span>
+          {plan.status === "active" && plan.replaced && me?.user.role === "manager" ? <button className="btn line sm" onClick={() => openSheet("rollback", "plan")}>Roll back</button> : null}</span>}
       </div>
-      {tab === "plan" ? <PlanView data={data} active={plan.status === "draft" && activeData?.plan?.id !== plan.id ? activeData : null} money={!!me?.money} /> : <CapacityView data={data} />}
+      {tab === "plan" ? <PlanView data={data} proposals={proposals?.proposals || []} active={plan.status === "draft" && activeData?.plan?.id !== plan.id ? activeData : null} money={!!me?.money} /> : <CapacityView data={data} />}
     </div>
   );
 }
@@ -43,7 +44,7 @@ export function Territories() {
 const ab = (p: any) => p.accounts_by_tier.A + p.accounts_by_tier.B;
 const hoursMax = (people: any[]) => Math.max(1, ...people.map((p: any) => Math.max(Number(p.hours_required), Number(p.selling_hours_month || p.hours_available))));
 
-function PlanView({ data, active, money: showMoney }: { data: any; active: any; money: boolean }) {
+function PlanView({ data, active, proposals, money: showMoney }: { data: any; active: any; proposals: any[]; money: boolean }) {
   const plan = data.plan;
   const draft = !!active;
   const was = new Map<number, number>((active?.people || []).map((p: any) => [p.user_id, ab(p)]));
@@ -104,6 +105,23 @@ function PlanView({ data, active, money: showMoney }: { data: any; active: any; 
         </div>
       </Section>
 
+      {plan.status !== "retired" ? (
+        <Section title="Move proposals" icon={Swap} count={proposals.filter((p: any) => p.status === "open").length}
+          right={<button className="btn line sm" onClick={() => openSheet("transfer", "new")}>Propose a move</button>}>
+          {proposals.length ? <div className="ledger">
+            <div className="row head" style={{ gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1fr) 110px 100px" }}><T>Move</T><T>Reason</T><T>Effective</T><T>Status</T></div>
+            {proposals.map((m: any) => (
+              <button key={m.id} className="row" style={{ gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1fr) 110px 100px" }} onClick={() => openSheet("transfer", m.id)}>
+                <span className="cell-main"><span className="t">{n0(m.accounts)} account{m.accounts === 1 ? "" : "s"} to {m.to_owner}</span><span className="s">{m.proposed_by}{m.decided_by ? `, decided by ${m.decided_by}` : ""}</span></span>
+                <span className="said-quote clip">{m.reason}</span>
+                <span className="mute" data-label="Effective">{day(m.effective_on)}</span>
+                <Status kind={m.status === "open" ? "wait" : m.status === "approved" ? "ok" : "off"}>{m.status === "open" ? "Open" : m.status === "approved" ? "Approved" : "Rejected"}</Status>
+              </button>
+            ))}
+          </div> : <Empty title="No proposals" />}
+        </Section>
+      ) : null}
+
       {data.manual.length ? (
         <Section title="Moved by hand" count={data.manual.length}>
           <div className="ledger">
@@ -116,6 +134,7 @@ function PlanView({ data, active, money: showMoney }: { data: any; active: any; 
           </div>
         </Section>
       ) : null}
+      {data.history.length ? <Section title="History" icon={ClockCounterClockwise} count={data.history.length}><History rows={data.history} figure="Owners" /></Section> : null}
     </>
   );
 }

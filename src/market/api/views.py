@@ -3,7 +3,7 @@ roles that may not see company money (docs/SPEC.md 3)."""
 from __future__ import annotations
 
 from .. import catalog as C
-from .. import db, fit, handoff, profiles, tests_seg
+from .. import crm, db, fit, handoff, profiles, tests_seg
 from .. import territories as terr
 from ..evidence import rule_label
 
@@ -188,10 +188,65 @@ def profile(cur, u: dict) -> dict:
                               left join users p on p.id = v.published_by order by v.number desc""")
     drafts = [v for v in versions if v["status"] == "draft"]
     return {"published": {"id": pub["id"], "number": pub["number"], "tiers": pub["rules"]["tiers"],
-                          "rules": _rules_view(cur, pub["rules"]), "published_at": pub["published_at"]},
+                          "rules": _rules_view(cur, pub["rules"]), "published_at": pub["restored_at"] or pub["published_at"]},
             "drafts": [{**d, "can_publish": u["role"] == "manager" and d["author_id"] != u["id"]} for d in drafts],
-            "versions": versions,
+            "versions": versions, "history": history(cur, ("profile_published", "profile_rolled_back")),
+            "can_roll_back": u["role"] == "manager" and profiles.rollback_target(cur) is not None,
             "job": db.one(cur, "select status, count(*) as n from jobs where kind = 'rescore_batch' and status <> 'done' group by status limit 1")}
+
+
+def history(cur, actions: tuple[str, ...]) -> list[dict]:
+    """Who changed what and when, from the audit log, newest first."""
+    rows = db.all(cur, """select at, actor, action, object_id, detail from audit_log where action = any(%s)
+                          order by id desc limit 12""", list(actions))
+    out = []
+    for r in rows:
+        d = r["detail"] or {}
+        if r["action"] == "profile_published":
+            n = db.val(cur, "select number from icp_versions where id = %s", int(r["object_id"]))
+            out.append({"at": r["at"], "who": r["actor"], "what": f"Published version {n}"})
+        elif r["action"] == "profile_rolled_back":
+            out.append({"at": r["at"], "who": r["actor"], "what": f"Rolled back version {d.get('number')} to version {d.get('restored_number')}"})
+        elif r["action"] == "plan_activated":
+            n = db.val(cur, "select name from territory_plans where id = %s", int(r["object_id"]))
+            out.append({"at": r["at"], "who": r["actor"], "what": f"Activated {n}", "figure": d.get("changes")})
+        elif r["action"] == "plan_rolled_back":
+            a = db.val(cur, "select name from territory_plans where id = %s", int(r["object_id"]))
+            b = db.val(cur, "select name from territory_plans where id = %s", int(d.get("restored")))
+            out.append({"at": r["at"], "who": r["actor"], "what": f"Rolled back {a} to {b}", "figure": d.get("changes")})
+    return out
+
+
+def publish_preview(cur, vid: int, u: dict) -> dict | None:
+    """What Publish does, in counts. The draft is scored here in a read-only transaction, never stored."""
+    v = version(cur, vid, u)
+    if v is None:
+        return None
+    pub = _published(cur)
+    mv = fit.what_moves(cur, vid, pub["id"]) if v["status"] == "draft" else {"total": 0, "moves": []}
+    return {"id": vid, "number": v["number"], "status": v["status"], "replaces": pub["number"], "rule_changes": len(v["diff"]),
+            "companies": db.val(cur, "select count(*) from companies"), "tier_moves": mv["total"], "moves": mv["moves"][:6],
+            "crm": crm.enabled(), "can_publish": v["can_publish"]}
+
+
+def profile_rollback_preview(cur, u: dict) -> dict:
+    t = profiles.rollback_target(cur)
+    if t is None:
+        return {"available": False}
+    now, prev = t
+    mv = fit.what_moves(cur, prev["id"], now["id"])
+    return {"available": True, "can_roll_back": u["role"] == "manager", "from": now["number"], "to": prev["number"],
+            "companies": db.val(cur, "select count(*) from companies"), "tier_moves": mv["total"], "moves": mv["moves"][:6],
+            "crm": crm.enabled()}
+
+
+def move_options(cur) -> dict:
+    """Who can take accounts and which territories exist, for the proposal form."""
+    people = db.all(cur, "select id, name, role from users where active and role in ('ae', 'sdr') order by role, name")
+    terrs = db.all(cur, """select t.key, t.label, t.rule from territories t join territory_plans p on p.id = t.plan and p.status = 'active'
+                           order by t.id""")
+    return {"people": people, "territories": [{"key": t["key"], "label": t["label"], "people": t["rule"]["people"]} for t in terrs],
+            "today": db.val(cur, "select app_now()::date")}
 
 
 def version(cur, vid: int, u: dict) -> dict | None:
@@ -335,7 +390,7 @@ def raise_forbidden():
 
 def territories(cur, plan_id: int | None, allowed: bool) -> dict:
     plans = db.all(cur, """select p.id, p.name, p.status, p.created_at, p.activated_at, a.name as author, x.name as activated_by,
-                           p.author as author_id, p.balance_report from territory_plans p join users a on a.id = p.author
+                           p.author as author_id, p.balance_report, p.replaced, p.restored_at from territory_plans p join users a on a.id = p.author
                            left join users x on x.id = p.activated_by order by case p.status when 'active' then 0 when 'draft' then 1 else 2 end, p.id desc""")
     plan_id = plan_id or (plans[0]["id"] if plans else None)
     plan = next((p for p in plans if p["id"] == plan_id), None)
@@ -375,7 +430,8 @@ def territories(cur, plan_id: int | None, allowed: bool) -> dict:
         people_ids = sorted(set(ch["gains"]) | set(ch["losses"]), key=lambda k: names[k])
         ch = {"changes": ch["changes"], "crossing": len(ch["crossing"]),
               "people": [{"name": names[k], "gains": ch["gains"].get(k, 0), "losses": ch["losses"].get(k, 0)} for k in people_ids]}
-    return strip({"plans": plans, "plan": plan, "people": people, "territories": terrs, "gap": gap, "changes": ch,
+    hist = history(cur, ("plan_activated", "plan_rolled_back"))
+    return strip({"plans": plans, "plan": plan, "history": hist, "people": people, "territories": terrs, "gap": gap, "changes": ch,
                   "manual": manual, "hours_per_tier": s["hours_per_tier"]["value"], "hours_note": s["hours_per_tier"]["note"],
                   "a_capacity": {"held": a_cap["held"] or 0, "tier_a": a_total}}, allowed)
 

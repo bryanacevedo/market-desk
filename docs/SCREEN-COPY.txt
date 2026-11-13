@@ -1,3 +1,4 @@
+# account# to #
 # accounts free to test, # needed
 # accounts, worked and held back
 # now, # in the draft
@@ -9,6 +10,7 @@ A company fact we test against win rate, such as industry, size or technology.
 A company with this score or more is tier A.
 A company with this score or more, below the A cutoff, is tier B.
 A draft is a new ICP version: tick the changes to put in it, then Make a draft
+A manager other than the author publishes it
 A rule needs at least this many deals behind an unclear verdict before Changes proposes dropping it.
 A rule of the published ICP, tested like any trait: deals that match it against deals that do not.
 A segment's planning win rate is pulled toward the overall rate as if it had this many more deals at the overall rate.
@@ -30,12 +32,13 @@ Accounts the person would lose.
 Accounts the plan can work
 Accounts whose owner changed since the version before.
 Accounts whose tier changed since the version before.
-Active since #, by #
+Add all of one person's
 An ICP version no longer in use.
 At meeting rates this low, more accounts, or more time, are needed before a difference can be read.
 Band: from the low estimate to the high one
 Band: where the true rate likely sits
 Band: where the true win rate likely sits
+CRM Desk keeps what it takes. Rolling back sends the earlier plan over it, and owners pinned there stay as they are.
 Closed deals with a different known value for the same trait.
 Closed new-business deals in the evidence window.
 Companies in each segment whose tier would change.
@@ -86,9 +89,15 @@ Median size of won new-business deals in the last two years, with the middle hal
 Meeting rate, worked vs held back
 Meetings booked with these accounts.
 Months an account is worked
+No CRM is set, so nothing is sent.
 No evidence behind this rule yet.
 No results back from Account Desk yet
 Not sent to Account Desk
+Nothing goes to CRM Desk now. The new tiers go with the next plan you activate.
+Nothing goes to CRM Desk now. The tiers go with the next plan you activate.
+Nothing to roll back to
+Only a draft can be published
+Open deals leave their owner
 Our CRM. Each account's tier, segment, fit score and owner go there from here, so sellers see them where they work.
 Our tool that plans events and who to meet there. It receives the ICP as a document from here.
 Our tool where SDRs research and work their accounts. Each SDR's book of accounts, and the ICP, go there from here.
@@ -96,6 +105,7 @@ Overdue by # ##
 Page # of #
 Points the rule adds to, or removes from, a company's fit score out of 100.
 Points this rule adds to or removes from the company's score.
+Rolled back. Every company is rescored.
 Share held back in a test
 Share of a test's accounts kept unworked so the worked ones can be compared.
 Share of closed new-business deals that were won. Where a band is drawn, the true rate likely sits inside it and the black tick is the rate measured.
@@ -124,6 +134,7 @@ The gap goes away when you compare companies of the same size, so company size, 
 The loss reason coded from the rep's note.
 The middle half of won-deal cycles.
 The part of TAM in our regions whose buyer a contact source can find. Same low and high ends as TAM.
+The plan starts #. Owners change in this desk now.
 The same comparison inside each company size band. If the gap disappears here, size explains it.
 The segment's win rate pulled toward the overall rate, as if it had 20 more deals at the overall rate, so a few lucky deals do not carry the plan.
 The territory's average expected value per person.
@@ -144,6 +155,7 @@ Value of the deals opened.
 Waiting for a manager to activate
 What Account Desk last reported for the account: a meeting booked or not.
 What Account Desk or Events Desk reported back for this account.
+What CRM Desk already took stays there until the earlier plan is sent over it. Owners pinned there stay as they are.
 What closed deals, or a segment test, say about this rule or change.
 What the active plan's people can work in 12 months, times the share that becomes a deal, times the win rate, times deal size.
 What the active plan's people can work in 12 months, times the share that becomes a deal, times the win rate, times deal size. Low end uses the low rates, high end the high ones.

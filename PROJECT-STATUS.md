@@ -4,6 +4,8 @@
 
 ## Where it stands
 
+**Pilot blockers fixed (2026-11-12, decisions 43 and 44):** territory move proposals (propose, approve or reject with who and when, an approval drafts a plan that moves only those accounts, then the usual activation and CRM books) and a confirmation with counts plus a recorded rollback on Publish ICP and Activate plan. Migration 0003. Tests in `tests/test_moves_rollback.py`.
+
 Built end to end on a simulated world, overnight 2026-11-11 to 12. Public at https://github.com/bryanacevedo/market-desk; live at https://market-desk-3kou.onrender.com (pages checked live in gate 10; every push to `main` now redeploys on Render by itself). Two roles sign in, RevOps and the manager; SDRs and AEs are plan data only (decision 39).
 
 Design-lint held items cleared on 2026-11-12 with Bryan's approval: the three round comparison markers (`.range-other`, `.pair-held`, `.key-ring`) are now hollow ticks, the same family as the solid measured tick, so the position on the scale still carries the data and no dot remains. Copy says "hollow tick" where it said "ring" (legends, tips, the Territories column header). `docs/DESIGN-LINT-BASELINE.txt` is empty.

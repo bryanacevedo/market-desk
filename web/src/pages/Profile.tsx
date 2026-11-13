@@ -1,8 +1,8 @@
 import { ClockCounterClockwise, ListChecks, PencilSimpleLine, Scales } from "@phosphor-icons/react";
-import { api } from "../api";
-import { Bar, Empty, Failed, Fig, Loading, Section, Status, day, n0, useBusy, useData, T } from "../lib";
+import { Bar, Empty, Failed, Fig, Loading, Section, Status, day, n0, useData, T } from "../lib";
 import { Verdict } from "../parts";
 import { openSheet } from "../sheets";
+import { History } from "../sheets_moves";
 
 export function RuleRows({ rules }: { rules: any[] }) {
   const kinds: [string, string][] = [["factors", "Adds points"], ["penalties", "Removes points"], ["excludes", "Excluded"]];
@@ -74,13 +74,12 @@ export function Moves({ id }: { id: number }) {
 
 export function Profile() {
   const { data, error, reload } = useData<any>("/api/profile");
-  const [busy, run] = useBusy();
   if (error) return <div className="page"><Failed error={error} retry={reload} /></div>;
   if (!data) return <div className="page"><div className="head"><h1>ICP</h1></div><Loading /></div>;
   const p = data.published;
   return (
     <div className="page">
-      <div className="head"><h1>ICP</h1></div>
+      <div className="head"><h1>ICP</h1>{data.can_roll_back ? <button className="btn line" onClick={() => openSheet("rollback", "icp")}>Roll back</button> : null}</div>
       <div className="figs">
         <Fig value={`v${p.number}`} label="Published" />
         <Fig value={day(p.published_at)} label="Since" />
@@ -92,8 +91,7 @@ export function Profile() {
         <div key={d.id} className="halo"><Section title={`Draft v${d.number}`} icon={PencilSimpleLine}
           right={<div className="actions">
             <button className="btn line sm" onClick={() => openSheet("version", d.id)}>Open</button>
-            {d.can_publish ? <button className="btn sm" disabled={busy}
-              onClick={() => run(() => api(`/api/profile/versions/${d.id}/publish`, { method: "POST" }), "Published. Every company is being rescored.")}>Publish</button> : null}
+            {d.can_publish ? <button className="btn sm" onClick={() => openSheet("publish", d.id)}>Publish</button> : null}
           </div>}>
           <div className="small mute">{d.note}</div>
           {!d.can_publish ? <div className="small">A manager other than {d.author} publishes</div> : null}
@@ -114,6 +112,7 @@ export function Profile() {
           ))}
         </div>
       </Section>
+      {data.history.length ? <Section title="History" count={data.history.length}><History rows={data.history} /></Section> : null}
     </div>
   );
 }
