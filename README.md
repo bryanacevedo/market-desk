@@ -83,7 +83,7 @@ With no CRM, the desk can still run on your own deal history: `python -m market 
 
 Market Desk's companies, deals, customers and call notes now come from Lumen Ledger's shared world, `lumen-world`, which every desk's demo reads. Its slice for this desk is vendored in `world/` (decision 40): the same 18,005 companies this desk used to draw for itself (27 renamed because they carried the seller's name), the history moved into working hours and cut at 13 August 2026, the one team roster, and counts of findable roles per company. The slice holds no people, and call notes arrive with the names they mention and are redacted before anything is stored (decision 1). `WORLD=legacy` rebuilds the desk's own world from `src/market/sim/world.py`.
 
-With `CRM=crmdesk`, activating a plan sends its books to CRM Desk: every assigned account with its tier, segment, fit score, profile version, the AE who owns it and the SDR who works it (decision 41). Handoffs shows what was sent and what CRM Desk refused, such as an SDR a manager pinned there. With no CRM set, nothing is sent and the desk works alone, as before. In the demo the conversation was recorded once, with both desks running (`lumen-world/stage/rehearse.py`), and replayed when the image is built, so the two public demos agree without calling each other.
+With `CRM=crmdesk`, activating a plan sends its books to CRM Desk: every assigned account with its tier, segment, fit score, profile version, the AE who owns it and the SDR who works it (decision 41). Handoffs shows what was sent and what CRM Desk refused, such as an SDR a manager pinned there. With no CRM set, nothing is sent and the desk works alone, as before. Also with `CRM=crmdesk`, the desk decides which accounts are marketing qualified (a tier the rule names, and enough points from enough people in 30 days) and sends `mqa_at`, `mqa_points` and `mqa_people` to CRM Desk, which takes them from this desk only while it is set to follow it (decisions 49 to 51). The desk holds the fit and reads the engagement from CRM Desk, counts it and keeps only the result; it stores no people. The rule is published at `/api/definitions/mqa` with a version and a hash, and `python -m market crm-mqa` runs it once. In the demo the conversation was recorded once, with both desks running (`lumen-world/stage/rehearse.py`), and replayed when the image is built, so the two public demos agree without calling each other.
 
 ## Run it
 
@@ -136,7 +136,7 @@ The world was adjusted until the rules found the planted effects; the rules were
 ## Not yet proven
 
 - Nothing here has run against a real CRM, a real data vendor or real public counts; the adapters are contracts only.
-- Books go to CRM Desk only with `CRM=crmdesk`; the public demo replays one recorded exchange instead of calling CRM Desk live (decision 41).
+- Books and marketing qualified accounts go to CRM Desk only with `CRM=crmdesk`; the public demo replays one recorded exchange instead of calling CRM Desk live (decision 41).
 - Account Desk and Events Desk do not import these books yet; the equivalence test uses a copy of Account Desk's formula, and whether Events Desk's parser reads this ICP document is untested.
 - The hours per account (A 1.0, B 0.4, C 0.1 a month) and the quarter each account is worked are our assumptions (decision 17).
 - The sizing ranges are scenario bounds (decision 13).

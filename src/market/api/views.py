@@ -565,13 +565,18 @@ def crm_desk(cur) -> dict | None:
     for r in s["refusals"]:
         c = db.one(cur, "select id, name from companies where primary_domain = %s", r["domain"])
         r["company"], r["name"] = (c["id"], c["name"]) if c else (None, r["domain"])
-        r["proposed_name"] = db.val(cur, "select name from users where email = %s", r["proposed"]) or r["proposed"]
-        r["what"] = {"sdr_owner_id": "SDR", "owner_id": "Owner"}.get(r["field"], r["field"])
+        r["proposed_name"] = (db.val(cur, "select name from users where email = %s", r["proposed"]) if isinstance(r["proposed"], str) else None) or r["proposed"]
+        r["what"] = {"sdr_owner_id": "SDR", "owner_id": "Owner", "mqa_at": "Marketing qualified", "mqa_points": "Engagement points",
+                     "mqa_people": "People engaged"}.get(r["field"], r["field"])
         r["why"] = {"owner_pinned": "A manager pinned it in CRM Desk",
-                    "kept_value_a_person_entered": "Someone in CRM Desk entered a different value"}.get(r["reason"], "CRM Desk kept its own value")
+                    "kept_value_a_person_entered": "Someone in CRM Desk entered a different value",
+                    "computed_by_crm_desk": "CRM Desk decides marketing qualified itself until it is set to follow this desk"
+                    }.get(r["reason"], "CRM Desk kept its own value")
     for e in s["errors"]:
         c = db.one(cur, "select id, name from companies where primary_domain = %s", e["domain"])
         e["company"], e["name"] = (c["id"], c["name"]) if c else (None, e["domain"])
+    from .. import mqa
+    s["mqa"] = mqa.state(cur)
     return s
 
 

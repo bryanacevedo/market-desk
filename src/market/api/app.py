@@ -216,6 +216,34 @@ def health() -> dict:
             "integrated_with": sorted(CONFIG.integrated_with)}
 
 
+@app.get("/api/definitions")
+def definitions() -> dict:
+    """The definitions this desk owns, published as numbered versions with a hash (CRM Desk's index points here for `mqa`).
+    Public like /api/health: a rule and a hash hold no company, person or money."""
+    from .. import mqa
+    with db.tx() as cur:
+        return mqa.published(cur)
+
+
+@app.get("/api/definitions/{name}")
+def definition(name: str, version: int | None = None) -> dict:
+    from .. import mqa
+    with db.tx() as cur:
+        d = mqa.current(cur) if version is None else mqa.version(cur, version)
+    if name != mqa.NAME or d is None:
+        raise HTTPException(404, "No such definition.")
+    return d
+
+
+@app.get("/api/definitions/{name}/versions")
+def definition_versions(name: str) -> dict:
+    from .. import mqa
+    if name != mqa.NAME:
+        raise HTTPException(404, "No such definition.")
+    with db.tx() as cur:
+        return mqa.versions(cur)
+
+
 @app.get("/api/me")
 def me(u: dict = Depends(current_user)) -> dict:
     with db.tx() as cur:
@@ -935,6 +963,10 @@ def start_worker() -> None:
     if crm.pull_enabled():
         with db.tx() as cur:
             jobs.enqueue(cur, "crm_pull", {}, dedupe_key="crm_pull")
+    from .. import mqa
+    if mqa.enabled() and not CONFIG.public_demo:
+        with db.tx() as cur:
+            jobs.enqueue(cur, "crm_mqa", {}, dedupe_key="crm_mqa")
     if not CONFIG.worker_inline:
         return
 

@@ -12,6 +12,8 @@
                        --blank-type new treats a blank type as new business. At most 5 MB and 50,000 rows.
   crm-pull            read opportunities and accounts from CRM Desk now (CRM=crmdesk), the same way CRM_PULL=1 does every 15 minutes
   crm-sync             send the active plan's books to the CRM now (CRM=crmdesk), and print what it refused
+  crm-mqa              read the window's engagement from CRM Desk, decide which accounts are marketing qualified, send the
+                       changes (kind mqa) and print what it did and what CRM Desk refused. CRM_MQA=0 turns the hourly job off.
 """
 from __future__ import annotations
 
@@ -69,6 +71,34 @@ def main(argv: list[str]) -> int:
                 time.sleep(exc.retry_after)  # CRM Desk asked to wait; the row is still queued
         with db.tx() as cur:
             print(json.dumps({"requests": sent, **crm.summary(cur)}, default=str, indent=1))
+        db.close()
+    elif cmd == "crm-mqa":
+        from . import crm, mqa
+        if not crm.enabled():
+            raise SystemExit("No CRM is set: CRM=crmdesk with CRM_DESK_URL and CRM_DESK_KEY.")
+        if CONFIG.public_demo:
+            raise SystemExit("The public demo holds invented data only. It reads nothing from a CRM.")
+        try:
+            result = mqa.sync(crm.CrmDeskReader.from_env())
+        except mqa.MqaUnavailable as exc:
+            raise SystemExit(str(exc)) from exc
+        sent = 0
+        while True:
+            try:
+                with db.tx() as cur:
+                    row = db.one(cur, "select * from crm_outbox where status = 'queued' and kind = 'mqa' order by id limit 1 for update skip locked")
+                    if row is None:
+                        break
+                    crm.deliver(cur, row)
+                    sent += 1
+            except crm.CrmDown as exc:
+                if exc.retry_after is None:
+                    raise
+                time.sleep(exc.retry_after)
+        with db.tx() as cur:
+            s = crm.summary(cur)
+            print(json.dumps({**result, "requests": sent, "refusals": [r for r in s["refusals"] if r["field"].startswith("mqa_")],
+                              "errors": s["errors"]}, default=str, indent=1))
         db.close()
     elif cmd == "import-deals":
         from . import deals_in

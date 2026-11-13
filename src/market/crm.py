@@ -310,14 +310,16 @@ class CrmDeskReader:
             raise CrmDown("CRM=crmdesk needs CRM_DESK_URL and CRM_DESK_KEY (a key made with --desk market_desk).")
         return cls(url, key)
 
-    def _get(self, path: str, since: str | None, limit: int) -> dict:
+    def _get(self, path: str, since: str | None, limit: int | None = None, *, missing_ok: bool = False) -> dict | None:
         import httpx
         try:
-            r = self.c.get("/api/v1" + path, params={"limit": limit, **({"since": since} if since else {})})
+            r = self.c.get("/api/v1" + path, params={**({"limit": limit} if limit else {}), **({"since": since} if since else {})})
         except httpx.HTTPError as exc:
             raise CrmDown(f"CRM Desk did not answer: {type(exc).__name__}") from exc
         if r.status_code == 429:
             raise CrmDown("CRM Desk asked to slow down", float(r.headers.get("retry-after") or 30))
+        if r.status_code == 404 and missing_ok:
+            return None
         if r.status_code >= 400:
             raise CrmDown(f"CRM Desk answered {r.status_code} on {path}")
         return r.json()
@@ -353,6 +355,51 @@ class CrmDeskReader:
                           updated_at=self._when(r.get("updated_at")))
                for r in j["data"] if not (r.get("deleted") or r.get("merged_into")) and r.get("domain")]
         return Page(out, j.get("next"), bool(j.get("has_more")))
+
+
+    # ---- marketing qualified accounts (mqa.py): engagement is people's activity, so it is read here and counted there. These
+    # methods are optional: a reader without them (a Salesforce-shaped one) leaves the desk deciding nothing.
+
+    def definition(self, name: str) -> dict:
+        return self._get(f"/definitions/{name}", None)
+
+    def touches(self, since):
+        """Every activity updated since `since` (a datetime), oldest first, reduced to what scoring needs. The ids are
+        CRM Desk's opaque ones; names, addresses and text are dropped here and never leave this method."""
+        from .mqa import Touch
+        cursor, more = since.isoformat(), True
+        while more:
+            j = self._get("/changes/activities", cursor, 500)
+            for r in j["data"]:
+                if r.get("deleted") or r.get("merged_into") or not r.get("type"):
+                    continue
+                people = tuple(dict.fromkeys(x for x in [r.get("contact_id"), *[a.get("contact_id") for a in r.get("attendees") or []]] if x))
+                yield Touch(activity=r["id"], account=r.get("account_id"), people=people, type=r["type"], direction=r.get("direction"),
+                            outcome=r.get("outcome"), meeting_status=r.get("meeting_status"), occurred_at=self._when(r.get("occurred_at")))
+            cursor, more = j.get("next") or cursor, bool(j.get("has_more"))
+
+    def contact_account(self, contact_id: str) -> str | None:
+        """The account a person belongs to, for an activity that names the person and not the account. Nothing else
+        about the person is kept."""
+        return (self._get(f"/contacts/{contact_id}", None, missing_ok=True) or {}).get("account_id")
+
+    def account_facts(self, account_id: str) -> dict:
+        """What the rule asks of an account beyond its tier: its domain, its type, whether it may be prospected."""
+        a = self._get(f"/accounts/{account_id}", None, missing_ok=True) or {"deleted": True}
+        return {"domain": a.get("domain"), "type": a.get("type"), "do_not_prospect": bool((a.get("do_not_prospect") or {}).get("value")),
+                "deleted": bool(a.get("deleted") or a.get("merged_into")), "tier": (a.get("market") or {}).get("tier")}
+
+    def marked(self) -> dict[str, dict]:
+        """Every account CRM Desk holds as marketing qualified now: domain to its mark, points and people."""
+        out, cursor, more = {}, None, True
+        while more:
+            j = self._get("/changes/accounts", cursor, 500)
+            for r in j["data"]:
+                if r.get("deleted") or r.get("merged_into") or not r.get("domain") or not r.get("mqa_at"):
+                    continue
+                out[r["domain"].lower()] = {"mqa_at": r["mqa_at"], "mqa_points": r.get("mqa_points"), "mqa_people": r.get("mqa_people")}
+            cursor, more = j.get("next") or cursor, bool(j.get("has_more"))
+        return out
 
 
 def pull_enabled() -> bool:
