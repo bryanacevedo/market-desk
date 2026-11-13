@@ -56,6 +56,8 @@ Extra SDRs at full hours it would take to work every unassigned A and B account 
 Fewer than 30 deals or 5 wins.
 Fewer than 30 opportunities or 5 wins.
 Handoffs exports these books for Account Desk
+Hollow tick: every other deal
+Hollow tick: every other deal, or the held-back accounts
 Hours a month it would take to work every unassigned A and B account.
 Hours a month one tier A account needs while it is worked. Our assumption.
 Hours a month one tier B account needs while it is worked. Our assumption.
@@ -94,7 +96,6 @@ Overdue by # ##
 Page # of #
 Points the rule adds to, or removes from, a company's fit score out of 100.
 Points this rule adds to or removes from the company's score.
-Ring: every other deal, or the held-back accounts
 Share held back in a test
 Share of a test's accounts kept unworked so the worked ones can be compared.
 Share of closed new-business deals that were won. Where a band is drawn, the true rate likely sits inside it and the black tick is the rate measured.

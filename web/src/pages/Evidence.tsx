@@ -41,7 +41,7 @@ export function Evidence() {
         <div className="range-key" aria-label="How to read the win rates">
           <span><i className="key-band" />Band: where the true win rate likely sits</span>
           <span><i className="key-tick" />Tick: the win rate measured</span>
-          <span><i className="key-ring" />Ring: every other deal</span>
+          <span><i className="key-hollow" />Hollow tick: every other deal</span>
         </div>
         <div className="ledger wide-table evidence">
           <div className="row head" style={{ gridTemplateColumns: cols }}>

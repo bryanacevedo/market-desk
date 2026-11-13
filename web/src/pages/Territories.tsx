@@ -77,12 +77,12 @@ function PlanView({ data, active, money: showMoney }: { data: any; active: any; 
       ) : null}
       <Section title="People" icon={UsersThree} right={<span className="small mute">Handoffs exports these books for Account Desk</span>}>
         <div className="ledger">
-          <div className="row head" style={{ gridTemplateColumns: cols }}><T>Person</T><T>Territory</T>{draft ? <T>A and B, ring: now</T> : <><T num>A</T><span className="num"><Tip tip="Tier B accounts in the person's book.">B</Tip></span></>}<T>Hours needed, of held</T>{showMoney ? <><T num>Expected value</T><T num>Average</T></> : null}</div>
+          <div className="row head" style={{ gridTemplateColumns: cols }}><T>Person</T><T>Territory</T>{draft ? <T>A and B, hollow: now</T> : <><T num>A</T><span className="num"><Tip tip="Tier B accounts in the person's book.">B</Tip></span></>}<T>Hours needed, of held</T>{showMoney ? <><T num>Expected value</T><T num>Average</T></> : null}</div>
           {data.people.map((p: any) => (
             <button key={p.user_id} className="row" style={{ gridTemplateColumns: cols }} onClick={() => openSheet("person", p.user_id)}>
               <span className="cell-main"><span className="t">{p.name}</span><span className="s">{p.role === "ae" ? "AE" : "SDR"}{p.effective_fte < 1 ? `, ramping` : ""}</span></span>
               <span className="clip mute">{p.territory}</span>
-              {draft ? <span data-label="A and B, ring: now"><PlanShift was={was.has(p.user_id) ? was.get(p.user_id)! : null} now={ab(p)} max={shiftMax} /></span>
+              {draft ? <span data-label="A and B, hollow: now"><PlanShift was={was.has(p.user_id) ? was.get(p.user_id)! : null} now={ab(p)} max={shiftMax} /></span>
                 : <><span className="num" data-label="Tier A">{n0(p.accounts_by_tier.A)}</span><span className="num" data-label="Tier B">{n0(p.accounts_by_tier.B)}</span></>}
               <span data-label="Hours needed, of held"><CapacityRange needed={Number(p.hours_required)} held={Number(p.hours_available)} full={Number(p.selling_hours_month || p.hours_available)} max={hmax} /></span>
               {showMoney ? <><span className="num" data-label="Expected value">{money(p.ev)}</span><span className="num mute" data-label="Territory average">{p.ev_mean ? money(p.ev_mean) : ""}</span></> : null}

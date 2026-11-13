@@ -76,7 +76,7 @@ export const SEG_LABEL = (s: string | null | undefined, labels?: Record<string, 
 /** One scale for every win rate on every screen, so the same rate sits in the same place everywhere. */
 export const RATE_MAX = 0.6;
 
-/** A rate drawn as an interval on a 0 to `max` scale: the band from low to high, a tick at the point, a hollow ring
+/** A rate drawn as an interval on a 0 to `max` scale: the band from low to high, a tick at the point, a hollow tick
  *  at the comparison. The number is written beside it; the band's ends are written under it when asked. */
 export function RangeLine({ rate, low, high, other, max = RATE_MAX, label, ends, spell }: { rate: number | null | undefined; low?: number | null;
   high?: number | null; other?: number | null; max?: number; label?: string; ends?: boolean; spell?: boolean }) {

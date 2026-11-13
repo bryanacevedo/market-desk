@@ -6,6 +6,8 @@
 
 Built end to end on a simulated world, overnight 2026-11-11 to 12. Public at https://github.com/bryanacevedo/market-desk; live at https://market-desk-3kou.onrender.com (pages checked live in gate 10; every push to `main` now redeploys on Render by itself). Two roles sign in, RevOps and the manager; SDRs and AEs are plan data only (decision 39).
 
+Design-lint held items cleared on 2026-11-12 with Bryan's approval: the three round comparison markers (`.range-other`, `.pair-held`, `.key-ring`) are now hollow ticks, the same family as the solid measured tick, so the position on the scale still carries the data and no dot remains. Copy says "hollow tick" where it said "ring" (legends, tips, the Territories column header). `docs/DESIGN-LINT-BASELINE.txt` is empty.
+
 Film: a plain-English explainer (1:52), https://bryanacevedo.github.io/project-videos/video/market-desk.mp4, linked from the README.
 
 Redesigned 2026-11-12 with its own spirit (`docs/DESIGN-CHECKLIST.md`, Spirit; decision 30).

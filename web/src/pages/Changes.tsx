@@ -64,7 +64,7 @@ export function Changes() {
       <div className="range-key" aria-label="How to read a change">
         <span><i className="key-band" />Band: where the true rate likely sits</span>
         <span><i className="key-tick" />Tick: the rate measured</span>
-        <span><i className="key-ring" />Ring: every other deal, or the held-back accounts</span>
+        <span><i className="key-hollow" />Hollow tick: every other deal, or the held-back accounts</span>
         {revops ? <span>A draft is a new ICP version: tick the changes to put in it, then Make a draft</span> : null}
       </div>
       <Section title="Open" count={data.open.length} icon={Lightbulb}>

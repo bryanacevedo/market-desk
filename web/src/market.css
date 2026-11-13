@@ -68,7 +68,7 @@ h1 { font-size: 30px; line-height: 36px; font-weight: 560; letter-spacing: -0.01
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent); transform-origin: center;
   animation: range-open 520ms var(--ease) both; }
 .range-point { position: absolute; top: 1px; width: 2px; height: 12px; margin-left: -1px; background: var(--ink); border-radius: 1px; }
-.range-other { position: absolute; top: 3.5px; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%;
+.range-other { position: absolute; top: 1px; width: 5px; height: 12px; margin-left: -2.5px; border-radius: 2px;
   border: 1.5px solid var(--series-2); background: var(--ground); }
 .range.stacked { grid-template-columns: minmax(0, 1fr); gap: 3px; }
 .range.stacked .range-val { text-align: right; }
@@ -219,7 +219,7 @@ h1 { font-size: 30px; line-height: 36px; font-weight: 560; letter-spacing: -0.01
 /* Two rates on one track: worked as the ochre band, held back as a steel outline band with its ring. */
 .pair { display: grid; grid-template-columns: auto minmax(90px, 1fr); gap: 10px; align-items: center; min-width: 0; }
 .pair-band-held { position: absolute; top: 3px; height: 8px; border-radius: 4px; box-shadow: inset 0 0 0 1px var(--wait); opacity: .7; }
-.pair-held { position: absolute; top: 3.5px; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 50%; border: 1.5px solid var(--wait); background: var(--ground); }
+.pair-held { position: absolute; top: 1px; width: 5px; height: 12px; margin-left: -2.5px; border-radius: 2px; border: 1.5px solid var(--wait); background: var(--ground); }
 .pair .range-val small { display: block; }
 .form-field { display: grid; gap: 6px; min-width: 0; }
 .tile-name { overflow-wrap: break-word; }
@@ -266,7 +266,7 @@ h1 { font-size: 30px; line-height: 36px; font-weight: 560; letter-spacing: -0.01
 .tile.narrow .tile-name { writing-mode: vertical-rl; transform: rotate(180deg); display: flex; flex-direction: row; gap: 2px;
   -webkit-line-clamp: unset; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-height: 100%; font-size: 12px; line-height: 14px; align-self: flex-start; }
 .tile.narrow .tile-name > span { display: block; }
-.key-ring { width: 7px; height: 7px; border-radius: 50%; border: 1.5px solid var(--series-2); background: var(--ground); }
+.key-hollow { width: 5px; height: 12px; border-radius: 2px; border: 1.5px solid var(--series-2); background: var(--ground); }
 .axis-line small:first-child { transform: translateX(-50%); }
 /* A hidden tip takes no room, so it can never widen the page. */
 .tip-box { display: none; max-width: min(280px, calc(100vw - 48px)); }
