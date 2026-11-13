@@ -335,4 +335,8 @@ def build_demo(n_companies: int = 18_000, seed: int = 7) -> dict:
         if SHARED:  # what Market Desk sent CRM Desk in the rehearsal, and CRM Desk's answers (sim/lumen.py)
             from .. import crm
             info["crm_sent"] = crm.replay(cur, lumen.WORLD / "journal.jsonl")
+            from .. import (
+                deals_in,  # and what it read back from CRM Desk afterwards, page for page (fails on any difference)
+            )
+            info["crm_read"] = deals_in.replay_pull(cur, lumen.WORLD / "journal.jsonl")
     return info

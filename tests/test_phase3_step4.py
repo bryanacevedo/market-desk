@@ -413,3 +413,24 @@ def test_integrated_with_names_known_desks_only_and_unset_means_alone(monkeypatc
     monkeypatch.setenv("INTEGRATED_WITH", "crm_desk,nope")
     with pytest.raises(SystemExit, match="nope"):
         Config().validate()
+
+
+def test_a_journaled_pull_replays_page_for_page_and_fails_on_any_difference(cur, tmp_path, monkeypatch):
+    journal = tmp_path / "journal.jsonl"
+    monkeypatch.setenv("CRM_JOURNAL", str(journal))
+    reader = StubReader([deals_in.CrmAccount(id="a9", domain="rpco.example", name="Rp Co", country="US")],
+                        [_opp(31), _opp(32, "Negotiation", False, False)])
+    first = deals_in.pull(reader, limit=1, cur=cur)
+    monkeypatch.delenv("CRM_JOURNAL")
+    db.run(cur, "delete from deals where source_system = 'crmdesk'")
+    db.run(cur, "delete from crm_cursors")
+    assert deals_in.replay_pull(cur, journal) == first
+    # a pull that asks for another page size is not the journal's pull
+    db.run(cur, "delete from deals where source_system = 'crmdesk'")
+    db.run(cur, "delete from crm_cursors")
+    steps = [json.loads(x) for x in journal.read_text().splitlines()]
+    steps[0]["limit"] = 50
+    journal.write_text("\n".join(json.dumps(s) for s in steps) + "\n")
+    with pytest.raises(deals_in.JournalMismatch):
+        deals_in.replay_pull(cur, journal)
+    assert deals_in.replay_pull(cur, tmp_path / "none.jsonl") is None

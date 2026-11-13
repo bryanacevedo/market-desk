@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import contextlib
 import csv
+import dataclasses
 import hashlib
 import io
 import json
@@ -458,12 +459,67 @@ def opportunity_row(o: CrmOpportunity, index: int = 0) -> Row:
                feeder="crm", currency=o.currency)
 
 
-def _journal(method: str, path: str, since: str | None, page: Page, at) -> None:
+def _journal(method: str, path: str, since: str | None, page: Page, at, limit: int = 200) -> None:
+    """With CRM_JOURNAL set (the shared-world rehearsal), one line per page read, carrying the page itself, so the demo build
+    can read the same pages again through `replay_pull` and fail on any difference."""
     j = os.environ.get("CRM_JOURNAL")
     if j:
         with open(j, "a", encoding="utf-8") as f:
-            f.write(json.dumps({"at": at.isoformat(), "actor": "market_desk", "method": method, "path": path, "since": since,
-                                "count": len(page.rows), "next": page.next}, sort_keys=True) + "\n")
+            f.write(json.dumps({"at": at.isoformat(), "actor": "market_desk", "kind": "pull", "method": method, "path": path, "since": since,
+                                "limit": limit, "count": len(page.rows), "next": page.next, "has_more": page.has_more,
+                                "rows": [dataclasses.asdict(r) for r in page.rows]}, sort_keys=True, default=str) + "\n")
+
+
+class JournalMismatch(BaseException):  # not an Exception: a pull that catches those and carries on would hide a replay that differs
+    """The pull asked the recorded CRM for a page the journal does not have next."""
+
+
+class RecordedReader:
+    """The CrmReader of the demo build: serves the pages the rehearsal's pull read, in order, and fails when the pull asks
+    for anything else (a different path, cursor or page size) or does not ask for all of them."""
+
+    def __init__(self, steps: list[dict]):
+        self.steps, self.i = steps, 0
+
+    def _next(self, path: str, since: str | None, limit: int, cls) -> Page:
+        if self.i >= len(self.steps):
+            raise JournalMismatch(f"the pull read {path} but the journal has no more pages")
+        s = self.steps[self.i]
+        if (s["path"], s.get("since"), s.get("limit")) != (path, since, limit):
+            raise JournalMismatch(f"page {self.i + 1}: the pull read {path} since {since!r} limit {limit}; the journal has "
+                                  f"{s['path']} since {s.get('since')!r} limit {s.get('limit')}")
+        self.i += 1
+        names = {f.name: f for f in dataclasses.fields(cls)}
+        rows = []
+        for r in s["rows"]:
+            for k, f in names.items():
+                if k in r and isinstance(r[k], str) and "datetime" in str(f.type):
+                    r[k] = datetime.fromisoformat(r[k])
+            rows.append(cls(**r))
+        return Page(rows, s.get("next"), bool(s.get("has_more")))
+
+    def opportunities_changed(self, since, limit):
+        return self._next("/changes/opportunities", since, limit, CrmOpportunity)
+
+    def accounts_changed(self, since, limit):
+        return self._next("/changes/accounts", since, limit, CrmAccount)
+
+    def finish(self) -> None:
+        if self.i < len(self.steps):
+            raise JournalMismatch(f"{len(self.steps) - self.i} journal pages were not read")
+
+
+def replay_pull(cur, journal) -> dict | None:
+    """The demo build: read the rehearsal's pages again through the same pull, and fail if it asks for anything else.
+    None when the journal holds no pull."""
+    steps = [json.loads(x) for x in Path(journal).read_text().splitlines() if x.strip()] if Path(journal).exists() else []
+    steps = [s for s in steps if s.get("actor") == "market_desk" and s.get("kind") == "pull"]
+    if not steps:
+        return None
+    reader = RecordedReader(steps)
+    out = pull(reader, limit=steps[0].get("limit") or 200, cur=cur)
+    reader.finish()
+    return out
 
 
 def _cursor(cur, feed: str) -> str | None:
@@ -500,7 +556,7 @@ def pull(reader: CrmReader, *, system: str = "crmdesk", limit: int = 200, max_pa
                     db.run(c, "insert into companies (name, primary_domain, country, region, region_group, origin) values (%s,%s,%s,%s,%s,'crm')",
                            a.name, a.domain, a.country.upper(), region, group)
             out["accounts"] += len(page.rows)
-            _journal("GET", "/changes/accounts", since, page, db.val(c, "select app_now()"))
+            _journal("GET", "/changes/accounts", since, page, db.val(c, "select app_now()"), limit)
             _save_cursor(c, "accounts", page.next or since)
         if not page.has_more:
             break
@@ -515,7 +571,7 @@ def pull(reader: CrmReader, *, system: str = "crmdesk", limit: int = 200, max_pa
                 out["updated"] += rep["updated"]
                 out["rejected"] += len(rep["rejected"])
             out["opportunities"] += len(page.rows)
-            _journal("GET", "/changes/opportunities", since, page, db.val(c, "select app_now()"))
+            _journal("GET", "/changes/opportunities", since, page, db.val(c, "select app_now()"), limit)
             _save_cursor(c, "opportunities", page.next or since)
         if not page.has_more:
             break
