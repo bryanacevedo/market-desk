@@ -1,6 +1,6 @@
 # Market Desk: project status
 
-**Updated:** 2026-11-13. **Spec:** `docs/SPEC.md` (section 15 holds the gate 0 corrections and wins where they differ); decisions `docs/DECISIONS.md` 1 to 51.
+**Updated:** 2026-11-14. **Spec:** `docs/SPEC.md` (section 15 holds the gate 0 corrections and wins where they differ); decisions `docs/DECISIONS.md` 1 to 53.
 
 ## Where it stands
 
@@ -57,7 +57,7 @@ Every gate was run by a fresh agent that had not seen the build (never a fork), 
 
 Proven by tests on real Postgres 18: statistics against published values; the size check; fit reproduces from stored inputs; two-person publish and activate; the held-back trigger; Account Desk equivalence on every exported company with its fields known; the Events Desk document's headings, numbers and tiers; 50 planted names never reach the database; the AI gates on failing fixtures; exporting the shared world twice from one database gives identical files; two builds of the world from its seed write identical rows (checked on a 1,500-company world without the story).
 
-Not proven: anything against a real CRM, vendor or public count; Account Desk or Events Desk importing these files; header auth through Cloudflare Access. Not built: sending sellers' books to CRM Desk.
+Not proven: anything against a real CRM, vendor or public count; Account Desk or Events Desk importing these files; header auth through Cloudflare Access.
 
 ## What was cut
 
@@ -73,4 +73,4 @@ Nothing from the plan's cut list so far. The MCP server is built (4 read-only to
 ## Phase 3 step 5 (2026-11-14, session p3t, branch `p3t/step5`)
 
 - MQA uses the tier CRM Desk holds: an account CRM Desk holds with no tier is untiered whatever this desk scored (an account outside the plan), so no mark fails CRM Desk's audit. Tests updated. Suite 151 passed.
-- In the full rehearsal Market Desk's MQA run decided 56 accounts qualify (engagement from Account Desk's replies and meetings, events, and the world's website forms), and its pull read 1,137 deals from the real CRM Desk and refused 509. The demo replays only the books and the pin, as before: replaying the pull would put 1,137 deals without roles in the demo and break its own deal rules, a question for the deals-import design.
+- In the full rehearsal Market Desk's MQA run decided 58 accounts qualify on world 1.2.0 (56 on the first run; engagement from Account Desk's replies and meetings, events, and the world's website forms), and its pull read 1,137 deals from the real CRM Desk and refused 509. The demo replays only the books and the pin, as before: replaying the pull would put 1,137 deals without roles in the demo and break its own deal rules, a question for the deals-import design.
