@@ -68,3 +68,9 @@ Nothing from the plan's cut list so far. The MCP server is built (4 read-only to
 - An Account Desk change: accept pricing model and segment, so usage pricing stops being a dropped rule.
 - Have Account Desk and Events Desk load the shared world export.
 - Publishing a profile version does not redraw the plan; RevOps drafts a new plan after it (worth automating as a draft).
+
+
+## Phase 3 step 5 (2026-11-14, session p3t, branch `p3t/step5`)
+
+- MQA uses the tier CRM Desk holds: an account CRM Desk holds with no tier is untiered whatever this desk scored (an account outside the plan), so no mark fails CRM Desk's audit. Tests updated. Suite 151 passed.
+- In the full rehearsal Market Desk's MQA run decided 56 accounts qualify (engagement from Account Desk's replies and meetings, events, and the world's website forms), and its pull read 1,137 deals from the real CRM Desk and refused 509. The demo replays only the books and the pin, as before: replaying the pull would put 1,137 deals without roles in the demo and break its own deal rules, a question for the deals-import design.

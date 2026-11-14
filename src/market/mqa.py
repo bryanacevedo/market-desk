@@ -186,7 +186,9 @@ def fits(cur, domain: str, r: dict, crm_tier: str | None = None) -> bool:
     c = db.one(cur, "select id from companies where primary_domain = %s and not sole_trader", domain)
     f = None if c is None else db.one(cur, """select f.tier from account_fit f join icp_versions v on v.id = f.icp_version
                                               where f.company = %s and v.status = 'published'""", c["id"])
-    tier = crm_tier if f is None else f["tier"]
+    # Both must hold a tier: a score this desk has but never sent (an account outside the plan) leaves CRM Desk showing no
+    # tier on an account marked qualified, which its own audit refuses (decision 52).
+    tier = crm_tier if f is None or crm_tier in (None, "Not judged") else f["tier"]
     if tier is None or tier == "Not judged":
         return bool(r["untiered"])
     return tier in r["tiers"]

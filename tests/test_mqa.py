@@ -105,7 +105,7 @@ def domains(cur):
 
 
 def _facts(domain, **kw):
-    return {"domain": domain, "type": "prospect", "do_not_prospect": False, "deleted": False, "tier": None} | kw
+    return {"domain": domain, "type": "prospect", "do_not_prospect": False, "deleted": False, "tier": "A"} | kw  # the tier CRM Desk holds, which Market Desk needs too (decision 52)
 
 
 def test_decide_needs_the_fit_the_points_the_people_a_prospect_that_may_be_prospected(cur, domains):
@@ -113,7 +113,7 @@ def test_decide_needs_the_fit_the_points_the_people_a_prospect_that_may_be_prosp
     found = {"a": (25, 2), "c": (25, 2), "few": (25, 1), "low": (19, 3), "cust": (40, 3), "dnp": (40, 3), "gone": (40, 3), "none": (30, 2)}
     facts = {"a": _facts(domains["A"]), "c": _facts(domains["C"]), "few": _facts(domains["A"]), "low": _facts(domains["A"]),
              "cust": _facts(domains["A"], type="customer"), "dnp": _facts(domains["A"], do_not_prospect=True),
-             "gone": _facts(domains["A"], deleted=True), "none": _facts(domains["none"])}
+             "gone": _facts(domains["A"], deleted=True), "none": _facts(domains["none"], tier=None)}
     got = mqa.decide(cur, {k: v for k, v in found.items()}, {k: v for k, v in facts.items() if k not in ("few", "low")}, r)
     # "a" qualifies; the unscored company does not (a tier is required); C is not a tier the rule names; a customer, a flagged and a deleted account never do
     assert set(got) == {domains["A"]} and got[domains["A"]] == (25, 2)
@@ -123,8 +123,8 @@ def test_decide_needs_the_fit_the_points_the_people_a_prospect_that_may_be_prosp
 
 def test_a_tier_is_required_by_default_and_untiered_is_the_rules_choice(cur, domains):
     assert mqa.rule(cur)["untiered"] is False  # Bryan, 2026-11-13: MQA requires a tier
-    assert mqa.decide(cur, {"n": (30, 2)}, {"n": _facts(domains["none"])}, mqa.rule(cur)) == {}
-    assert mqa.decide(cur, {"n": (30, 2)}, {"n": _facts(domains["none"])}, {**mqa.rule(cur), "untiered": True})
+    assert mqa.decide(cur, {"n": (30, 2)}, {"n": _facts(domains["none"], tier=None)}, mqa.rule(cur)) == {}
+    assert mqa.decide(cur, {"n": (30, 2)}, {"n": _facts(domains["none"], tier=None)}, {**mqa.rule(cur), "untiered": True})
 
 
 def test_a_company_this_desk_does_not_hold_is_judged_by_the_tier_crm_desk_holds(cur):
