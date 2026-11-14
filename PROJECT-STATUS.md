@@ -77,4 +77,4 @@ Nothing from the plan's cut list so far. The MCP server is built (4 read-only to
 
 ## Prompt caching (2026-11-13, Backlog bl_117, branch `cache/prompt-caching`)
 
-Cache markers, tests and cache-aware cost accounting are in; most prompts are under the 512-token cache minimum, and the live before and after measurement waits on an Anthropic key. See the newest decision.
+Cache markers, tests and cache-aware cost accounting are in; measured with real calls on 2026-11-14: warm input cost about 87 to 91% lower on the tasks measured (see the newest decision). Not pushed until the repo writer lands.
