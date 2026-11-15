@@ -235,3 +235,7 @@ The push Account Desk makes to CRM Desk in the last hour stays as it is. Nothing
 ## 60. The desk states itself for Tally (events-rethink step 6 item 3)
 
 `GET /api/agreement/statement` and `GET /api/agreement/owners` serve what CRM Desk's Tally reads (its docs/TALLY-SPEC.md section 5): the definitions this desk owns and the versions it read, its queue of writes to CRM Desk (omitted when no CRM is set, so Tally reads "does not state its queue"), and the plan in play (the scheduled plan if one waits, else the one in effect): batches and accounts queued and sent, an etag over what it assigns, the published profile version. The owners call pages the planned accounts, 500 at a time, with the owner in force today and the owner planned for each role, tier and segment. Both sit behind one read key, `DESK_READ_KEY`, sent as a bearer token; with it unset they answer 404 and the desk serves nothing to another desk. A person who moved an account by hand while a plan waited is stated as agreed, not as a difference (decision 57).
+
+## 61. The ICP is published for Events Desk (events-rethink step 6 item 11)
+
+`GET /api/icp` serves the published profile as Events Desk's `icp.md` document with its version and a hash of the text, behind the same `DESK_READ_KEY`. Rejected: serving it without a key like `/api/definitions` (a profile's rules are the seller's strategy; a hash of a rule is not); reading it through a target book (a book needs a person's session and a RevOps click, so Events Desk could never fetch it on its own).

@@ -128,3 +128,16 @@ def owners(cur, plan_id: str | None, cursor: str | None) -> dict:
                      "effective_on": str(p["effective_on"])})
     nxt = str(rows[-1]["id"]) if len(rows) == PAGE else None
     return {"plan": str(p["id"]), "data": data, "next": nxt}
+
+
+def icp(cur) -> dict | None:
+    """The published profile as Events Desk's ICP document (icp.md), with its version and a hash of the text: what Events
+    Desk's read-only ICP page shows when it runs beside this desk."""
+    from . import handoff
+    v = db.one(cur, "select * from icp_versions where status = 'published'")
+    if v is None:
+        return None
+    md = handoff.events_desk_md(cur, v).decode()
+    return {"desk": "market_desk", "name": "icp", "format": "icp.md", "version": v["number"],
+            "hash": "sha256:" + hashlib.sha256(md.encode()).hexdigest(),
+            "published_at": v["published_at"].isoformat() if v["published_at"] else None, "markdown": md}

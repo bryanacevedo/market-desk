@@ -256,6 +256,18 @@ def agreement_owners(request: Request, plan: str | None = None, cursor: str | No
             raise HTTPException(409, str(exc)) from None
 
 
+@app.get("/api/icp")
+def published_icp(request: Request) -> dict:
+    """The published profile as an `icp.md` document with its version and hash: where Events Desk reads it (step 6 item 11)."""
+    from .. import agreement
+    _desk_read(request)
+    with db.tx() as cur:
+        d = agreement.icp(cur)
+    if d is None:
+        raise HTTPException(404, "No profile version is published.")
+    return d
+
+
 @app.get("/api/definitions/{name}")
 def definition(name: str, version: int | None = None) -> dict:
     from .. import mqa

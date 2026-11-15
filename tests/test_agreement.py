@@ -22,10 +22,10 @@ def _auth(key="desk-secret"):
 
 def test_nothing_is_served_without_a_read_key_and_a_wrong_key_is_refused(client, monkeypatch):
     monkeypatch.delenv("DESK_READ_KEY", raising=False)
-    for path in ("/api/agreement/statement", "/api/agreement/owners"):
+    for path in ("/api/agreement/statement", "/api/agreement/owners", "/api/icp"):
         assert client.get(path).status_code == 404, path
     monkeypatch.setenv("DESK_READ_KEY", "desk-secret")
-    for path in ("/api/agreement/statement", "/api/agreement/owners"):
+    for path in ("/api/agreement/statement", "/api/agreement/owners", "/api/icp"):
         assert client.get(path).status_code == 401, path
         assert client.get(path, headers=_auth("nope")).status_code == 401, path
     assert client.get("/api/agreement/statement", headers=_auth()).status_code == 200
@@ -103,3 +103,11 @@ def test_a_scheduled_plan_states_the_plan_in_effect_as_what_is_in_force(cur):
     dom = db.val(cur, "select primary_domain from companies where id = %s", c)
     mine = rows[dom]
     assert mine["planned_owner_email"] == db.val(cur, "select email from users where id = %s", ae) and mine["effective_on"] == st["effective_on"]
+
+
+def test_the_icp_is_served_as_the_events_desk_document_with_a_version_and_a_hash(client, monkeypatch):
+    monkeypatch.setenv("DESK_READ_KEY", "desk-secret")
+    j = client.get("/api/icp", headers=_auth()).json()
+    assert (j["desk"], j["name"], j["format"]) == ("market_desk", "icp", "icp.md") and j["version"] >= 1
+    assert j["markdown"].startswith("# ") and "## Size" in j["markdown"] and j["hash"].startswith("sha256:") and len(j["hash"]) == 71
+    assert client.get("/api/icp", headers=_auth()).json() == j      # the same text and hash each time
