@@ -652,6 +652,16 @@ def profile_rollback(body: Reason, u: dict = Depends(writer)) -> dict:
     return {"ok": True, "version": vid}
 
 
+@app.post("/api/plans/cancel-schedule")
+def plan_cancel_schedule(u: dict = Depends(writer)) -> dict:
+    try:
+        with db.tx() as cur:
+            pid = territories.cancel_schedule(cur, u)
+    except Exception as exc:
+        raise _fail(exc) from exc
+    return {"ok": True, "plan": pid}
+
+
 @app.post("/api/plans/rollback")
 def plan_rollback(body: Reason, u: dict = Depends(writer)) -> dict:
     try:
@@ -967,6 +977,9 @@ def start_worker() -> None:
     if mqa.enabled() and not CONFIG.public_demo:
         with db.tx() as cur:
             jobs.enqueue(cur, "crm_mqa", {}, dedupe_key="crm_mqa")
+    with db.tx() as cur:   # a plan scheduled before this start still applies on its date
+        if territories.scheduled_plan(cur):
+            jobs.enqueue(cur, "apply_scheduled_plan", {}, dedupe_key="apply_scheduled_plan")
     if not CONFIG.worker_inline:
         return
 

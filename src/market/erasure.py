@@ -15,7 +15,7 @@ def erase_user(cur, user_id: int, by: dict) -> dict:
     if u["id"] == by["id"]:
         raise ValueError("Someone else erases you.")
     moved = 0
-    for plan in db.all(cur, "select id, status from territory_plans where status in ('active', 'draft')"):
+    for plan in db.all(cur, "select id, status from territory_plans where status in ('active', 'scheduled', 'draft')"):
         rows = db.all(cur, """select a.company, a.territory, t.owner as lead, t.paired_ae from assignments a
                               left join territories t on t.id = a.territory where a.plan = %s and a.owner = %s""", plan["id"], user_id)
         for r in rows:

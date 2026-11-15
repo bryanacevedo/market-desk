@@ -79,6 +79,67 @@ def queue_plan(cur, plan_id: int) -> int:
     return len(items)
 
 
+def supports_schedule() -> bool:
+    """Whether the CRM says it can hold an owner back until a date (CRM Desk's health lists `scheduled_owner`). An older CRM,
+    or one that does not answer, is sent nothing until the start date, so no owner moves early."""
+    import httpx
+    url = os.environ.get("CRM_DESK_URL", "")
+    if not url:
+        return False
+    try:
+        r = httpx.get(url.rstrip("/") + "/api/health", timeout=10.0)
+        return r.status_code == 200 and "scheduled_owner" in (r.json().get("features") or [])
+    except (httpx.HTTPError, ValueError):
+        return False
+
+
+def queue_schedule(cur, plan_id: int) -> int:
+    """Tells the CRM which owners a scheduled plan will change, and from when: the same batch item as the books with
+    `owner_effective_on`, only for accounts the plan in effect already holds and only the roles that change. Accounts new to
+    the plan, and every account of a CRM that cannot hold a date, arrive with the plain books on the start date."""
+    if not enabled():
+        return 0
+    from . import territories
+    if not supports_schedule():
+        log.warning("CRM Desk does not list scheduled_owner: nothing is sent until the plan starts")
+        return 0
+    plan = db.one(cur, "select effective_on from territory_plans where id = %s", plan_id)
+    moves = territories.scheduled_moves(cur)
+    if not moves:
+        return 0
+    people = {u["id"]: u["email"] for u in db.all(cur, "select id, email from users")}
+    doms = {r["id"]: r["primary_domain"] for r in db.all(cur, "select id, primary_domain from companies where id = any(%s) and not sole_trader", list(moves))}
+    items = []
+    for c in sorted(moves, key=lambda k: doms.get(k, "")):
+        if c not in doms:
+            continue
+        item = {"world_id": world_id(doms[c]), "domain": doms[c], "owner_effective_on": str(plan["effective_on"])}
+        if "owner" in moves[c]:
+            item["owner_id"] = people[moves[c]["owner"]]
+        if "sdr" in moves[c]:
+            item["sdr_owner_id"] = people[moves[c]["sdr"]]
+        items.append(item)
+    for i in range(0, len(items), CHUNK):
+        db.run(cur, "insert into crm_outbox (plan, kind, payload) values (%s, 'books', %s)", plan_id, J({"items": items[i:i + CHUNK]}))
+    if items:
+        jobs.enqueue(cur, "crm_deliver", {}, dedupe_key="crm_deliver")
+    return len(items)
+
+
+def queue_cancel(cur, plan_id: int) -> int:
+    """Withdraws what queue_schedule sent, for the accounts it reached. Nothing was sent, nothing to withdraw."""
+    if not enabled():
+        return 0
+    sent = db.all(cur, "select payload from crm_outbox where plan = %s and kind = 'books' and status = 'sent'", plan_id)
+    items = [{"world_id": i["world_id"], "domain": i["domain"], "cancel_scheduled_owner": True}
+             for r in sent for i in r["payload"]["items"] if i.get("owner_effective_on")]
+    for i in range(0, len(items), CHUNK):
+        db.run(cur, "insert into crm_outbox (plan, kind, payload) values (%s, 'books', %s)", plan_id, J({"items": items[i:i + CHUNK]}))
+    if items:
+        jobs.enqueue(cur, "crm_deliver", {}, dedupe_key="crm_deliver")
+    return len(items)
+
+
 def score_items(cur, plan_id: int, version_id: int) -> list[dict]:
     """The published version on every account of the plan that has been scored under it: tier, segment, score and
     version only. No owners and no firmographics, so CRM Desk's pins and people's edits are left alone."""

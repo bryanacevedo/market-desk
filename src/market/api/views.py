@@ -288,6 +288,21 @@ def version(cur, vid: int, u: dict) -> dict | None:
 PAGE = 50
 
 
+def _coming(cur, company_ids: list[int]) -> dict[int, list[dict]]:
+    """company -> the owners a scheduled plan will give it, who and from when ("Moves to Ana from 1 Jan 2027")."""
+    from .. import territories
+    s = territories.scheduled_plan(cur)
+    if not s:
+        return {}
+    moves = territories.scheduled_moves(cur)
+    names = {x["id"]: x["name"] for x in db.all(cur, "select id, name from users")}
+    out: dict[int, list[dict]] = {}
+    for c in company_ids:
+        for role, uid in (moves.get(c) or {}).items():
+            out.setdefault(c, []).append({"role": "owner" if role == "owner" else "SDR", "name": names[uid], "from": s["effective_on"]})
+    return out
+
+
 def accounts(cur, u: dict, *, q: str, tier: str, segment: str, owner: str, page: int, region: str = "") -> dict:
     pub = _published(cur)
     plan = _active_plan(cur)
@@ -330,6 +345,9 @@ def accounts(cur, u: dict, *, q: str, tier: str, segment: str, owner: str, page:
         # A tier A prospect in our regions that nobody has hours for (SPEC 7: shown, never demoted).
         r["over_capacity"] = (r["tier"] == "A" and r["judged"] and r["lifecycle"] == "prospect" and not r["owner"]
                               and r["region"] in C.SERVED_REGIONS)
+    coming = _coming(cur, [r["id"] for r in rows])
+    for r in rows:
+        r["coming"] = coming.get(r["id"], [])
     owners = db.all(cur, "select id, name from users where role in ('sdr','ae') and active order by name")
     return {"rows": rows, "total": total, "page": page, "pages": max(1, -(-total // PAGE)), "owners": owners,
             "segments": [{"key": s["key"], "label": s["label"]} for s in C.SEGMENTS] + [C.OUTSIDE]}
@@ -380,7 +398,7 @@ def company(cur, cid: int, u: dict, allowed: bool | None = None) -> dict | None:
                                                         "scored_out_of": cur_fit["scored_out_of"], "excluded": cur_fit["excluded"],
                                                         "segment": cur_fit["segment"], "segment_label": C.SEGMENT_LABEL.get(cur_fit["segment"]),
                                                         "breakdown": breakdown, "version": pub["number"]},
-                  "history": history, "owner": a and {"name": a["owner_name"], "id": a["owner"], "reason": a["reason_code"],
+                  "history": history, "coming": _coming(cur, [cid]).get(cid, []), "owner": a and {"name": a["owner_name"], "id": a["owner"], "reason": a["reason_code"],
                                                       "note": a["note"], "moved_from": a["moved_from_name"]},
                   "deals": deals, "results": results, "tests": tests}, allowed)
 
@@ -394,8 +412,8 @@ def raise_forbidden():
 
 def territories(cur, plan_id: int | None, allowed: bool) -> dict:
     plans = db.all(cur, """select p.id, p.name, p.status, p.created_at, p.activated_at, a.name as author, x.name as activated_by,
-                           p.author as author_id, p.balance_report, p.replaced, p.restored_at from territory_plans p join users a on a.id = p.author
-                           left join users x on x.id = p.activated_by order by case p.status when 'active' then 0 when 'draft' then 1 else 2 end, p.id desc""")
+                           p.author as author_id, p.balance_report, p.replaced, p.restored_at, p.effective_on from territory_plans p join users a on a.id = p.author
+                           left join users x on x.id = p.activated_by order by case p.status when 'active' then 0 when 'scheduled' then 1 when 'draft' then 2 else 3 end, p.id desc""")
     plan_id = plan_id or (plans[0]["id"] if plans else None)
     plan = next((p for p in plans if p["id"] == plan_id), None)
     if not plan:

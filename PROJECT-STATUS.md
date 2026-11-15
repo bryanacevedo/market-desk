@@ -78,3 +78,8 @@ Nothing from the plan's cut list so far. The MCP server is built (4 read-only to
 ## Prompt caching (2026-11-13, Backlog bl_117, branch `cache/prompt-caching`)
 
 Cache markers, tests and cache-aware cost accounting are in; measured with real calls on 2026-11-14: warm input cost about 87 to 91% lower on the tasks measured (see the newest decision). Not pushed until the repo writer lands.
+
+## Owners change on the start date, prompt caching (2026-11-14, session own, branch `own/owner-change`)
+
+- Backlog bl_134: a plan that starts later is `scheduled` and applies on its date (decision 55, migration 0007, `territories.activate` and `apply_scheduled`, `crm.queue_schedule`). Account page, Accounts list, Territories and the activation sheet show it. CRM Desk holds the dated owners itself (its decision 76).
+- Backlog bl_117: prompt caching brought over from `cache/prompt-caching` (decision 54, renumbered); re-measured on 2026-11-14: 86.5% (loss_code) and 88.4% (classify) of input tokens read from cache on the second call (decision 54).

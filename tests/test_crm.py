@@ -2,8 +2,10 @@
 answers kept, refusals listed, and a CRM that does not answer leaves the row queued."""
 import pytest
 
-from market import crm, db, territories
+from market import crm, db
 from market.db import J
+
+from .conftest import activate_now
 
 
 def _plan(cur):
@@ -72,7 +74,7 @@ def test_activation_queues_the_books_in_the_same_transaction(cur, monkeypatch):
     draft = db.val(cur, "select id from territory_plans where status = 'draft' order by id limit 1")
     manager = db.one(cur, "select * from users where role = 'manager'")
     before = db.val(cur, "select count(*) from crm_outbox")
-    territories.activate(cur, draft, manager)
+    activate_now(cur, draft, manager)
     assert db.val(cur, "select count(*) from crm_outbox where plan = %s", draft) > 0
     assert db.val(cur, "select count(*) from crm_outbox") > before
 

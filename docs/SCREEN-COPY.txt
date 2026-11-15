@@ -89,12 +89,12 @@ Median size of won new-business deals in the last two years, with the middle hal
 Meeting rate, worked vs held back
 Meetings booked with these accounts.
 Months an account is worked
+Moves to # from #
 No CRM is set, so nothing is sent.
 No evidence behind this rule yet.
 No results back from Account Desk yet
 Not sent to Account Desk
 Nothing in this territory is left to move to this person
-Nothing to roll back to
 Only a draft can be published
 Open deals leave their owner
 Our CRM. Each account's tier, segment, fit score and owner go there from here, so sellers see them where they work.
@@ -135,7 +135,8 @@ The gap goes away when you compare companies of the same size, so company size, 
 The loss reason coded from the rep's note.
 The middle half of won-deal cycles.
 The part of TAM in our regions whose buyer a contact source can find. Same low and high ends as TAM.
-The plan starts #. Owners change in this desk now.
+The plan goes back to a draft. No owner has moved.
+The plan starts #. Owners change on that date.
 The same comparison inside each company size band. If the gap disappears here, size explains it.
 The segment's win rate pulled toward the overall rate, as if it had 20 more deals at the overall rate, so a few lucky deals do not carry the plan.
 The territory's average expected value per person.

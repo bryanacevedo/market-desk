@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 from datetime import date
 
-from . import audit, db, notices
+from . import audit, db, jobs, notices
 from . import catalog as C
 from .db import J
 
@@ -241,7 +241,7 @@ def place_test_members(cur, test_id: int) -> int:
     terrs = db.all(cur, "select * from territories where plan = %s order by id", plan["id"])
     # The held-back group is never worked: it leaves every live plan the day the test starts.
     db.run(cur, """delete from assignments a using territory_plans p, segment_test_members m
-                   where p.id = a.plan and p.status in ('active', 'draft') and m.test = %s and m.company = a.company
+                   where p.id = a.plan and p.status in ('active', 'scheduled', 'draft') and m.test = %s and m.company = a.company
                      and m.grp = 'held_back' and a.reason_code not in ('existing_owner', 'open_deal')""", test_id)
     rows = db.all(cur, """select c.id, c.region_group, f.segment from segment_test_members m join companies c on c.id = m.company
                           join account_fit f on f.company = c.id and f.icp_version = %s
@@ -301,7 +301,20 @@ def what_changes(cur, plan_id: int) -> dict:
     return {"changes": len(rows), "gains": gains, "losses": losses, "crossing": crossing, "sample": rows[:200], "all": rows}
 
 
+def scheduled_plan(cur) -> dict | None:
+    """The plan activated for a start date that has not come, if there is one (one at a time)."""
+    return db.one(cur, "select * from territory_plans where status = 'scheduled'")
+
+
+def _refuse_while_scheduled(cur) -> None:
+    s = scheduled_plan(cur)
+    if s:
+        raise ValueError(f"A plan is scheduled for {s['effective_on']:%-d %b %Y}: cancel it first.")
+
+
 def activate(cur, plan_id: int, by: dict) -> None:
+    """Activates a draft plan. Starting today or earlier, it takes effect now. Starting later, it is scheduled: the owners
+    stay as they are until the start date and the CRM is told what is coming (decision 55)."""
     plan = db.one(cur, "select * from territory_plans where id = %s for update", plan_id)
     if plan["status"] != "draft":
         raise ValueError("Only a draft plan can be activated.")
@@ -309,12 +322,26 @@ def activate(cur, plan_id: int, by: dict) -> None:
         raise PermissionError("A manager activates a plan.")
     if plan["author"] == by["id"]:
         raise PermissionError("Someone other than the author activates a plan.")
+    _refuse_while_scheduled(cur)
     active = db.val(cur, "select id from territory_plans where status = 'active'")
     if plan["drafted_from"] and plan["drafted_from"] != active:
         raise ValueError("The active plan changed after these moves were drafted. Propose them again.")
     ch = what_changes(cur, plan_id)
     if ch["crossing"]:
         raise ValueError(f"{len(ch['crossing'])} open deals would change owner without a note.")
+    from . import crm  # the books go to a CRM when one is set (shared-world DESIGN.md 7, step 1)
+    if plan["effective_on"] > db.val(cur, "select app_now()::date"):
+        db.run(cur, "update territory_plans set status = 'scheduled', activated_by = %s, activated_at = app_now() where id = %s", by["id"], plan_id)
+        audit.log(cur, by["name"], "plan_scheduled", "plan", plan_id, {"changes": ch["changes"], "replaces": active,
+                  "effective_on": str(plan["effective_on"])}, actor_id=by["id"])
+        crm.queue_schedule(cur, plan_id)
+        jobs.enqueue(cur, "apply_scheduled_plan", {}, dedupe_key="apply_scheduled_plan")
+        return
+    _make_active(cur, plan_id, by, active, ch)
+
+
+def _make_active(cur, plan_id: int, by: dict, active: int | None, ch: dict) -> None:
+    from . import crm
     db.run(cur, "update territory_plans set status = 'retired' where status = 'active'")
     db.run(cur, "update territory_plans set status = 'active', activated_by = %s, activated_at = app_now(), replaced = %s, "
                 "restored_by = null, restored_at = null where id = %s", by["id"], active, plan_id)
@@ -322,8 +349,76 @@ def activate(cur, plan_id: int, by: dict) -> None:
         audit.log(cur, by["name"], "owner_moved", "company", r["company"], {"plan": plan_id, "from": r["from_owner"],
                   "to": r["to_owner"]}, actor_id=by["id"])
     audit.log(cur, by["name"], "plan_activated", "plan", plan_id, {"changes": ch["changes"], "replaced": active}, actor_id=by["id"])
-    from . import crm  # the books go to a CRM when one is set (shared-world DESIGN.md 7, step 1)
     crm.queue_plan(cur, plan_id)
+
+
+def apply_scheduled(cur) -> int:
+    """Makes the scheduled plan the one in effect once its start date has come. The books are sent again in full: the CRM has
+    normally applied the schedule itself, so they change nothing, and they put right a CRM that was down, an account placed
+    since, or a batch lost on the way."""
+    plan = db.one(cur, "select * from territory_plans where status = 'scheduled' and effective_on <= app_now()::date for update")
+    if plan is None:
+        return 0
+    by = db.one(cur, "select * from users where id = %s", plan["activated_by"])
+    active = db.val(cur, "select id from territory_plans where status = 'active'")
+    _make_active(cur, plan["id"], by, active, what_changes(cur, plan["id"]))
+    return 1
+
+
+def cancel_schedule(cur, by: dict) -> int:
+    """A manager takes a scheduled plan back to draft before its start date. What the CRM was told is withdrawn."""
+    if by["role"] != "manager":
+        raise PermissionError("A manager cancels a schedule.")
+    plan = db.one(cur, "select * from territory_plans where status = 'scheduled' for update")
+    if plan is None:
+        raise ValueError("No plan is scheduled.")
+    if plan["effective_on"] <= db.val(cur, "select app_now()::date"):
+        raise ValueError("The start date has come, so the plan is taking effect. Roll it back instead.")
+    from . import crm
+    crm.cancel_unsent(cur, plan["id"])
+    crm.queue_cancel(cur, plan["id"])
+    db.run(cur, "update territory_plans set status = 'draft', activated_by = null, activated_at = null where id = %s", plan["id"])
+    audit.log(cur, by["name"], "plan_schedule_cancelled", "plan", plan["id"], {"effective_on": str(plan["effective_on"])}, actor_id=by["id"])
+    return plan["id"]
+
+
+def roles_by_company(cur, plan_id: int) -> dict[int, tuple[int | None, int | None]]:
+    """company -> (AE, SDR) for a plan, the way the CRM is told: an SDR placed on an account works it beside the territory's
+    paired AE; anyone else placed is the AE."""
+    out: dict[int, tuple[int | None, int | None]] = {}
+    for r in db.all(cur, """select a.company, a.owner, u.role as owner_role, t.paired_ae from assignments a left join users u on u.id = a.owner
+                            left join territories t on t.id = a.territory where a.plan = %s""", plan_id):
+        out[r["company"]] = (r["paired_ae"], r["owner"]) if r["owner_role"] == "sdr" else (r["owner"], None)
+    return out
+
+
+def scheduled_moves_for(cur, plan_id: int, active_id: int | None) -> dict[int, dict]:
+    """The roles a plan would change against the plan in effect: what the sheet counts before a plan is activated."""
+    if not active_id:
+        return {}
+    old, new = roles_by_company(cur, active_id), roles_by_company(cur, plan_id)
+    return {c: True for c, (ae, sdr) in new.items() if c in old and ((ae and ae != old[c][0]) or (sdr and sdr != old[c][1]))}
+
+
+def scheduled_moves(cur) -> dict[int, dict]:
+    """company -> {"owner": user id or None, "sdr": ...} for each role the scheduled plan changes against the plan in effect."""
+    s = scheduled_plan(cur)
+    active = db.val(cur, "select id from territory_plans where status = 'active'")
+    if not s or not active:
+        return {}
+    old, new = roles_by_company(cur, active), roles_by_company(cur, s["id"])
+    out = {}
+    for c, (ae, sdr) in new.items():
+        if c not in old:
+            continue
+        ch = {}
+        if ae and ae != old[c][0]:
+            ch["owner"] = ae
+        if sdr and sdr != old[c][1]:
+            ch["sdr"] = sdr
+        if ch:
+            out[c] = ch
+    return out
 
 
 def activation_preview(cur, plan_id: int, by: dict) -> dict:
@@ -346,13 +441,18 @@ def activation_preview(cur, plan_id: int, by: dict) -> dict:
         why = "The active plan changed after these moves were drafted."
     elif ch["crossing"]:
         why = f"{len(ch['crossing'])} open deals would change owner without a note."
-    return {"id": plan_id, "name": plan["name"], "status": plan["status"], "effective_on": plan["effective_on"], "today": today,
+    sched = scheduled_plan(cur)
+    if why is None and sched:
+        why = f"A plan is scheduled for {sched['effective_on']:%-d %b %Y}: cancel it first."
+    return {"scheduled_changes": len(scheduled_moves_for(cur, plan_id, active and active["id"])), "starts_later": plan["effective_on"] > today,
+            "id": plan_id, "name": plan["name"], "status": plan["status"], "effective_on": plan["effective_on"], "today": today,
             "replaces": active and active["name"], "owner_changes": ch["changes"], "crossing": len(ch["crossing"]),
             "people": [{"name": names[k], "gains": ch["gains"].get(k, 0), "losses": ch["losses"].get(k, 0)} for k in ids],
             "crm": crm.enabled(), "batches": crm.batch_count(cur, plan_id), "can_activate": why is None, "blocked": why}
 
 
 def _rollback_target(cur) -> tuple[dict, dict]:
+    _refuse_while_scheduled(cur)
     cur_plan = db.one(cur, "select * from territory_plans where status = 'active' for update")
     if not cur_plan or not cur_plan["replaced"]:
         raise ValueError("There is no earlier plan to go back to.")
@@ -363,6 +463,9 @@ def _rollback_target(cur) -> tuple[dict, dict]:
 def rollback_preview(cur, by: dict) -> dict:
     from . import crm
     cur_plan = db.one(cur, "select * from territory_plans where status = 'active'")
+    sched = scheduled_plan(cur)
+    if sched:
+        return {"available": False, "blocked": f"A plan is scheduled for {sched['effective_on']:%-d %b %Y}: cancel it first."}
     if not cur_plan or not cur_plan["replaced"]:
         return {"available": False}
     prev = db.one(cur, "select * from territory_plans where id = %s", cur_plan["replaced"])
@@ -476,11 +579,11 @@ def release_test(cur, test_id: int) -> int:
     """A test that is read or stopped hands its worked accounts back: they leave every live plan, and the next plan
     places them by its rules."""
     n = db.run(cur, """delete from assignments a using territory_plans p, segment_test_members m
-                       where p.id = a.plan and p.status in ('active', 'draft') and a.reason_code = 'test'
+                       where p.id = a.plan and p.status in ('active', 'scheduled', 'draft') and a.reason_code = 'test'
                          and m.test = %s and m.company = a.company and m.grp = 'worked'""", test_id)
     # The freed hours are filled again by the plan's own rules, from what is true today; hand moves stay.
     today = db.val(cur, "select app_now()::date")
-    for p in db.all(cur, "select id, effective_on from territory_plans where status in ('active', 'draft')"):
+    for p in db.all(cur, "select id, effective_on from territory_plans where status in ('active', 'scheduled', 'draft')"):
         assign(cur, p["id"], on=p["effective_on"], as_of=today)
     return n
 
@@ -496,3 +599,12 @@ def draft_from_active(cur, by: dict, name: str, on) -> int:
               "segments": t["rule"]["segments"], "people": t["rule"]["people"], "ae": t["paired_ae"]}
              for t in db.all(cur, "select * from territories where plan = %s order by id", active["id"])]
     return build_plan(cur, name=name, author=by["id"], territories=terrs, on=on)
+
+
+@jobs.handler("apply_scheduled_plan")
+def _apply_scheduled(cur, payload: dict) -> None:
+    """Hourly while a plan is scheduled; started again by the next scheduling."""
+    from datetime import timedelta
+    apply_scheduled(cur)
+    if scheduled_plan(cur):
+        jobs.enqueue(cur, "apply_scheduled_plan", {}, delay=timedelta(hours=1), dedupe_key="apply_scheduled_plan")

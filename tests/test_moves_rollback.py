@@ -9,6 +9,8 @@ from fastapi.testclient import TestClient
 
 from market import crm, db, moves, profiles, territories
 
+from .conftest import activate_now
+
 
 @pytest.fixture
 def who(cur):
@@ -105,7 +107,7 @@ def test_a_manager_can_propose_and_revops_decides(cur, who):
     plan = moves.approve(cur, pid, who["Sam"])
     # RevOps authored the plan, so the manager can activate it
     assert db.val(cur, "select author from territory_plans where id = %s", plan) == who["Sam"]["id"]
-    territories.activate(cur, plan, who["Elena"])
+    activate_now(cur, plan, who["Elena"])
     assert _active(cur)["id"] == plan
 
 
@@ -117,7 +119,7 @@ def test_activating_a_move_plan_sends_only_through_the_usual_path(cur, who, monk
     assert pre["owner_changes"] == 3 and pre["can_activate"] and pre["crm"] is True
     assert pre["batches"] == -(-db.val(cur, "select count(*) from assignments a join companies c on c.id = a.company where a.plan = %s and not c.sole_trader", plan) // crm.CHUNK)
     before = db.val(cur, "select count(*) from crm_outbox where status = 'queued'")
-    territories.activate(cur, plan, who["Elena"])
+    activate_now(cur, plan, who["Elena"])
     assert db.val(cur, "select count(*) from crm_outbox where status = 'queued'") - before == pre["batches"]
 
 
@@ -125,9 +127,9 @@ def test_a_move_plan_is_refused_when_the_active_plan_changed(cur, who):
     ids, _o, other = _pick(cur)
     plan = moves.approve(cur, moves.propose(cur, who["Sam"], companies=ids, to_owner=other, reason="Because", effective_on=_tomorrow(cur)), who["Elena"])
     draft = db.val(cur, "select id from territory_plans where status = 'draft' and drafted_from is null limit 1")
-    territories.activate(cur, draft, who["Elena"])
+    activate_now(cur, draft, who["Elena"])
     with pytest.raises(ValueError, match="active plan changed"):
-        territories.activate(cur, plan, who["Elena"])
+        activate_now(cur, plan, who["Elena"])
     assert territories.activation_preview(cur, plan, who["Elena"])["can_activate"] is False
 
 
@@ -143,7 +145,7 @@ def test_rollback_restores_the_earlier_plan_and_records_who_and_when(cur, who, m
     monkeypatch.setenv("CRM", "crmdesk")
     first = _active(cur)
     draft = db.val(cur, "select id from territory_plans where status = 'draft' limit 1")
-    territories.activate(cur, draft, who["Elena"])
+    activate_now(cur, draft, who["Elena"])
     assert db.val(cur, "select replaced from territory_plans where id = %s", draft) == first["id"]
     st = crm.send_state(cur, draft)
     assert st["waiting"] > 0 and st["sent"] == 0
@@ -167,7 +169,7 @@ def test_rollback_restores_the_earlier_plan_and_records_who_and_when(cur, who, m
 def test_rollback_reports_batches_already_sent(cur, who, monkeypatch):
     monkeypatch.setenv("CRM", "crmdesk")
     draft = db.val(cur, "select id from territory_plans where status = 'draft' limit 1")
-    territories.activate(cur, draft, who["Elena"])
+    activate_now(cur, draft, who["Elena"])
     db.run(cur, "update crm_outbox set status = 'sent', sent_at = app_now() where id = (select min(id) from crm_outbox where plan = %s)", draft)
     pre = territories.rollback_preview(cur, who["Elena"])
     assert pre["sent_batches"] == 1 and pre["sent_accounts"] > 0
@@ -229,7 +231,7 @@ def test_the_api_previews_and_refuses_the_wrong_person(client, demo):
 
 def test_a_rollback_needs_a_reason(cur, who):
     draft = db.val(cur, "select id from territory_plans where status = 'draft' limit 1")
-    territories.activate(cur, draft, who["Elena"])
+    activate_now(cur, draft, who["Elena"])
     with pytest.raises(ValueError, match="reason"):
         territories.rollback(cur, who["Elena"], "  ")
     with pytest.raises(ValueError, match="reason"):
@@ -253,7 +255,7 @@ def test_a_rollback_is_told_to_the_others_with_its_reason_and_shown_in_history(c
     second = db.one(cur, """insert into users (name, email, role, started_on) values ('Noor Haddad', 'noor@example.test', 'manager', '2024-01-01')
                             returning *""")
     draft = db.val(cur, "select id from territory_plans where status = 'draft' limit 1")
-    territories.activate(cur, draft, who["Elena"])
+    activate_now(cur, draft, who["Elena"])
     territories.rollback(cur, second, "It moved the wrong accounts")
     other = who["Elena"]
     assert notices.unseen(cur, second) == []                             # not the one who did it
@@ -361,7 +363,7 @@ def test_a_territory_move_follows_the_usual_approval_and_activation(cur, who, mo
     pre = territories.activation_preview(cur, plan, who["Elena"])
     assert pre["owner_changes"] == 25 and pre["crm"] is crmdesk
     before = db.val(cur, "select count(*) from crm_outbox where status = 'queued'")
-    territories.activate(cur, plan, who["Elena"])
+    activate_now(cur, plan, who["Elena"])
     assert (db.val(cur, "select count(*) from crm_outbox where status = 'queued'") - before > 0) is crmdesk
     assert db.val(cur, "select count(*) from assignments where plan = %s and owner = %s", plan, to) >= 25
 

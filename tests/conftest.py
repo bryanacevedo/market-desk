@@ -52,3 +52,10 @@ def cur(demo):
 @pytest.fixture
 def users(cur):
     return {u["name"].split()[0]: u for u in db.all(cur, "select * from users")}
+
+
+def activate_now(cur, plan_id, by):
+    """Activates a plan so it takes effect today: a plan whose start date is later is scheduled, not in effect (decision 55)."""
+    from market import db, territories
+    db.run(cur, "update territory_plans set effective_on = app_now()::date where id = %s", plan_id)
+    return territories.activate(cur, plan_id, by)

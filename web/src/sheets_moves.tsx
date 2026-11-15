@@ -38,21 +38,32 @@ export function ActivateSheet({ id }: { id: string }) {
   const [busy, run] = useBusy();
   return (
     <Wrap kind="activate" path={`/api/plans/${id}/activate-preview`}>{(p) => (
-      <Frame kind="activate" foot={<Foot busy={busy} label="Activate" ok={p.can_activate}
-        onGo={() => run(async () => { await api(`/api/plans/${p.id}/activate`, { method: "POST" }); closeSheet(); }, "Activated. Owners moved.")} />}>
-        <Title sub={p.replaces ? `Replaces ${p.replaces}` : undefined}>Activate {p.name}</Title>
+      <Frame kind="activate" foot={<Foot busy={busy} label={p.starts_later ? `Schedule for ${day(p.effective_on)}` : "Activate"} ok={p.can_activate}
+        onGo={() => run(async () => { await api(`/api/plans/${p.id}/activate`, { method: "POST" }); closeSheet(); }, p.starts_later ? `Scheduled. Owners change on ${day(p.effective_on)}.` : "Activated. Owners moved.")} />}>
+        <Title sub={p.replaces ? `Replaces ${p.replaces}` : undefined}>{p.starts_later ? "Schedule" : "Activate"} {p.name}</Title>
         {p.blocked ? <Status kind="stop">{p.blocked}</Status> : null}
         <div className="figs">
-          <Fig sm value={n0(p.owner_changes)} label="Accounts change owner" />
+          <Fig sm value={n0(p.starts_later ? p.scheduled_changes : p.owner_changes)} label="Accounts change owner" />
           <Fig sm value={n0(p.crossing)} label="Open deals leave their owner" />
           <Fig sm value={p.crm ? n0(p.batches) : "None"} label="Requests to CRM Desk" />
         </div>
         {p.crm ? <div className="small">CRM Desk keeps what it takes. Rolling back sends the earlier plan over it, and owners pinned there stay as they are.</div>
           : <div className="small">No CRM is set, so nothing is sent.</div>}
-        {p.effective_on > p.today ? <div className="small">The plan starts {day(p.effective_on)}. Owners change in this desk now.</div> : null}
+        {p.starts_later ? <div className="small">The plan starts {day(p.effective_on)}. Owners change on that date.</div> : null}
         {p.people.length ? <Section title="Who gains and loses">{people(p.people)}</Section> : null}
       </Frame>
     )}</Wrap>
+  );
+}
+
+export function CancelScheduleSheet() {
+  const [busy, run] = useBusy();
+  return (
+    <Frame kind="cancelschedule" foot={<Foot busy={busy} label="Cancel schedule" ok
+      onGo={() => run(async () => { await api("/api/plans/cancel-schedule", { method: "POST" }); closeSheet(); }, "Schedule cancelled. The plan is a draft again.")} />}>
+      <Title>Cancel the scheduled plan</Title>
+      <div className="small">The plan goes back to a draft. No owner has moved.</div>
+    </Frame>
   );
 }
 
@@ -84,7 +95,7 @@ export function RollbackSheet({ id }: { id: string }) {
   const [why, setWhy] = useState("");
   return (
     <Wrap kind="rollback" path={icp ? "/api/profile/rollback-preview" : "/api/plans/rollback-preview"}>{(p) => !p.available ? (
-      <Frame kind="rollback"><Empty title="Nothing to roll back to" /></Frame>
+      <Frame kind="rollback"><Empty title={p.blocked || "Nothing to roll back to"} /></Frame>
     ) : (
       <Frame kind="rollback" foot={<Foot busy={busy} label="Roll back" ok={p.can_roll_back && why.trim().length >= 3}
         onGo={() => run(async () => { await api(icp ? "/api/profile/rollback" : "/api/plans/rollback", { method: "POST", body: { reason: why.trim() } }); closeSheet(); },

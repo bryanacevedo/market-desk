@@ -29,11 +29,12 @@ export function Territories() {
         <Seg label="View" value={tab} options={[["plan", "Plan"], ["capacity", "Capacity"]]} onChange={(v) => navigate(withParam("tab", v === "plan" ? null : v), true)} />
       </div>
       <div className="toolbar">
-        <Seg label="Plan" value={String(plan.id)} options={data.plans.filter((p: any) => p.status !== "retired").map((p: any) => [String(p.id), `${p.name}${p.status === "draft" ? ", draft" : ""}`])}
+        <Seg label="Plan" value={String(plan.id)} options={data.plans.filter((p: any) => p.status !== "retired").map((p: any) => [String(p.id), `${p.name}${p.status === "draft" ? ", draft" : p.status === "scheduled" ? ", scheduled" : ""}`])}
           onChange={(v) => navigate(withParam("plan", v), true)} />
         {plan.status === "draft" ? (
           canActivate ? activateButton : <span className="small mute">Waiting for a manager to activate</span>
-        ) : <span className="actions"><span className="mute small">{plan.status === "active" ? `Active since ${day(plan.restored_at || plan.activated_at)}, by ${plan.activated_by}` : plan.status === "retired" ? "Retired" : ""}</span>
+        ) : <span className="actions"><span className="mute small">{plan.status === "active" ? `Active since ${day(plan.restored_at || plan.activated_at)}, by ${plan.activated_by}` : plan.status === "scheduled" ? `Starts ${day(plan.effective_on)}, scheduled by ${plan.activated_by}` : plan.status === "retired" ? "Retired" : ""}</span>
+          {plan.status === "scheduled" && me?.user.role === "manager" ? <button className="btn line sm" onClick={() => openSheet("cancelschedule", plan.id)}>Cancel schedule</button> : null}
           {plan.status === "active" && plan.replaced && me?.user.role === "manager" ? <button className="btn line sm" onClick={() => openSheet("rollback", "plan")}>Roll back</button> : null}</span>}
       </div>
       {tab === "plan" ? <PlanView data={data} proposals={proposals?.proposals || []} active={plan.status === "draft" && activeData?.plan?.id !== plan.id ? activeData : null} money={!!me?.money} /> : <CapacityView data={data} />}

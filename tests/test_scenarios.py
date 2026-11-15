@@ -6,6 +6,8 @@ from pathlib import Path
 
 from market import db, fit, tests_seg
 
+from .conftest import activate_now
+
 DOC = Path(__file__).resolve().parents[1] / "docs" / "SCENARIO-COVERAGE.md"
 
 
@@ -123,7 +125,7 @@ def test_author_cannot_publish_and_planner_cannot_activate(cur, users):
         profiles.publish(cur, v4, users["Sam"])
     with pytest.raises(PermissionError):
         territories.activate(cur, q1, users["Sam"])
-    territories.activate(cur, q1, users["Elena"])
+    activate_now(cur, q1, users["Elena"])
     assert db.val(cur, "select status from territory_plans where id = %s", q1) == "active"
     profiles.publish(cur, v4, users["Elena"], rescore_now=True)
     assert db.val(cur, "select status from icp_versions where id = %s", v4) == "published"

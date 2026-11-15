@@ -6,7 +6,7 @@ import {
 import { api } from "./api";
 import { Logo } from "./marks";
 import { Bar, Empty, Failed, Fig, Loading, Section, Status, day, money, n0, navigate, pct, useBusy, useData, T, Tip } from "./lib";
-import { ActivateSheet, PublishSheet, RollbackSheet, TransferSheet } from "./sheets_moves";
+import { ActivateSheet, CancelScheduleSheet, PublishSheet, RollbackSheet, TransferSheet } from "./sheets_moves";
 import { Hours, Nest, RangeLine, Tier, TierMix, Verdict, moneyScale, RateAxis } from "./parts";
 
 // ---------------------------------------------------------------- the sheet frame (Account Desk's, with this desk's kinds)
@@ -33,7 +33,7 @@ const KIND: Record<string, { label: string; icon: typeof X }> = {
   test: { label: "Test", icon: Flask }, proposal: { label: "Change", icon: Lightbulb },
   book: { label: "Book", icon: BookOpen }, source: { label: "Source", icon: Database },
   activate: { label: "Activate plan", icon: CheckCircle }, publish: { label: "Publish profile", icon: ListChecks },
-  rollback: { label: "Roll back", icon: ArrowCounterClockwise }, transfer: { label: "Move proposal", icon: Swap },
+  rollback: { label: "Roll back", icon: ArrowCounterClockwise }, cancelschedule: { label: "Cancel schedule", icon: ArrowCounterClockwise }, transfer: { label: "Move proposal", icon: Swap },
 };
 
 // The sheet's title names the thing, so the header carries only the kind; `crumb` is kept for the call sites' clarity.
@@ -83,7 +83,7 @@ export function SheetHost() {
   const P: Record<string, (p: { id: string }) => JSX.Element> = {
     segment: SegmentSheet, finding: FindingSheet, company: CompanySheet, person: PersonSheet, version: VersionSheet,
     move: MoveSheet, test: TestSheet, proposal: ProposalSheet, book: BookSheet, source: SourceSheet,
-    activate: ActivateSheet, publish: PublishSheet, rollback: RollbackSheet, transfer: TransferSheet,
+    activate: ActivateSheet, cancelschedule: CancelScheduleSheet, publish: PublishSheet, rollback: RollbackSheet, transfer: TransferSheet,
   };
   const C = P[kind];
   return C ? <C key={sheet} id={id} /> : null;
@@ -293,7 +293,8 @@ function CompanySheet({ id }: { id: string }) {
               <dl className="kv"><dt><T>In the active plan</T></dt><dd>{c.owner.id ? <button className="link" onClick={() => openSheet("person", c.owner.id)}>{c.owner.name}</button> : "Unassigned"}</dd>
                 <dt><T>Why</T></dt><dd>{({ rule: "Territory rule", test: "Segment test", existing_owner: "Customer", open_deal: "Open deal", balance_move: "Moved to balance", manual: "Moved by hand" } as any)[c.owner.reason] || c.owner.reason}</dd>
                 {c.owner.note ? <><dt><T>Note</T></dt><dd>{c.owner.note}</dd></> : null}
-                {c.owner.moved_from ? <><dt><T>From</T></dt><dd>{c.owner.moved_from}</dd></> : null}</dl>
+                {c.owner.moved_from ? <><dt><T>From</T></dt><dd>{c.owner.moved_from}</dd></> : null}
+                {(c.coming || []).map((m: any) => <span key={m.role} style={{ display: "contents" }}><dt><T>{`${m.role === "SDR" ? "SDR" : "Owner"} from ${day(m.from)}`}</T></dt><dd>{m.name}</dd></span>)}</dl>
             </Section>
           ) : null}
           <Section title="Fields">
