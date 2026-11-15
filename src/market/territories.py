@@ -359,7 +359,10 @@ def apply_scheduled(cur) -> int:
     plan = db.one(cur, "select * from territory_plans where status = 'scheduled' and effective_on <= app_now()::date for update")
     if plan is None:
         return 0
-    by = db.one(cur, "select * from users where id = %s", plan["activated_by"])
+    by = db.one(cur, "select * from users where id = %s and active and role = 'manager'", plan["activated_by"]) or \
+        db.one(cur, "select * from users where active and role = 'manager' and id <> %s order by id limit 1", plan["author"])
+    if by is None:
+        raise ValueError("No manager is left to apply the scheduled plan.")
     active = db.val(cur, "select id from territory_plans where status = 'active'")
     _make_active(cur, plan["id"], by, active, what_changes(cur, plan["id"]))
     return 1
@@ -606,5 +609,6 @@ def _apply_scheduled(cur, payload: dict) -> None:
     """Hourly while a plan is scheduled; started again by the next scheduling."""
     from datetime import timedelta
     apply_scheduled(cur)
-    if scheduled_plan(cur):
-        jobs.enqueue(cur, "apply_scheduled_plan", {}, delay=timedelta(hours=1), dedupe_key="apply_scheduled_plan")
+    # No dedupe key: this job is still "running" now, and a key would make the next one a silent no-op.
+    if scheduled_plan(cur) and not db.val(cur, "select 1 from jobs where kind = 'apply_scheduled_plan' and status = 'queued'"):
+        jobs.enqueue(cur, "apply_scheduled_plan", {}, delay=timedelta(hours=1))

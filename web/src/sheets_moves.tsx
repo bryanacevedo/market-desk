@@ -62,7 +62,6 @@ export function CancelScheduleSheet() {
     <Frame kind="cancelschedule" foot={<Foot busy={busy} label="Cancel schedule" ok
       onGo={() => run(async () => { await api("/api/plans/cancel-schedule", { method: "POST" }); closeSheet(); }, "Schedule cancelled. The plan is a draft again.")} />}>
       <Title>Cancel the scheduled plan</Title>
-      <div className="small">The plan goes back to a draft. No owner has moved.</div>
     </Frame>
   );
 }

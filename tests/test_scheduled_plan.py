@@ -126,3 +126,21 @@ def test_cancelling_after_the_crm_took_the_schedule_withdraws_it(cur, who, monke
     territories.cancel_schedule(cur, who["Elena"])
     q = db.all(cur, "select payload from crm_outbox where plan = %s and status = 'queued'", plan)
     assert [i["cancel_scheduled_owner"] for r in q for i in r["payload"]["items"]] == [True, True, True]
+
+
+def test_the_hourly_job_queues_itself_again_while_its_own_row_is_running(cur, who):
+    plan, *_ = _scheduled_move(cur, who)
+    territories.activate(cur, plan, who["Elena"])
+    db.run(cur, "update jobs set status = 'running' where kind = 'apply_scheduled_plan'")
+    territories._apply_scheduled(cur, {})
+    assert db.val(cur, "select count(*) from jobs where kind = 'apply_scheduled_plan' and status = 'queued'") == 1
+
+
+def test_a_plan_applies_even_when_its_activator_is_no_longer_a_manager(cur, who):
+    plan, *_ = _scheduled_move(cur, who)
+    territories.activate(cur, plan, who["Elena"])
+    db.run(cur, "insert into users (name, email, role, started_on, active) values ('Mia Backup', 'mia.backup@lumenledger.example', 'manager', '2025-01-01', true)")
+    db.run(cur, "update territory_plans set effective_on = app_now()::date where id = %s", plan)
+    db.run(cur, "update users set role = 'revops' where id = %s", who["Elena"]["id"])
+    assert territories.apply_scheduled(cur) == 1
+    assert _active(cur)["id"] == plan
