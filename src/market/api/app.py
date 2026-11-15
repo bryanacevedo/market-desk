@@ -225,6 +225,37 @@ def definitions() -> dict:
         return mqa.published(cur)
 
 
+def _desk_read(request: Request) -> None:
+    """Another desk's read key (`DESK_READ_KEY`). No key set: this desk serves nothing to other desks, as if the route did not exist."""
+    from .. import agreement
+    ok = agreement.allowed(request.headers.get("Authorization"))
+    if ok is None:
+        raise HTTPException(404, "Not found.")
+    if not ok:
+        raise HTTPException(401, "The read key was refused.")
+
+
+@app.get("/api/agreement/statement")
+def agreement_statement(request: Request) -> dict:
+    """What this desk states for Tally in CRM Desk (docs/TALLY-SPEC.md section 5): definitions, its queue of writes, the plan."""
+    from .. import agreement
+    _desk_read(request)
+    with db.tx() as cur:
+        return agreement.statement(cur)
+
+
+@app.get("/api/agreement/owners")
+def agreement_owners(request: Request, plan: str | None = None, cursor: str | None = None) -> dict:
+    """The planned accounts with the owners in force and the owners planned, 500 a page, for Tally's rule 1."""
+    from .. import agreement
+    _desk_read(request)
+    with db.tx() as cur:
+        try:
+            return agreement.owners(cur, plan, cursor)
+        except agreement.PlanChanged as exc:
+            raise HTTPException(409, str(exc)) from None
+
+
 @app.get("/api/definitions/{name}")
 def definition(name: str, version: int | None = None) -> dict:
     from .. import mqa
