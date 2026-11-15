@@ -45,13 +45,16 @@ def _outbox(cur) -> list[dict]:
     rows = db.all(cur, """select kind,
                           count(*) filter (where status = 'queued') as queued,
                           count(*) filter (where status = 'queued' and attempts > 0) as retrying,
-                          count(*) filter (where status = 'failed') as failed,
+                          count(*) filter (where status = 'failed' and (
+                              (kind = 'books' and plan in (select id from territory_plans where status in ('active', 'scheduled')))
+                              or (kind = 'scores' and icp_version = (select id from icp_versions where status = 'published'))
+                              or (kind = 'mqa' and id > coalesce((select max(id) from crm_outbox where kind = 'mqa' and status = 'sent'), 0)))) as failed,
                           min(created_at) filter (where status = 'queued') as oldest_queued_at,
                           max(sent_at) filter (where status = 'sent') as last_sent_at
                           from crm_outbox where status <> 'cancelled' group by kind order by kind""")
     out = []
     for r in rows:
-        err = db.val(cur, "select last_error from crm_outbox where kind = %s and status = 'failed' order by id desc limit 1", r["kind"])
+        err = db.val(cur, "select last_error from crm_outbox where kind = %s and status = 'failed' order by id desc limit 1", r["kind"]) if r["failed"] else None
         out.append({"to": "crm_desk", "kind": r["kind"], "queued": int(r["queued"]), "oldest_queued_at": r["oldest_queued_at"] and r["oldest_queued_at"].isoformat(),
                     "retrying": int(r["retrying"]), "failed": int(r["failed"]), "last_error": err,
                     "last_sent_at": r["last_sent_at"] and r["last_sent_at"].isoformat()})
@@ -75,8 +78,13 @@ def statement(cur) -> dict:
     owned = mqa.current(cur)
     used = [{"name": r["name"], "owner_desk": r["owner_desk"], "version": r["version"], "hash": r["hash"], "read_at": r["read_at"].isoformat()}
             for r in db.all(cur, "select * from definitions_read order by name")]
+    owned_list = [{"name": owned["name"], "version": owned["version"], "hash": owned["hash"], "published_at": owned["published_at"]}]
+    pub = db.one(cur, "select number, published_at from icp_versions where status = 'published'")
+    if pub:      # Tally's rule 3 times its grace window from this publish time
+        text = icp(cur)
+        owned_list.append({"name": "icp", "version": f"v{pub['number']}", "hash": text["hash"], "published_at": pub["published_at"] and pub["published_at"].isoformat()})
     out = {"desk": "market_desk", "as_of": now.isoformat(), "schema_version": SCHEMA_VERSION,
-           "definitions_owned": [{"name": owned["name"], "version": owned["version"], "hash": owned["hash"], "published_at": owned["published_at"]}],
+           "definitions_owned": owned_list,
            "definitions_used": used}
     if crm.enabled():      # with no CRM set this desk writes nothing, so it states no queue (Tally reads "does not state its queue")
         out["outbox"] = _outbox(cur)
@@ -105,7 +113,10 @@ def owners(cur, plan_id: str | None, cursor: str | None) -> dict:
     planned = territories.roles_by_company(cur, p["id"])
     scheduled = p["status"] == "scheduled"
     inforce = territories.roles_by_company(cur, db.val(cur, "select id from territory_plans where status = 'active'") or 0) if scheduled else planned
-    hand = {(h["company"], h["role"]): h["to_user"] for h in territories.hand_changes(cur, p["id"])}
+    # Only while the plan waits: once it is in effect the assignments already hold what the person chose. An unknown person (no id here) is not stated.
+    hand = {(h["company"], h["role"]): h["to_user"] for h in territories.hand_changes(cur, p["id"]) if scheduled and h["to_user"]}
+    if scheduled and not db.val(cur, "select 1 from territory_plans where status = 'active'"):
+        return {"plan": str(p["id"]), "data": [], "next": None}      # nothing is in force yet, so nothing can differ
     emails = {u["id"]: u["email"] for u in db.all(cur, "select id, email from users")}
     after = int(cursor) if cursor and str(cursor).isdigit() else 0
     rows = db.all(cur, """select c.id, c.primary_domain, f.tier, f.segment from assignments a join companies c on c.id = a.company

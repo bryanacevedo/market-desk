@@ -35,7 +35,8 @@ def test_the_statement_has_crm_desks_contract_and_holds_no_person_or_money(clien
     monkeypatch.setenv("DESK_READ_KEY", "desk-secret")
     j = client.get("/api/agreement/statement", headers=_auth()).json()
     assert (j["desk"], j["schema_version"]) == ("market_desk", 1) and j["as_of"]
-    (d,) = j["definitions_owned"]
+    d, i = j["definitions_owned"]
+    assert i["name"] == "icp" and i["version"] == j["plan"]["icp_version"] and i["published_at"]      # Tally times rule 3's grace from this
     assert d["name"] == "mqa" and d["hash"].startswith("sha256:") and d["version"] >= 1
     assert "outbox" not in j                                   # no CRM set: the desk states no queue, and Tally says so
     p = j["plan"]
