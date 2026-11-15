@@ -345,4 +345,4 @@ def _run(cur, payload: dict) -> None:
             log.warning("mqa run stopped: %s", exc)
         except MqaUnavailable as exc:
             log.warning("mqa run skipped: %s", exc)
-    jobs.enqueue(cur, "crm_mqa", {}, delay=wait, dedupe_key="crm_mqa")
+    jobs.requeue(cur, "crm_mqa", wait)

@@ -481,4 +481,4 @@ def _pull(cur, payload: dict) -> None:
     except CrmDown as exc:                        # the pull resumes from its cursor; never let an outage end the schedule
         wait = timedelta(seconds=exc.retry_after or 120)
         log.warning("crm pull stopped: %s", exc)
-    jobs.enqueue(cur, "crm_pull", {}, delay=wait, dedupe_key="crm_pull")
+    jobs.requeue(cur, "crm_pull", wait)

@@ -40,6 +40,15 @@ def enqueue(cur, kind: str, payload: dict | None = None, *, delay: timedelta | N
     return row["id"] if row else None
 
 
+def requeue(cur, kind: str, delay: timedelta) -> int | None:
+    """A recurring job's handler queues its next run, deduped under the kind's own key. The handler runs while its row
+    is still 'running', and the dedupe key covers 'running' rows, so a plain enqueue would be a silent no-op and the
+    schedule would end after one run. The running row gives up the key first; this is inside the job's transaction,
+    so a failed run rolls it back and the retry keeps the key."""
+    db.run(cur, "update jobs set dedupe_key = null where dedupe_key = %s and status = 'running'", kind)
+    return enqueue(cur, kind, {}, delay=delay, dedupe_key=kind)
+
+
 def _backoff(attempts: int) -> timedelta:
     return timedelta(seconds=min(3600, 30 * 2 ** max(0, attempts - 1)))
 

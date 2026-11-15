@@ -83,3 +83,6 @@ Cache markers, tests and cache-aware cost accounting are in; measured with real 
 
 - Backlog bl_134: a plan that starts later is `scheduled` and applies on its date (decision 55, migration 0007, `territories.activate` and `apply_scheduled`, `crm.queue_schedule`). Account page, Accounts list, Territories and the activation sheet show it. CRM Desk holds the dated owners itself (its decision 76).
 - Backlog bl_117: prompt caching brought over from `cache/prompt-caching` (decision 54, renumbered); re-measured on 2026-11-14: 86.5% (loss_code) and 88.4% (classify) of input tokens read from cache on the second call (decision 54).
+
+## Recurring jobs (2026-11-15, session own2, branch `own2/job-schedules`)
+`crm_pull` and `crm_mqa` stopped after one run because they re-enqueued under their own dedupe key while running. Fixed with `jobs.requeue` and `tests/test_job_schedules.py`. Open: `jobs.reap` is never called (a worker killed mid-run blocks the schedule until the row is cleared); if it is wired in, guard the `done` update on `status = 'running'`.
