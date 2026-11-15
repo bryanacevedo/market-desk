@@ -86,3 +86,7 @@ Cache markers, tests and cache-aware cost accounting are in; measured with real 
 
 ## Recurring jobs (2026-11-15, session own2, branch `own2/job-schedules`)
 `crm_pull` and `crm_mqa` stopped after one run because they re-enqueued under their own dedupe key while running. Fixed with `jobs.requeue` and `tests/test_job_schedules.py`. Open: `jobs.reap` is never called (a worker killed mid-run blocks the schedule until the row is cleared); if it is wired in, guard the `done` update on `status = 'running'`.
+
+## A hand owner change drops the account from a scheduled plan (2026-11-15, Bryan's decision; DECISIONS 57 to 59)
+
+Migration 0008, `plan_hand_changes`. `territories.change_owner_by_hand` (`POST /api/companies/{id}/owner`, RevOps, no screen form yet) and a read of CRM Desk's by-hand list (hourly and at apply) drop the account's role from the scheduled plan: leaves `scheduled_moves`, the books and the "Moves to" line; shows "Changed by hand" on the Accounts list and sheet. At apply the assignment keeps the person's choice and the books carry `owner_scheduled_for`. Cancelling a schedule forgets its hand changes. Not built: a form for the hand change, queued plans (later, 58).

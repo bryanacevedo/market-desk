@@ -144,3 +144,129 @@ def test_a_plan_applies_even_when_its_activator_is_no_longer_a_manager(cur, who)
     db.run(cur, "update users set role = 'revops' where id = %s", who["Elena"]["id"])
     assert territories.apply_scheduled(cur) == 1
     assert _active(cur)["id"] == plan
+
+
+# ---- a person's own owner change drops the account from the scheduled plan (Bryan, 2026-11-15; decision 57)
+
+def _revops(cur):
+    return db.one(cur, "select * from users where role = 'revops' and active order by id limit 1")
+
+
+def _hand_target(cur, who, ids, owner, other):
+    """Someone who is neither the account's owner nor the scheduled one: the person a hand change gives it to."""
+    return db.val(cur, "select id from users where role = 'ae' and active and id not in (%s, %s) order by id limit 1", owner, other)
+
+
+def test_a_hand_change_in_this_desk_drops_the_account_from_the_scheduled_plan(cur, who):
+    plan, ids, owner, other, day = _scheduled_move(cur, who)
+    territories.activate(cur, plan, who["Elena"])
+    third = _hand_target(cur, who, ids, owner, other)
+    out = territories.change_owner_by_hand(cur, ids[0], third, "Keeps the relationship", _revops(cur))
+    assert out == {"role": "owner", "dropped_from_schedule": True}
+    assert ids[0] not in territories.scheduled_moves(cur) and set(territories.scheduled_moves(cur)) == set(ids[1:])
+    shown = views.company(cur, ids[0], who["Elena"])["coming"]
+    assert len(shown) == 1 and shown[0]["by_hand"] and shown[0]["kept"] is not None and shown[0]["from"] == day
+    assert db.val(cur, "select count(*) from audit_log where action = 'scheduled_move_dropped' and object_id = %s", str(ids[0])) == 1
+    # on the start date the plan applies and the hand change stands
+    db.run(cur, "update territory_plans set effective_on = app_now()::date where id = %s", plan)
+    assert territories.apply_scheduled(cur) == 1
+    assert db.val(cur, "select owner from assignments where plan = %s and company = %s", plan, ids[0]) == third
+    assert db.val(cur, "select owner from assignments where plan = %s and company = %s", plan, ids[1]) == other
+
+
+def test_a_hand_change_of_a_role_the_plan_does_not_move_keeps_the_schedule(cur, who):
+    plan, ids, owner, other, day = _scheduled_move(cur, who)
+    territories.activate(cur, plan, who["Elena"])
+    sdr = db.val(cur, "select id from users where role = 'sdr' and active order by id limit 1")
+    with pytest.raises(ValueError, match="seat"):
+        territories.change_owner_by_hand(cur, ids[0], sdr, "Needs an SDR on it", _revops(cur))
+    assert set(territories.scheduled_moves(cur)) == set(ids)
+
+
+def test_cancelling_a_schedule_forgets_its_hand_changes(cur, who):
+    plan, ids, owner, other, day = _scheduled_move(cur, who)
+    territories.activate(cur, plan, who["Elena"])
+    territories.change_owner_by_hand(cur, ids[0], _hand_target(cur, who, ids, owner, other), "Keeps it", _revops(cur))
+    territories.cancel_schedule(cur, who["Elena"])
+    assert db.val(cur, "select count(*) from plan_hand_changes where plan = %s", plan) == 0
+
+
+def test_only_revops_changes_an_owner_by_hand_with_a_note(cur, who):
+    plan, ids, owner, other, day = _scheduled_move(cur, who)
+    with pytest.raises(PermissionError):
+        territories.change_owner_by_hand(cur, ids[0], other, "Because", who["Elena"])
+    with pytest.raises(ValueError):
+        territories.change_owner_by_hand(cur, ids[0], other, " ", _revops(cur))
+
+
+def test_the_crm_is_told_the_hand_change_and_to_drop_what_it_holds(cur, who, monkeypatch):
+    monkeypatch.setenv("CRM", "crmdesk")
+    monkeypatch.setattr(crm, "supports_schedule", lambda: True)
+    plan, ids, owner, other, day = _scheduled_move(cur, who)
+    territories.activate(cur, plan, who["Elena"])
+    third = _hand_target(cur, who, ids, owner, other)
+    before = db.val(cur, "select max(id) from crm_outbox")
+    territories.change_owner_by_hand(cur, ids[0], third, "Keeps the relationship", _revops(cur))
+    row = db.one(cur, "select payload from crm_outbox where id > %s order by id", before or 0)
+    (item,) = row["payload"]["items"]
+    assert item["cancel_scheduled_owner"] == "account" and item["owner_id"] == db.val(cur, "select email from users where id = %s", third)
+
+
+def test_the_plain_books_on_the_start_date_leave_out_a_role_changed_by_hand(cur, who, monkeypatch):
+    monkeypatch.setenv("CRM", "crmdesk")
+    monkeypatch.setattr(crm, "supports_schedule", lambda: True)
+    monkeypatch.setattr(crm, "supports_by_hand", lambda: True)
+    monkeypatch.setattr(crm, "by_hand", lambda on: [])
+    plan, ids, owner, other, day = _scheduled_move(cur, who)
+    territories.activate(cur, plan, who["Elena"])
+    third = _hand_target(cur, who, ids, owner, other)
+    territories.change_owner_by_hand(cur, ids[0], third, "Keeps the relationship", _revops(cur))
+    sent = db.val(cur, "select coalesce(max(id), 0) from crm_outbox")
+    db.run(cur, "update territory_plans set effective_on = app_now()::date where id = %s", plan)
+    territories.apply_scheduled(cur)
+    items = [i for r in db.all(cur, "select payload from crm_outbox where id > %s", sent) for i in r["payload"]["items"]]
+    dom = db.val(cur, "select primary_domain from companies where id = %s", ids[0])
+    mine = next(i for i in items if i["domain"] == dom)
+    assert "owner_id" not in mine and "sdr_owner_id" not in mine          # nothing to overwrite what the person set
+    other_item = next(i for i in items if i["domain"] == db.val(cur, "select primary_domain from companies where id = %s", ids[1]))
+    assert other_item["owner_id"] and other_item["owner_scheduled_for"] == str(db.val(cur, "select app_now()::date"))
+
+
+def test_a_hand_change_made_in_the_crm_is_read_back_and_dropped_too(cur, who, monkeypatch):
+    monkeypatch.setenv("CRM", "crmdesk")
+    monkeypatch.setattr(crm, "supports_schedule", lambda: True)
+    monkeypatch.setattr(crm, "supports_by_hand", lambda: True)
+    plan, ids, owner, other, day = _scheduled_move(cur, who)
+    territories.activate(cur, plan, who["Elena"])
+    third = db.one(cur, "select id, email, name from users where role = 'ae' and active and id not in (%s, %s) order by id limit 1", owner, other)
+    dom = db.val(cur, "select primary_domain from companies where id = %s", ids[0])
+    monkeypatch.setattr(crm, "by_hand", lambda on: [{"account_domain": dom, "role": "account", "owner_email": third["email"], "by": "Mona Manager",
+                                                     "note": "the owner was changed by hand to X"}])
+    assert territories.sync_hand_changes(cur) == 1
+    assert territories.sync_hand_changes(cur) == 0                      # reading again changes nothing
+    assert ids[0] not in territories.scheduled_moves(cur)
+    (h,) = territories.hand_changes(cur, plan)
+    assert (h["source"], h["to_user"], h["by_name"]) == ("crm_desk", third["id"], "Mona Manager")
+    db.run(cur, "update territory_plans set effective_on = app_now()::date where id = %s", plan)
+    assert territories.apply_scheduled(cur) == 1
+    assert db.val(cur, "select owner from assignments where plan = %s and company = %s", plan, ids[0]) == third["id"]
+    assert db.val(cur, "select count(*) from audit_log where action = 'owner_kept_by_hand' and object_id = %s", str(ids[0])) == 1
+
+
+def test_a_crm_that_cannot_say_leaves_the_plan_as_it_was(cur, who, monkeypatch):
+    monkeypatch.setenv("CRM", "crmdesk")
+    monkeypatch.setattr(crm, "supports_schedule", lambda: True)
+    monkeypatch.setattr(crm, "supports_by_hand", lambda: True)
+    def down(on):
+        raise crm.CrmDown("no answer")
+    monkeypatch.setattr(crm, "by_hand", down)
+    plan, ids, *_ = _scheduled_move(cur, who)
+    territories.activate(cur, plan, who["Elena"])
+    assert territories.sync_hand_changes(cur) == 0 and set(territories.scheduled_moves(cur)) == set(ids)
+
+
+def test_the_api_takes_a_hand_change(cur, who):
+    from fastapi.testclient import TestClient  # noqa: F401  (the route exists and is wired to the same function)
+
+    from market.api import app as appmod
+    assert any(r.path == "/api/companies/{cid}/owner" for r in appmod.app.routes)

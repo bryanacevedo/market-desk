@@ -300,6 +300,12 @@ def _coming(cur, company_ids: list[int]) -> dict[int, list[dict]]:
     for c in company_ids:
         for role, uid in (moves.get(c) or {}).items():
             out.setdefault(c, []).append({"role": "owner" if role == "owner" else "SDR", "name": names[uid], "from": s["effective_on"]})
+    # A person moved it by hand after the plan was scheduled: the plan no longer moves it (decision 57).
+    wanted = set(company_ids)
+    for h in territories.hand_changes(cur, s["id"]):
+        if h["company"] in wanted:
+            out.setdefault(h["company"], []).append({"role": "owner" if h["role"] == "owner" else "SDR", "name": h["planned_name"],
+                                                    "from": s["effective_on"], "by_hand": True, "kept": h["to_name"], "by": h["by_name"]})
     return out
 
 

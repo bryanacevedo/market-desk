@@ -746,6 +746,22 @@ def move(pid: int, body: Move, u: dict = Depends(writer)) -> dict:
     return {"ok": True}
 
 
+class HandOwner(BaseModel):
+    to: int
+    note: str = Field(min_length=3, max_length=500)
+
+
+@app.post("/api/companies/{cid}/owner")
+def hand_owner(cid: int, body: HandOwner, u: dict = Depends(writer)) -> dict:
+    """RevOps changes an account's AE or SDR by hand, now. A plan scheduled for later stops moving that account."""
+    try:
+        with db.tx() as cur:
+            out = territories.change_owner_by_hand(cur, cid, body.to, body.note, u)
+    except Exception as exc:
+        raise _fail(exc) from exc
+    return {"ok": True, **out}
+
+
 class NewTest(BaseModel):
     segment: str = Field(max_length=40)
     hypothesis: str = Field(min_length=5, max_length=300)

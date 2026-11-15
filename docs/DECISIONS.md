@@ -214,3 +214,20 @@ Re-measured on 2026-11-14 on top of the current main, six real calls (a few cent
 
 ## 56. Recurring jobs keep their schedule (2026-11-15)
  `crm_pull` and `crm_mqa` queued their next run with their own dedupe key while their row was still `running`; the unique index covers `running`, so the enqueue did nothing and each ran once per worker start. `jobs.requeue` now clears the key on the running row inside the job's transaction, then queues the next run under it: a failed run rolls both back and keeps the key, and the API's keyed enqueue still collapses into one chain. Tested in `tests/test_job_schedules.py`. Not fixed: `jobs.reap` is never called, so a worker that dies mid-run leaves a `running` row that blocks the key until someone clears it.
+
+## 57. A person's own owner change drops the account from a scheduled plan (Bryan, 2026-11-15; migration 0008)
+
+While a plan is scheduled, an account whose AE or SDR a person changes by hand is dropped from that plan's moves for that role. Two ways in, one result. In this desk, `territories.change_owner_by_hand` (`POST /api/companies/{id}/owner`, RevOps, with a note) changes the owner in the plan in effect at once, records the change in `plan_hand_changes` when the scheduled plan would have moved that role, audits `owner_changed_by_hand` and `scheduled_move_dropped`, and tells the CRM the plain owner and to drop what it holds (`cancel_scheduled_owner`). From the CRM, a person's change there cancels CRM Desk's pending row (its decision 78); the hourly job and the start-date apply read `GET /scheduled-owners/by-hand` and record the same fact (`source` crm_desk). A drop is shown as "Changed by hand" on the Accounts list and as "Owner plan change dropped: Changed by hand to <name>" on the account sheet; `scheduled_moves`, the count and the "Moves to" line leave it out.
+
+On the start date: `reconcile_hand_changes` gives the plan's own assignment for that account the person's choice (reason `manual`, audited `owner_kept_by_hand`), and `plan_items` leave that role's owner out of the books. When the CRM lists `scheduled_owner_by_hand`, every item that carries an owner also carries `owner_scheduled_for` (the start date), and CRM Desk refuses to overwrite a role cancelled by hand for that date (`changed_by_hand`). So the plan cannot undo a hand change even if this desk has not read it yet, or the CRM was down when it tried. An older CRM that lists neither feature gets the plain books as before: the worst case is the old behaviour on the date, not before it. Rejected: dropping the account's row from the plan itself (the plan would stop saying what it meant, and a rollback would lose it), and warning only.
+
+Not built: a form for the hand change on the account sheet (the endpoint exists; the person changes it in the CRM, or RevOps uses the API), a hand change of an account that is not in the plan in effect, and a hand change when the scheduled plan puts an SDR where the person changed the AE (the books still leave that role alone; this desk's assignment keeps the planned seat).
+
+## 58. Several queued scheduled plans: wanted, later (Bryan, 2026-11-15)
+
+One scheduled plan at a time stays (decision 55, spec amendment 2). A queue of them is wanted, but not now. When it comes it needs an apply order, the in-effect plan fixed per link in the chain, and the drafted-from guard checked against the plan the previous one will leave, so it is a design of its own.
+
+## 59. Account Desk's final-hour CRM push is kept (Bryan, 2026-11-15)
+
+The push Account Desk makes to CRM Desk in the last hour stays as it is. Nothing in this desk changes for it.
+

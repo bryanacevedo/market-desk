@@ -18,6 +18,7 @@ import hashlib
 import json
 import logging
 import os
+from datetime import date
 from pathlib import Path
 
 from . import db, jobs
@@ -35,11 +36,13 @@ def world_id(domain: str) -> str:
     return "co_" + hashlib.sha256(domain.encode()).hexdigest()[:12]
 
 
-def plan_items(cur, plan_id: int) -> list[dict]:
+def plan_items(cur, plan_id: int, scheduled_for: date | None = None) -> list[dict]:
     """Every account the plan assigns, with its tier and segment under the published profile, the AE who owns it and
-    the SDR who works it (decision 39: sellers see their books where they work)."""
+    the SDR who works it (decision 39: sellers see their books where they work). A role a person changed by hand while the
+    plan was scheduled is left out (decision 57); `scheduled_for` names the start date so the CRM can enforce the same."""
+    hand = {(r["company"], r["role"]) for r in db.all(cur, "select company, role from plan_hand_changes where plan = %s", plan_id)}
     rows = db.all(cur, """
-        select c.primary_domain, c.name, c.country, c.region, c.industry, c.employees, c.revenue_band, f.tier, f.segment, f.score, v.number as icp_version, u.email as owner_email, u.role as owner_role,
+        select c.id as company_id, c.primary_domain, c.name, c.country, c.region, c.industry, c.employees, c.revenue_band, f.tier, f.segment, f.score, v.number as icp_version, u.email as owner_email, u.role as owner_role,
                ae.email as ae_email
         from assignments a join companies c on c.id = a.company
         left join territories t on t.id = a.territory
@@ -59,38 +62,71 @@ def plan_items(cur, plan_id: int) -> list[dict]:
         if r["tier"]:
             item.update(tier=r["tier"], segment=r["segment"], fit_score=r["score"], icp_version=f"v{r['icp_version']}")
         if r["owner_role"] == "sdr":
-            item["sdr_owner_id"] = r["owner_email"]
-            if r["ae_email"]:
+            if (r["company_id"], "sdr") not in hand:
+                item["sdr_owner_id"] = r["owner_email"]
+            if r["ae_email"] and (r["company_id"], "owner") not in hand:
                 item["owner_id"] = r["ae_email"]
-        elif r["owner_email"]:
+        elif r["owner_email"] and (r["company_id"], "owner") not in hand:
             item["owner_id"] = r["owner_email"]
+        if scheduled_for and ("owner_id" in item or "sdr_owner_id" in item):
+            item["owner_scheduled_for"] = str(scheduled_for)
         items.append(item)
     return items
 
 
-def queue_plan(cur, plan_id: int) -> int:
-    """Queues the plan's books. Called in the activation's transaction; does nothing without a CRM."""
+def queue_plan(cur, plan_id: int, scheduled_for: date | None = None) -> int:
+    """Queues the plan's books. Called in the activation's transaction; does nothing without a CRM. A plan applying on its
+    start date passes that date, when the CRM can honour it, so an owner a person changed by hand there is not overwritten."""
     if not enabled():
         return 0
-    items = plan_items(cur, plan_id)
+    # The date goes whenever the CRM might honour it: only a CRM that answers and lacks the feature is spared it (a CRM that is
+    # down must not lose the guard).
+    feats = features() if scheduled_for else []
+    items = plan_items(cur, plan_id, scheduled_for if scheduled_for and (not feats or "scheduled_owner_by_hand" in feats) else None)
     for i in range(0, len(items), CHUNK):
         db.run(cur, "insert into crm_outbox (plan, kind, payload) values (%s, 'books', %s)", plan_id, J({"items": items[i:i + CHUNK]}))
     jobs.enqueue(cur, "crm_deliver", {}, dedupe_key="crm_deliver")
     return len(items)
 
 
-def supports_schedule() -> bool:
-    """Whether the CRM says it can hold an owner back until a date (CRM Desk's health lists `scheduled_owner`). An older CRM,
-    or one that does not answer, is sent nothing until the start date, so no owner moves early."""
+def features() -> list[str]:
+    """What CRM Desk's health says it can do. A CRM that does not answer, or an older one, lists nothing."""
     import httpx
     url = os.environ.get("CRM_DESK_URL", "")
     if not url:
-        return False
+        return []
     try:
         r = httpx.get(url.rstrip("/") + "/api/health", timeout=10.0)
-        return r.status_code == 200 and "scheduled_owner" in (r.json().get("features") or [])
+        return list(r.json().get("features") or []) if r.status_code == 200 else []
     except (httpx.HTTPError, ValueError):
-        return False
+        return []
+
+
+def supports_schedule() -> bool:
+    """Whether the CRM says it can hold an owner back until a date (CRM Desk's health lists `scheduled_owner`). An older CRM,
+    or one that does not answer, is sent nothing until the start date, so no owner moves early."""
+    return "scheduled_owner" in features()
+
+
+def supports_by_hand() -> bool:
+    """Whether the CRM can say which accounts a person moved by hand and honours `owner_scheduled_for` (decision 57)."""
+    return "scheduled_owner_by_hand" in features()
+
+
+def by_hand(scheduled_for: date) -> list[dict]:
+    """Accounts whose scheduled owner a person changed in the CRM, for this start date. Raises CrmDown when it cannot say."""
+    import httpx
+    url, api_key = os.environ.get("CRM_DESK_URL", ""), os.environ.get("CRM_DESK_KEY", "")
+    if not (url and api_key):
+        raise CrmDown("CRM=crmdesk needs CRM_DESK_URL and CRM_DESK_KEY.")
+    try:
+        r = httpx.get(url.rstrip("/") + "/api/v1/scheduled-owners/by-hand", params={"scheduled_for": str(scheduled_for)}, timeout=30.0,
+                      headers={"authorization": f"Bearer {api_key}"})
+    except httpx.HTTPError as exc:
+        raise CrmDown(f"CRM Desk did not answer: {type(exc).__name__}") from exc
+    if r.status_code != 200:
+        raise CrmDown(f"CRM Desk answered {r.status_code}")
+    return list(r.json().get("data") or [])
 
 
 def queue_schedule(cur, plan_id: int) -> int:
@@ -124,6 +160,23 @@ def queue_schedule(cur, plan_id: int) -> int:
     if items:
         jobs.enqueue(cur, "crm_deliver", {}, dedupe_key="crm_deliver")
     return len(items)
+
+
+def queue_hand_change(cur, plan_id: int, company: int, role: str, to_user: int, withdraw: bool) -> int:
+    """A person in this desk moved one account's owner by hand: the CRM gets the plain owner, and, when a schedule was
+    withdrawn for it, the order to drop what it holds for that role."""
+    if not enabled():
+        return 0
+    c = db.one(cur, "select primary_domain from companies where id = %s and not sole_trader", company)
+    if c is None:
+        return 0
+    item = {"world_id": world_id(c["primary_domain"]), "domain": c["primary_domain"],
+            "sdr_owner_id" if role == "sdr" else "owner_id": db.val(cur, "select email from users where id = %s", to_user)}
+    if withdraw and supports_schedule():
+        item["cancel_scheduled_owner"] = "sdr" if role == "sdr" else "account"
+    db.run(cur, "insert into crm_outbox (plan, kind, payload) values (%s, 'books', %s)", plan_id, J({"items": [item]}))
+    jobs.enqueue(cur, "crm_deliver", {}, dedupe_key="crm_deliver")
+    return 1
 
 
 def queue_cancel(cur, plan_id: int) -> int:

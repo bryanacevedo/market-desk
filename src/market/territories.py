@@ -2,12 +2,15 @@
 month each account needs by tier, against each person's selling hours times their effective FTE."""
 from __future__ import annotations
 
+import logging
 import math
 from datetime import date
 
 from . import audit, db, jobs, notices
 from . import catalog as C
 from .db import J
+
+log = logging.getLogger("market.territories")
 
 
 def settings(cur) -> dict:
@@ -340,7 +343,7 @@ def activate(cur, plan_id: int, by: dict) -> None:
     _make_active(cur, plan_id, by, active, ch)
 
 
-def _make_active(cur, plan_id: int, by: dict, active: int | None, ch: dict) -> None:
+def _make_active(cur, plan_id: int, by: dict, active: int | None, ch: dict, scheduled_for: date | None = None) -> None:
     from . import crm
     db.run(cur, "update territory_plans set status = 'retired' where status = 'active'")
     db.run(cur, "update territory_plans set status = 'active', activated_by = %s, activated_at = app_now(), replaced = %s, "
@@ -349,7 +352,7 @@ def _make_active(cur, plan_id: int, by: dict, active: int | None, ch: dict) -> N
         audit.log(cur, by["name"], "owner_moved", "company", r["company"], {"plan": plan_id, "from": r["from_owner"],
                   "to": r["to_owner"]}, actor_id=by["id"])
     audit.log(cur, by["name"], "plan_activated", "plan", plan_id, {"changes": ch["changes"], "replaced": active}, actor_id=by["id"])
-    crm.queue_plan(cur, plan_id)
+    crm.queue_plan(cur, plan_id, scheduled_for)
 
 
 def apply_scheduled(cur) -> int:
@@ -364,7 +367,9 @@ def apply_scheduled(cur) -> int:
     if by is None:
         raise ValueError("No manager is left to apply the scheduled plan.")
     active = db.val(cur, "select id from territory_plans where status = 'active'")
-    _make_active(cur, plan["id"], by, active, what_changes(cur, plan["id"]))
+    sync_hand_changes(cur)              # what a person moved in the CRM since the plan was scheduled
+    reconcile_hand_changes(cur, plan["id"])
+    _make_active(cur, plan["id"], by, active, what_changes(cur, plan["id"]), plan["effective_on"])
     return 1
 
 
@@ -379,6 +384,7 @@ def cancel_schedule(cur, by: dict) -> int:
         raise ValueError("The start date has come, so the plan is taking effect. Roll it back instead.")
     from . import crm
     crm.cancel_unsent(cur, plan["id"])
+    db.run(cur, "delete from plan_hand_changes where plan = %s", plan["id"])   # a new schedule starts clean
     crm.queue_cancel(cur, plan["id"])
     db.run(cur, "update territory_plans set status = 'draft', activated_by = null, activated_at = null where id = %s", plan["id"])
     audit.log(cur, by["name"], "plan_schedule_cancelled", "plan", plan["id"], {"effective_on": str(plan["effective_on"])}, actor_id=by["id"])
@@ -410,18 +416,137 @@ def scheduled_moves(cur) -> dict[int, dict]:
     if not s or not active:
         return {}
     old, new = roles_by_company(cur, active), roles_by_company(cur, s["id"])
+    hand = {(r["company"], r["role"]) for r in hand_changes(cur, s["id"])}
     out = {}
     for c, (ae, sdr) in new.items():
         if c not in old:
             continue
         ch = {}
-        if ae and ae != old[c][0]:
+        if ae and ae != old[c][0] and (c, "owner") not in hand:
             ch["owner"] = ae
-        if sdr and sdr != old[c][1]:
+        if sdr and sdr != old[c][1] and (c, "sdr") not in hand:
             ch["sdr"] = sdr
         if ch:
             out[c] = ch
     return out
+
+
+def hand_changes(cur, plan_id: int) -> list[dict]:
+    """The accounts a person moved by hand while this plan was scheduled, which the plan no longer moves (decision 57)."""
+    return db.all(cur, """select h.*, u.name as to_name, p.name as planned_name from plan_hand_changes h
+                          left join users u on u.id = h.to_user left join users p on p.id = h.planned_owner
+                          where h.plan = %s order by h.company, h.role""", plan_id)
+
+
+def _planned_for(cur, plan_id: int, company: int, role: str) -> int | None:
+    ae, sdr = roles_by_company(cur, plan_id).get(company, (None, None))
+    return sdr if role == "sdr" else ae
+
+
+def record_hand_change(cur, plan_id: int, company: int, role: str, *, source: str, to_user: int | None, by_name: str | None,
+                       note: str | None = None) -> bool:
+    """Notes that a person moved this account's AE or SDR by hand, so the scheduled plan leaves it alone. Only a role the plan
+    would have changed counts; returns whether it was recorded."""
+    old = db.val(cur, "select id from territory_plans where status = 'active'")
+    if old is None:
+        return False
+    before = roles_by_company(cur, old).get(company, (None, None))[1 if role == "sdr" else 0]
+    planned = _planned_for(cur, plan_id, company, role)
+    if planned is None or planned == before:
+        return False
+    db.run(cur, """insert into plan_hand_changes (plan, company, role, source, to_user, planned_owner, by_name, note)
+                   values (%s,%s,%s,%s,%s,%s,%s,%s)
+                   on conflict (plan, company, role) do update set source = excluded.source, to_user = excluded.to_user,
+                   by_name = excluded.by_name, note = excluded.note, at = app_now()""",
+           plan_id, company, role, source, to_user, planned, by_name, note)
+    return True
+
+
+def change_owner_by_hand(cur, company: int, to_user: int, note: str, by: dict) -> dict:
+    """RevOps moves one account's AE or SDR in the plan in effect, now, outside any plan. A plan scheduled for later that
+    would move the same role no longer does (it keeps the person's choice), and the CRM is told the plain owner and to drop
+    what it holds. Standalone this is the one hand path; with a CRM the same fact also arrives from the CRM's side."""
+    if by["role"] != "revops":
+        raise PermissionError("RevOps changes an owner by hand.")
+    if not note or len(note.strip()) < 3:
+        raise ValueError("A change by hand needs a note.")
+    active = db.val(cur, "select id from territory_plans where status = 'active'")
+    person = db.one(cur, "select id, name, role from users where id = %s and active", to_user)
+    if active is None or person is None or person["role"] not in ("ae", "sdr"):
+        raise ValueError("Pick an AE or an SDR who is on the team.")
+    row = db.one(cur, "select * from assignments where plan = %s and company = %s", active, company)
+    if row is None:
+        raise ValueError("That account is not in the plan in effect.")
+    role = "sdr" if person["role"] == "sdr" else "owner"
+    if (db.val(cur, "select role from users where id = %s", row["owner"]) == "sdr") != (role == "sdr"):
+        raise ValueError("That account's seat is held by the other kind of person; change it in a plan.")
+    moves = scheduled_moves(cur).get(company, {})          # worked out before the change, against the old owners
+    db.run(cur, """update assignments set owner = %s, reason_code = 'manual', note = %s, moved_from = %s, created_by = %s
+                   where plan = %s and company = %s""", to_user, note.strip(), row["owner"], by["id"], active, company)
+    audit.log(cur, by["name"], "owner_changed_by_hand", "company", company, {"plan": active, "to": to_user, "role": role,
+              "note": note.strip()}, actor_id=by["id"])
+    snapshot(cur, active)
+    dropped = False
+    sched = scheduled_plan(cur)
+    if sched and role in moves:
+        dropped = record_hand_change(cur, sched["id"], company, role, source="market_desk", to_user=to_user, by_name=by["name"], note=note.strip())
+        if dropped:
+            audit.log(cur, by["name"], "scheduled_move_dropped", "company", company, {"plan": sched["id"], "role": role}, actor_id=by["id"])
+    from . import crm
+    crm.queue_hand_change(cur, active, company, role, to_user, dropped)
+    return {"role": role, "dropped_from_schedule": dropped}
+
+
+def sync_hand_changes(cur) -> int:
+    """Asks the CRM which accounts a person moved by hand since the plan was scheduled. A CRM that cannot say, or does not
+    answer, leaves what is recorded as it is: on the start date the CRM still refuses to overwrite them (`changed_by_hand`)."""
+    s = scheduled_plan(cur)
+    from . import crm
+    if s is None or not crm.enabled() or not crm.supports_by_hand():
+        return 0
+    try:
+        rows = crm.by_hand(s["effective_on"])
+    except crm.CrmDown as exc:
+        log.warning("could not read the CRM's hand changes: %s", exc)
+        return 0
+    ids = {r["primary_domain"].lower(): r["id"] for r in db.all(cur, "select id, primary_domain from companies where primary_domain = any(%s)",
+                                                               [str(r.get("account_domain") or "").lower() for r in rows])}
+    users = {r["email"].lower(): r["id"] for r in db.all(cur, "select id, email from users")}
+    n = 0
+    for r in rows:
+        c = ids.get(str(r.get("account_domain") or "").lower())
+        role = "sdr" if r.get("role") == "sdr" else "owner"
+        if c is None:
+            continue
+        if not db.val(cur, "select 1 from plan_hand_changes where plan = %s and company = %s and role = %s", s["id"], c, role):
+            n += record_hand_change(cur, s["id"], c, role, source="crm_desk", to_user=users.get(str(r.get("owner_email") or "").lower()),
+                                    by_name=r.get("by"), note=r.get("note"))
+    return n
+
+
+def reconcile_hand_changes(cur, plan_id: int) -> int:
+    """On the start date: an account a person moved by hand keeps the owner it has, in this desk's plan too. Its assignment takes
+    the person's choice (or, when this desk does not know that person, the owner it had), never the one the plan drafted."""
+    n = 0
+    old = db.val(cur, "select id from territory_plans where status = 'active'")
+    for h in hand_changes(cur, plan_id):
+        keep = h["to_user"] or (roles_by_company(cur, old).get(h["company"], (None, None))[1 if h["role"] == "sdr" else 0] if old else None)
+        planned = db.one(cur, "select owner from assignments where plan = %s and company = %s", plan_id, h["company"])
+        if keep is None or planned is None:
+            continue
+        kind = db.val(cur, "select role from users where id = %s", keep)
+        owner_kind = db.val(cur, "select role from users where id = %s", planned["owner"])
+        if (h["role"] == "sdr") != (kind == "sdr") or (h["role"] == "sdr") != (owner_kind == "sdr"):
+            continue                      # the assignment holds the other seat; the books still leave this role alone
+        db.run(cur, """update assignments set owner = %s, reason_code = 'manual', note = %s, moved_from = %s
+                       where plan = %s and company = %s""", keep,
+               f"Changed by hand{' by ' + h['by_name'] if h['by_name'] else ''}: the plan no longer moves it", h["planned_owner"], plan_id, h["company"])
+        audit.log(cur, "system", "owner_kept_by_hand", "company", h["company"], {"plan": plan_id, "kept": keep, "planned": h["planned_owner"],
+                  "role": h["role"]})
+        n += 1
+    if n:
+        snapshot(cur, plan_id)
+    return n
 
 
 def activation_preview(cur, plan_id: int, by: dict) -> dict:
@@ -608,6 +733,7 @@ def draft_from_active(cur, by: dict, name: str, on) -> int:
 def _apply_scheduled(cur, payload: dict) -> None:
     """Hourly while a plan is scheduled; started again by the next scheduling."""
     from datetime import timedelta
+    sync_hand_changes(cur)
     apply_scheduled(cur)
     # No dedupe key: this job is still "running" now, and a key would make the next one a silent no-op.
     if scheduled_plan(cur) and not db.val(cur, "select 1 from jobs where kind = 'apply_scheduled_plan' and status = 'queued'"):

@@ -294,7 +294,9 @@ function CompanySheet({ id }: { id: string }) {
                 <dt><T>Why</T></dt><dd>{({ rule: "Territory rule", test: "Segment test", existing_owner: "Customer", open_deal: "Open deal", balance_move: "Moved to balance", manual: "Moved by hand" } as any)[c.owner.reason] || c.owner.reason}</dd>
                 {c.owner.note ? <><dt><T>Note</T></dt><dd>{c.owner.note}</dd></> : null}
                 {c.owner.moved_from ? <><dt><T>From</T></dt><dd>{c.owner.moved_from}</dd></> : null}
-                {(c.coming || []).map((m: any) => <span key={m.role} style={{ display: "contents" }}><dt><T>{`${m.role === "SDR" ? "SDR" : "Owner"} from ${day(m.from)}`}</T></dt><dd>{m.name}</dd></span>)}</dl>
+                {(c.coming || []).map((m: any) => m.by_hand
+                  ? <span key={m.role + "h"} style={{ display: "contents" }}><dt><T>{`${m.role === "SDR" ? "SDR" : "Owner"} plan change dropped`}</T></dt><dd>{`Changed by hand${m.kept ? ` to ${m.kept}` : ""}`}</dd></span>
+                  : <span key={m.role} style={{ display: "contents" }}><dt><T>{`${m.role === "SDR" ? "SDR" : "Owner"} from ${day(m.from)}`}</T></dt><dd>{m.name}</dd></span>)}</dl>
             </Section>
           ) : null}
           <Section title="Fields">
