@@ -41,7 +41,7 @@ Checked by running, on the demo database built from the shared world (2026-11-12
 
 ## Deploys
 
-Render auto-deploy is off on this service (verified through the Render API on 2026-11-16). A push to `main` deploys nothing; a deploy happens only when Bryan says. State on 2026-11-16: the last deploy of this desk, on 2026-11-15, ended build_failed, so the live demo lags `main` and no live commit is claimed here.
+Render auto-deploy is off on this service (verified through the Render API on 2026-11-16). A push to `main` deploys nothing; a deploy happens only when Bryan says. `render.yaml` does not say so: the setting lives on the Render service, where auto-deploy was turned off because the monthly build minutes ran out; nothing in this repository changes it. State on 2026-11-16: the last deploy of this desk, on 2026-11-15, ended build_failed, so the live demo lags `main` and no live commit is claimed here.
 
 ## Review gates
 
