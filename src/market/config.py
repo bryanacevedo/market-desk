@@ -30,6 +30,10 @@ class Config:
         x.strip().lower() for x in os.environ.get("INTEGRATED_WITH", "").split(",") if x.strip()))
     worker_inline: bool = field(default_factory=lambda: not _flag("NO_WORKER"))
 
+    def __post_init__(self) -> None:
+        from . import simguard
+        simguard.check(self.database_url)
+
     def validate(self) -> None:
         crm = os.environ.get("CRM", "").strip().lower()
         if crm not in ("", "default", "crmdesk"):
