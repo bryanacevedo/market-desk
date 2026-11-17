@@ -54,12 +54,12 @@ function DemoBanner({ me }: { me: Me }) {
   const [hidden, setHidden] = useState(() => { try { return sessionStorage.getItem("banner-hidden") === "1"; } catch { return false; } });
   if (hidden || !(me.simulated || me.public_demo || me.snapshot)) return null;
   const sampleDay = new Date(me.now).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
-  const saved = me.snapshot ? "Changes are refused in the public demo and nothing is saved."
+  const saved = me.snapshot ? "Changes are refused."
     : me.public_demo ? "Changes last until the demo restarts after 15 idle minutes, and anyone visiting meanwhile sees them."
     : "Changes stay in this sample only.";
   return (
     <div className="demo-banner" role="note">
-      <b>Sample company with invented data.</b> {saved} Sample day: {sampleDay}{me.simulated ? " (the demo keeps its own clock)" : ""}.{" "}
+      <b>Sample company with invented data.</b> {saved}{me.snapshot ? "" : <> Sample day: {sampleDay}{me.simulated ? " (the demo keeps its own clock)" : ""}.</>}{" "}
       <a href="/start" onClick={(e) => { e.preventDefault(); navigate("/start"); }}>Take the tour</a>{" "}
       <button type="button" className="demo-banner-hide" onClick={() => { try { sessionStorage.setItem("banner-hidden", "1"); } catch { /* private mode */ } setHidden(true); }}>Hide</button>
     </div>
@@ -142,7 +142,7 @@ export function App() {
             </select>
           ) : null}
         </div>
-        {me?.snapshot ? <div className="snapshot-note" role="note">Read-only snapshot of the Market Desk demo, taken {me.snapshot.taken_on}. {me.seller} and everything in it are invented sample data.</div> : null}
+        {me?.snapshot ? <div className="snapshot-note" role="note">Read-only snapshot, taken {me.snapshot.taken_on}. {me.seller} is invented.</div> : null}
         {me ? <div className="page-enter" key={`${route.path}:${me.user.id}`}><Page /></div> : null}
       </main>
       <nav className="phone-nav" aria-label="Main">

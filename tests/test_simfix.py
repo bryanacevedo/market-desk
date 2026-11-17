@@ -136,7 +136,7 @@ def test_the_demo_banner_is_on_every_screen_and_says_what_is_true():
     app = _src("App.tsx")
     assert "<DemoBanner me={me} />" in app and "Sample company with invented data." in app
     # three branches, each true where it shows: the snapshot refuses, the Render demo keeps changes until it restarts, anywhere else keeps them in the sample
-    assert "Changes are refused in the public demo and nothing is saved." in app and "Sample day: {sampleDay}" in app
+    assert 'me.snapshot ? "Changes are refused."' in app and "Sample day: {sampleDay}" in app
     assert "Changes last until the demo restarts after 15 idle minutes, and anyone visiting meanwhile sees them." in app
     assert "Changes stay in this sample only." in app and "Changes are not saved in the public demo" not in app
     assert 'me.simulated ? " (the demo keeps its own clock)"' in app
@@ -345,3 +345,9 @@ def test_the_banner_is_inside_main_and_the_skip_link_is_first():
 def test_start_is_for_the_two_roles_that_see_the_market():
     src = (ROOT / "src" / "market" / "api" / "app.py").read_text()
     assert 'def start(u: dict = Depends(current_user)) -> dict:\n    need(u, "revops", "manager")' in src
+
+
+def test_source_names_go_through_say_and_the_legend_does_not_widen_a_phone():
+    # a source named after another desk shows its plain name when that desk is not connected; a hidden tip never takes room
+    assert "{say(s.label)}" in _src("pages/Desk.tsx") and "crumb={say(s.label)}" in _src("sheets.tsx")
+    assert ".range-key > span {" in _src("market.css") and ".range-key span {" not in _src("market.css")

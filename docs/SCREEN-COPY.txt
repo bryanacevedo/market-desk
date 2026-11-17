@@ -55,7 +55,7 @@ An outlined mark on a scale: the figure for every other deal, or the earlier fig
 At meeting rates this low, more accounts, or more time, are needed before a difference can be read.
 Both files written. Download and pass them on from here.
 CRM Desk keeps what it takes. Rolling back sends the earlier plan over it, and owners pinned there stay as they are.
-Changes are refused in the public demo and nothing is saved.
+Changes are refused.
 Changes last until the demo restarts after 15 idle minutes, and anyone visiting meanwhile sees them.
 Changes stay in this sample only.
 Closed deals with a different known value for the same trait.
@@ -141,7 +141,7 @@ Points the rule adds to, or removes from, a company's fit score out of 100.
 Points this rule adds to or removes from the company's score.
 Puts the changes you ticked into a new ICP version. A draft changes nothing until a second person publishes it.
 Puts the earlier version in force again. It needs a reason, and the other managers are told.
-Read-only snapshot of the Market Desk demo, taken #. # and everything in it are invented sample data.
+Read-only snapshot, taken #. # is invented.
 Reason, sent to the other managers and RevOps
 RevOps makes the new files. Nothing goes out by itself.
 Rolled back. Every company is rescored.

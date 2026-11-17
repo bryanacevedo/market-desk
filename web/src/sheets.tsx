@@ -621,8 +621,8 @@ function BookSheet({ id }: { id: string }) {
 function SourceSheet({ id }: { id: string }) {
   return (
     <Wrap kind="source" path={`/api/sources/${id}`}>{(s) => (
-      <Frame kind="source" crumb={s.label}>
-        <Title sub={s.adapter === "sim" ? "Sample data" : "Live"}>{s.label}</Title>
+      <Frame kind="source" crumb={say(s.label)}>
+        <Title sub={s.adapter === "sim" ? "Sample data" : "Live"}>{say(s.label)}</Title>
         <dl className="kv">
           <dt><T>Runs every</T></dt><dd>{s.cadence_hours >= 48 ? `${Math.round(s.cadence_hours / 24)} days` : `${s.cadence_hours} hours`}</dd>
           <dt><T>Cost</T></dt><dd>{s.paid ? (s.price_cents_per_unit !== undefined ? <>{`$${(s.price_cents_per_unit / 100).toFixed(2)} a ${s.unit}`} <span className="mute">Our assumption</span></> : "Paid") : "Free"}</dd>

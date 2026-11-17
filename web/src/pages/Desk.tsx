@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { GearSix, UsersThree } from "@phosphor-icons/react";
 import { api } from "../api";
-import { Failed, Loading, Section, Status, ago, day, money, pct, useBusy, useData, writeHint, T } from "../lib";
+import { Failed, Loading, Section, Status, ago, day, money, pct, say, useBusy, useData, writeHint, T } from "../lib";
 import { openSheet } from "../sheets";
 
 export const KIND_WORD: Record<string, string> = {
@@ -22,7 +22,7 @@ export function Sources() {
         <div className="row head" style={{ gridTemplateColumns: cols }}><T>Source</T><T>Kind</T><T>Last run</T><T>Fields filled</T><T num>This month</T></div>
         {data.rows.map((s: any) => (
           <button key={s.key} className="row" style={{ gridTemplateColumns: cols }} onClick={() => openSheet("source", s.key)}>
-            <span className="cell-main"><span className="t">{s.label}</span><span className="s">{s.adapter === "sim" ? "Sample data" : "Live"}{s.no_redistribution ? "; its licence keeps it out of files we send" : ""}</span></span>
+            <span className="cell-main"><span className="t">{say(s.label)}</span><span className="s">{s.adapter === "sim" ? "Sample data" : "Live"}{s.no_redistribution ? "; its licence keeps it out of files we send" : ""}</span></span>
             <span className="mute">{KIND_WORD[s.kind]}</span>
             <Status kind={s.stale ? "hold" : "ok"}>{s.stale ? "Missed its run" : ago(s.last_run)}</Status>
             <span className="cell-main">{s.fill.slice(0, 2).map((f: any) => <span key={f.field} className="s">{f.field} <b className="strong">{pct(f.share)}</b></span>)}</span>
