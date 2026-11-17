@@ -37,6 +37,8 @@ def reset() -> None:
 
 
 def main(argv: list[str]) -> int:
+    from . import telemetry
+    telemetry.setup("market-desk")  # the command line tools call the other desks over HTTP: those calls are traced too
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     cmd = argv[1] if len(argv) > 1 else "serve"
     CONFIG.validate()

@@ -61,6 +61,9 @@ async def lifespan(_app):
 _docs = not (CONFIG.public_demo or CONFIG.mode == "live")
 app = FastAPI(title="Market Desk", docs_url="/api/docs" if _docs else None, openapi_url="/api/openapi.json" if _docs else None,
               lifespan=lifespan)
+from .. import telemetry  # noqa: E402
+
+telemetry.setup("market-desk", app)  # off unless OTEL_EXPORTER_OTLP_ENDPOINT is set (local only)
 MAX_BODY = 1024 * 1024  # 1 MB for every request but the results webhook (5 MB)
 
 
