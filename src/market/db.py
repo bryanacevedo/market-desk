@@ -12,7 +12,7 @@ from psycopg.types.json import Jsonb
 from psycopg.types.numeric import FloatLoader
 from psycopg_pool import ConnectionPool
 
-from . import simguard
+from . import simguard, telemetry
 from .config import CONFIG
 
 # Numeric columns come back as float: scores, rates and shares are measurements, not money (money is integer cents).
@@ -31,6 +31,7 @@ def configure(url: str | None = None, *, min_size: int = 1, max_size: int = 10) 
         _pool.close()
     _url = url or CONFIG.database_url
     simguard.check(_url)
+    telemetry.setup("market-desk")  # a no-op unless OTEL_EXPORTER_OTLP_ENDPOINT is set: so scripts that use the desk's code are traced too
     _pool = ConnectionPool(_url, min_size=min_size, max_size=max_size, open=True,
                            kwargs={"row_factory": dict_row, "autocommit": False})
 
