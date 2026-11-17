@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { MagnifyingGlass } from "@phosphor-icons/react";
 import { Logo } from "../marks";
-import { Empty, Failed, Loading, Status, day, n0, navigate, pct, useData, usePath, withParam, T, Tip } from "../lib";
+import { Empty, Failed, Loading, Status, day, n0, navigate, pct, say, useData, usePath, withParam, T, Tip } from "../lib";
 import { Tier } from "../parts";
 import { openSheet } from "../sheets";
 import { TIPS } from "../tips";
@@ -59,7 +59,7 @@ export function Accounts() {
                 <span className="clip mute">{r.segment_label}</span>
                 <span className="num"><Tier tier={r.tier} judged={r.judged} />{r.judged && r.score !== null ? <small className="mute"> {r.score}</small> : null}</span>
                 <span className="num mute">{pct(r.scored_out_of)}</span>
-                <span className="cell-main">{r.over_capacity ? <Status kind="hold">Unassigned: no capacity</Status> : <span className="t" style={{ fontWeight: 450 }}>{r.owner || <span className="faint">Unassigned</span>}</span>}{r.owner ? <span className="s">{reasonWord(r.reason_code)}</span> : null}{(r.coming || []).map((m: any) => <span className="s" key={m.role + (m.by_hand ? "h" : "")}>{m.by_hand ? "Changed by hand" : `Moves to ${m.name} from ${day(m.from)}`}</span>)}</span>
+                <span className="cell-main">{r.over_capacity ? <Status kind="hold">Unassigned: no capacity</Status> : <span className="t" style={{ fontWeight: 450 }}>{r.owner || <span className="faint">Unassigned</span>}</span>}{r.owner ? <span className="s">{r.owner_seat ? `${r.owner_seat}, ` : ""}{TIPS[reasonWord(r.reason_code)] ? <Tip tip={TIPS[reasonWord(r.reason_code)]}>{reasonWord(r.reason_code)}</Tip> : reasonWord(r.reason_code)}, from {say(r.owner_source || "")}</span> : null}{(r.coming || []).map((m: any) => <span className="s" key={m.role + (m.by_hand ? "h" : "")}>{m.by_hand ? "Changed by hand" : `Moves to ${m.name} from ${day(m.from)}`}</span>)}</span>
                 <span className="num mute">{r.last_dest ? (r.last_meetings ? <Status kind="ok">Meeting</Status> : "No meeting") : ""}</span>
               </button>
             ))}
@@ -72,7 +72,7 @@ export function Accounts() {
             </span>
           </div>
         </>
-      ) : <Empty title="No accounts match" />}
+      ) : <Empty title="No accounts match" example="A company name, tier A, 240 employees, owned by an SDR from the territory plan.">Each account is a company scored against the ICP, with its tier and owner. Change the search or the filters above.</Empty>}
     </div>
   );
 }

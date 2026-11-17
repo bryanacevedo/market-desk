@@ -3,6 +3,7 @@ import { Failed, Fig, Loading, Seg, Status, T, n0, navigate, pct, useData, usePa
 import { MarketField, Nest, NestAxis, RangeLine, RateAxis, TierMix, moneyRange, moneyScale } from "../parts";
 import { openSheet } from "../sheets";
 import { TIPS } from "../tips";
+import { FirstStep } from "./Start";
 
 type Row = {
   key: string; label: string; universe_count: number; fit_a: number; fit_b: number; fit_c: number; fit_x: number; not_judged: number;
@@ -16,6 +17,7 @@ export function Market() {
   const by = params.get("by") === "region" ? "region_group" : "segment";
   const { data, error, reload } = useData<{ by: string; rows: Row[]; figures: any }>(`/api/market?by=${by}`);
   const me = useData<any>("/api/me").data;
+  const best = useData<any>("/api/start").data?.best ?? null;
   const waiting: { what: string; path: string; notice?: number }[] = me?.waiting || [];
   const head = (
     <>
@@ -24,6 +26,7 @@ export function Market() {
         <Seg label="Rows" value={by === "segment" ? "segment" : "region"} options={[["segment", "Segments"], ["region", "Regions"]]}
           onChange={(v) => navigate(withParam("by", v === "region" ? "region" : null), true)} />
       </div>
+      <FirstStep best={best} />
       {waiting.length ? (
         <div className="notice waiting"><Status kind="wait">Waiting on you</Status>
           {waiting.map((w, i) => <button key={i} className="link" onClick={() => {
@@ -62,9 +65,11 @@ export function Market() {
         <div className="field-key"><span>Tile size: SAM</span><span>Darker: more tier A</span></div>
       </section>
       <section className="range-key" aria-label="How to read the ranges">
-        <span><i className="key-band" />Band: from the low estimate to the high one</span>
+        <span><i className="key-band" /><span><Tip tip={TIPS["Band"]}>Band</Tip>: from the low estimate to the high one</span></span>
         {seg ? <span><i className="key-tick" />Tick: the win rate measured</span> : null}
         <span><i className="key-decade" />Marks: each one is ten times the last</span>
+        <span>TAM is the whole market, SAM the part you can reach, SOM what the plan can win in 12 months</span>
+        <span>Tiers: A strong fit, B good, C weak, X excluded</span>
       </section>
       <div className="ledger market" role="table" aria-label={seg ? "Segments" : "Regions"}>
         <div className="row head" role="row" style={{ gridTemplateColumns: cols }}>

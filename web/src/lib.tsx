@@ -95,6 +95,30 @@ let NOW = Date.now();
 
 export function setNow(iso: string) { NOW = new Date(iso).getTime(); }
 
+// What this install calls the other desks: the real name when that desk is connected, plain words when it is not (the server
+// decides, /api/me names). Text that names a desk goes through say() before it is shown.
+const REAL_DESKS: Record<string, string> = { crm_desk: "CRM Desk", account_desk: "Account Desk", events_desk: "Events Desk" };
+const PLAIN_DESKS: Record<string, string> = { crm_desk: "your CRM", account_desk: "your outreach tool", events_desk: "your events tool" };
+let NAMES: Record<string, string> = { ...PLAIN_DESKS };
+export function setNames(n: Record<string, string> | undefined) { NAMES = { ...PLAIN_DESKS, ...(n || {}) }; }
+export function say(text: string): string {
+  let out = text;
+  for (const k of Object.keys(REAL_DESKS)) {
+    if (NAMES[k] === REAL_DESKS[k]) continue;
+    out = out.replace(new RegExp(`(^|[.!?] )${REAL_DESKS[k]}`, "g"), (_m, a) => a + NAMES[k][0].toUpperCase() + NAMES[k].slice(1)).split(REAL_DESKS[k]).join(NAMES[k]);
+  }
+  return out;
+}
+/** The desk's name for one other desk: "Account Desk" when connected, "your outreach tool" when not. */
+export const deskName = (k: "crm_desk" | "account_desk" | "events_desk") => NAMES[k];
+
+// In the static public demo every change is refused. A write control says so before the click (a title), and the banner says so.
+let REFUSES = false;
+export const REFUSED_WORDS = "The public demo does not do this. Run it yourself to try it.";
+export function setRefuses(b: boolean) { REFUSES = b; }
+/** The title for a control that changes data: the refusal in plain words in the public demo, nothing elsewhere. */
+export const writeHint = (): string | undefined => (REFUSES ? REFUSED_WORDS : undefined);
+
 export function ago(iso: string | null | undefined): string {
   if (!iso) return "";
   const s = (NOW - new Date(iso).getTime()) / 1000;
@@ -130,7 +154,9 @@ export function day(iso: string | null | undefined): string {
   if (!iso) return "";
   // A date with no time is a calendar day, never shifted by the reader's time zone.
   const d = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(iso + "T12:00:00") : new Date(iso);
-  return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+  // A date from another year says which year (the desk's own clock decides what the current year is).
+  const year = d.getFullYear() !== new Date(NOW).getFullYear() ? ` ${d.getFullYear()}` : "";
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}${year}`;
 }
 export function dayTime(iso: string | null | undefined): string {
   if (!iso) return "";
@@ -185,38 +211,15 @@ export function Status({ kind, children, title }: { kind: Glyph; children: React
   );
 }
 
-/** A number that counts to its value: "$1,234.50", "56", "12%". Anything else is shown as it is. */
+/** A number as it is, from the first paint: no count-up, so a screenshot or a first read never shows a wrong figure. */
 export function Count({ value }: { value: ReactNode }) {
-  const text = typeof value === "number" ? value.toLocaleString("en-US") : typeof value === "string" ? value : null;
-  const m = text?.match(/^([^0-9-]*)(-?[0-9][0-9,]*(?:\.[0-9]+)?)(.*)$/);
-  const target = m ? Number(m[2].replace(/,/g, "")) : NaN;
-  const decimals = m && m[2].includes(".") ? m[2].split(".")[1].length : 0;
-  const [shown, setShown] = useState(() => (reduced() || (typeof document !== "undefined" && document.hidden) ? target : 0));
-  const from = useRef(0);
-  useEffect(() => {
-    if (!m || Number.isNaN(target) || reduced() || /\b(ago|in|day|days|hour|hours|minute|minutes|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b|:\d\d/.test(m[3])) { setShown(target); return; }
-    const start = performance.now(), a = from.current, dur = 520;
-    let raf = 0;
-    const step = (t: number) => {
-      const k = Math.min(1, (t - start) / dur), e = 1 - Math.pow(1 - k, 3);
-      setShown(a + (target - a) * e);
-      if (k < 1) raf = requestAnimationFrame(step); else from.current = target;
-    };
-    raf = requestAnimationFrame(step);
-    // A hidden tab never runs the frames: land on the number anyway.
-    const done = window.setTimeout(() => { setShown(target); from.current = target; }, dur + 80);
-    return () => { cancelAnimationFrame(raf); window.clearTimeout(done); };
-  }, [target]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (!m || Number.isNaN(target) || /\b(ago|in|day|days|hour|hours|minute|minutes|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b|:\d\d/.test(m[3])) return <>{value}</>;
-  const body = shown.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
-  return <span className="count-up" aria-label={text!}>{m[1]}{body}{m[3]}</span>;
+  return <>{typeof value === "number" ? value.toLocaleString("en-US") : value}</>;
 }
-const reduced = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 
 export function Fig({ value, label, unit, onClick, sm, was }: { value: ReactNode; label: string; unit?: string; onClick?: () => void; sm?: boolean; was?: string }) {
   const tip = TIPS[label];
   const inner = <><b><Count value={value} />{unit ? <small>{unit}</small> : null}</b>
-    <span>{tip ? <Tip tip={tip}>{label}</Tip> : label}</span>{was ? <span className="was">{was}</span> : null}</>;
+    <span>{tip ? <Tip tip={tip}>{say(label)}</Tip> : say(label)}</span>{was ? <span className="was">{was}</span> : null}</>;
   if (onClick) {
     return <button type="button" className={`fig go${sm ? " sm" : ""}`} onClick={onClick}
       style={{ background: "none", border: 0, borderLeft: "1px solid var(--line)", textAlign: "left", font: "inherit", color: "inherit" }}>{inner}</button>;
@@ -235,11 +238,12 @@ export function Bar({ label, value, of, shown, tone, hint }: { label: ReactNode;
   );
 }
 
-export function Empty({ title, children, icon: Ic = CheckCircle }: { title: string; children?: ReactNode; icon?: Icon }) {
+/** An empty list says what goes here (`children`) and shows one example of what appears (`example`, drawn as a sample row). */
+export function Empty({ title, children, example, icon: Ic = CheckCircle }: { title: string; children?: ReactNode; example?: string; icon?: Icon }) {
   return (
     <div className="empty" role="status">
       <span className="empty-icon" aria-hidden="true"><Ic size={18} /></span>
-      <div><b>{title}</b>{children}</div>
+      <div><b>{title}</b>{children}{example ? <div className="empty-example"><span className="small mute">For example</span> {example}</div> : null}</div>
     </div>
   );
 }
@@ -256,10 +260,10 @@ export function Failed({ error, retry }: { error: string; retry: () => void }) {
   return <div className="empty" role="alert"><b>Could not load this.</b>{error} <button className="btn quiet sm" onClick={retry}>Try again</button></div>;
 }
 
-export function Section({ title, count, right, icon: Ic, children }: { title: string; count?: number; right?: ReactNode; icon?: Icon; children: ReactNode }) {
+export function Section({ title, count, countLabel, right, icon: Ic, children }: { title: string; count?: number; countLabel?: string; right?: ReactNode; icon?: Icon; children: ReactNode }) {
   return (
     <section className="section">
-      <header><h2>{Ic ? <Ic size={17} className="h-icon" aria-hidden="true" /> : null}{TIPS[title] ? <Tip tip={TIPS[title]}>{title}</Tip> : title}{count !== undefined ? <span className="count">{count.toLocaleString("en-US")}</span> : null}</h2>{right}</header>
+      <header><h2>{Ic ? <Ic size={17} className="h-icon" aria-hidden="true" /> : null}{TIPS[title] ? <Tip tip={TIPS[title]}>{say(title)}</Tip> : say(title)}{count !== undefined ? <span className="count">{count.toLocaleString("en-US")}{countLabel ? ` ${countLabel}` : ""}</span> : null}</h2>{right}</header>
       {children}
     </section>
   );
@@ -296,9 +300,13 @@ export function Tip({ tip, children, focusable = "auto" }: { tip: string; childr
   useLayoutEffect(() => {
     if (focusable === "auto" && ref.current) setInside(!!ref.current.parentElement?.closest("button, a, [role=button]"));
   }, [focusable]);
+  // Escape or a click puts the note away until the pointer or focus leaves and returns (it never stays stuck over the page).
+  const [off, setOff] = useState(false);
   return (
-    <span ref={ref} className={`tip${inside ? " in-row" : ""}`} tabIndex={inside ? undefined : 0} aria-describedby={id}>
-      {children}<span className="tip-box" role="tooltip" id={id}>{tip}</span>
+    <span ref={ref} className={`tip${inside ? " in-row" : ""}${off ? " off" : ""}`} tabIndex={inside ? undefined : 0} aria-describedby={id}
+      onKeyDown={(e) => { if (e.key === "Escape" && !off) { setOff(true); e.stopPropagation(); } }} onClick={() => setOff(true)}
+      onMouseLeave={() => setOff(false)} onBlur={() => setOff(false)}>
+      {children}<span className="tip-box" role="tooltip" id={id}>{say(tip)}</span>
     </span>
   );
 }
@@ -306,6 +314,7 @@ export function Tip({ tip, children, focusable = "auto" }: { tip: string; childr
 /** Text that carries its tip when the dictionary has one for it, and is plain text otherwise. */
 export function T({ children, num, focusable = "auto" }: { children: string; num?: boolean; focusable?: boolean | "auto" }) {
   const tip = TIPS[children];
-  const body = tip ? <Tip tip={tip} focusable={focusable}>{children}</Tip> : children;
+  const shown = say(children);
+  const body = tip ? <Tip tip={tip} focusable={focusable}>{shown}</Tip> : shown;
   return num ? <span className="num">{body}</span> : <span>{body}</span>;
 }

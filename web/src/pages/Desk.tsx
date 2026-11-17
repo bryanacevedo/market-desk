@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { GearSix, UsersThree } from "@phosphor-icons/react";
 import { api } from "../api";
-import { Failed, Loading, Section, Status, ago, day, money, pct, useBusy, useData, T } from "../lib";
+import { Failed, Loading, Section, Status, ago, day, money, pct, useBusy, useData, writeHint, T } from "../lib";
 import { openSheet } from "../sheets";
 
 export const KIND_WORD: Record<string, string> = {
@@ -12,7 +12,7 @@ export const KIND_WORD: Record<string, string> = {
 export function Sources() {
   const { data, error, reload } = useData<any>("/api/sources");
   if (error) return <div className="page"><Failed error={error} retry={reload} /></div>;
-  if (!data) return <div className="page"><div className="head"><h1>Sources</h1></div><Loading /></div>;
+  if (!data) return <div className="page"><div className="head"><div><h1>Sources</h1><div className="sub">Where each company fact comes from, when it last ran, and what it costs.</div></div></div><Loading /></div>;
   const cols = "minmax(0,1.3fr) 120px 150px minmax(0,1.2fr) 90px";
   return (
     <div className="page">
@@ -22,7 +22,7 @@ export function Sources() {
         <div className="row head" style={{ gridTemplateColumns: cols }}><T>Source</T><T>Kind</T><T>Last run</T><T>Fields filled</T><T num>This month</T></div>
         {data.rows.map((s: any) => (
           <button key={s.key} className="row" style={{ gridTemplateColumns: cols }} onClick={() => openSheet("source", s.key)}>
-            <span className="cell-main"><span className="t">{s.label}</span><span className="s">{s.adapter === "sim" ? "Simulated data" : "Live"}{s.no_redistribution ? "; its licence keeps it out of files we send" : ""}</span></span>
+            <span className="cell-main"><span className="t">{s.label}</span><span className="s">{s.adapter === "sim" ? "Sample data" : "Live"}{s.no_redistribution ? "; its licence keeps it out of files we send" : ""}</span></span>
             <span className="mute">{KIND_WORD[s.kind]}</span>
             <Status kind={s.stale ? "hold" : "ok"}>{s.stale ? "Missed its run" : ago(s.last_run)}</Status>
             <span className="cell-main">{s.fill.slice(0, 2).map((f: any) => <span key={f.field} className="s">{f.field} <b className="strong">{pct(f.share)}</b></span>)}</span>
@@ -54,9 +54,9 @@ export function Settings() {
   const show = (v: any) => (typeof v === "object" ? Object.entries(v).map(([k, x]) => `${k} ${x}`).join(", ") : String(v));
   return (
     <div className="page">
-      <div className="head"><h1>Settings</h1></div>
+      <div className="head"><div><h1>Settings</h1><div className="sub">The numbers the evidence and the plans rest on. Point at a name for what it does.</div></div></div>
       <Section title="Assumptions and thresholds" icon={GearSix} right={
-        <button className="btn sm" disabled={busy || !Object.keys(edit).length || Object.values(edit).some((v) => v.trim() === "" || Number.isNaN(Number(v)))}
+        <button className="btn sm" title={writeHint()} disabled={busy || !Object.keys(edit).length || Object.values(edit).some((v) => v.trim() === "" || Number.isNaN(Number(v)))}
           onClick={() => run(async () => {
             for (const [k, v] of Object.entries(edit)) {
               await api(`/api/settings/${k}`, { method: "POST", body: { value: PCT.has(k) ? Number(v) / 100 : Number(v) } });

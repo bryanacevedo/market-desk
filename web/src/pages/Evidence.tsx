@@ -1,9 +1,13 @@
 import { api } from "../api";
-import { Empty, Failed, Fig, Loading, Section, Seg, day, money, n0, navigate, useBusy, useData, usePath, withParam, T } from "../lib";
+import { Empty, Failed, Fig, Loading, Section, Seg, day, money, n0, navigate, useBusy, useData, usePath, withParam, T, Tip, writeHint } from "../lib";
+import { TIPS } from "../tips";
 import { RangeLine, VERDICT_WORD, Verdict, RateAxis } from "../parts";
 import { openSheet } from "../sheets";
 
 const monthsBetween = (a: string, b: string) => Math.round((new Date(b).getTime() - new Date(a).getTime()) / (30.44 * 86400000));
+
+/** What to expect from a run: the time the last run took when it is known, otherwise only that it is not instant. */
+const RUN_NOTE = (seconds: number | null | undefined) => (seconds ? `The last run took ${seconds < 10 ? seconds.toFixed(1) : Math.round(seconds)} s.` : "A run reads every closed deal, so it takes a moment.");
 
 const VERDICTS: [string, string][] = [["all", "All"], ["clear", "Clear"], ["explained_by_size", "Explained by size"], ["not_clear", "Not clear"], ["too_few", "Too few to tell"]];
 
@@ -25,9 +29,10 @@ export function Evidence() {
       <div className="head">
         <h1>Evidence</h1>
         {data.run.ran_at ? <span className="small mute"><T>Last run</T> {day(data.run.ran_at)}</span> : null}
-        {me?.user?.role === "revops" ? <button className="btn line sm" disabled={busy}
+        {me?.user?.role === "revops" ? <button className="btn line sm" disabled={busy} title={writeHint() ?? RUN_NOTE(data.run.seconds)}
           onClick={() => run(() => api("/api/evidence/run", { method: "POST" }), "The evidence run finished.")}>{busy ? "Running" : "Run again"}</button> : null}
-        {busy ? <span className="small mute" role="status">Running. This page updates when it finishes.</span> : null}
+        {busy ? <span className="small mute" role="status">Running. {RUN_NOTE(data.run.seconds)} This page updates when it finishes.</span>
+          : me?.user?.role === "revops" ? <span className="small mute">{RUN_NOTE(data.run.seconds)}</span> : null}
       </div>
       <div className="figs">
         <Fig value={`${monthsBetween(data.run.window_start, data.run.window_end)}`} unit=" months" label="Window" />
@@ -45,9 +50,9 @@ export function Evidence() {
       </div>
       {rows.length ? (<>
         <div className="range-key" aria-label="How to read the win rates">
-          <span><i className="key-band" />Band: where the true win rate likely sits</span>
+          <span><i className="key-band" /><span><Tip tip={TIPS["Band"]}>Band</Tip>: where the true win rate likely sits</span></span>
           <span><i className="key-tick" />Tick: the win rate measured</span>
-          <span><i className="key-hollow" />Hollow tick: every other deal</span>
+          <span><i className="key-hollow" /><span><Tip tip={TIPS["Hollow tick"]}>Hollow tick</Tip>: every other deal</span></span>
         </div>
         <div className="ledger wide-table evidence">
           <div className="row head" style={{ gridTemplateColumns: cols }}>
@@ -65,7 +70,7 @@ export function Evidence() {
             </button>
           ))}
         </div>
-      </>) : <Empty title="No findings match" />}
+      </>) : <Empty title="No findings match" example="Industry: Healthcare software, 9% of deals won against 23% for the rest, a clear gap.">Nothing passes the verdict and trait choices above. Each finding compares one kind of company with every other deal.</Empty>}
       {data.changes.length ? (
         <Section title="Since the last run" count={data.changes.length}>
           <div className="ledger">

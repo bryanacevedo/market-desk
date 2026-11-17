@@ -5,7 +5,7 @@ import {
 } from "@phosphor-icons/react";
 import { api } from "./api";
 import { Logo } from "./marks";
-import { Bar, Empty, Failed, Fig, Loading, Section, Status, day, dayTime, money, n0, navigate, pct, useBusy, useData, T, Tip } from "./lib";
+import { Bar, Empty, Failed, Fig, Loading, Section, Status, day, dayTime, deskName, money, n0, navigate, pct, say, useBusy, useData, writeHint, T, Tip } from "./lib";
 import { ActivateSheet, CancelScheduleSheet, PublishSheet, RollbackSheet, TransferSheet } from "./sheets_moves";
 import { Hours, Nest, RangeLine, Tier, TierMix, Verdict, moneyScale, RateAxis } from "./parts";
 
@@ -274,7 +274,7 @@ function OwnerForm({ company: c }: { company: any }) {
         </div>
       ) : null}
       {!h ? null : !h.can ? <div className="small mute">{h.why}</div> : !open ? (
-        <button className="btn line sm" onClick={() => setOpen(true)}>Change owner</button>
+        <button className="btn line sm" title={writeHint()} onClick={() => setOpen(true)}>Change owner</button>
       ) : (
         <form onSubmit={(e) => { e.preventDefault(); if (!ok) return;
           run(async () => { await api(`/api/companies/${c.id}/owner`, { method: "POST", body: { to: Number(to), note: reason.trim() } }); setOpen(false); setTo(""); setReason(""); }, "Owner changed. It is in the audit log."); }}>
@@ -293,7 +293,7 @@ function OwnerForm({ company: c }: { company: any }) {
           {h.scheduled_still_to ? <div className="small mute">On its start date the scheduled plan still gives this account to {h.scheduled_still_to}.</div> : null}
           <div style={{ display: "flex", gap: 8 }}>
             <button type="button" className="btn quiet sm" onClick={() => setOpen(false)}>Cancel</button>
-            <button type="submit" className="btn sm" disabled={busy || !ok}>Change owner</button>
+            <button type="submit" className="btn sm" disabled={busy || !ok} title={writeHint()}>Change owner</button>
           </div>
         </form>
       )}
@@ -307,7 +307,7 @@ function CompanySheet({ id }: { id: string }) {
     <Wrap kind="company" path={`/api/companies/${id}`}>{(c) => {
       const f = c.fit;
       return (
-        <Frame kind="company" crumb={c.name} foot={me?.user ? <button className="btn line" onClick={() => openSheet("transfer", `new-${id}`)}>Propose a move</button> : undefined}>
+        <Frame kind="company" crumb={c.name} foot={me?.user ? <button className="btn line" title={writeHint()} onClick={() => openSheet("transfer", `new-${id}`)}>Propose a move</button> : undefined}>
           <div className="who"><Logo domain={c.domain} name={c.name} size={44} /><div className="grow"><div className="sheet-title">{c.name}</div><div className="mute small">{c.domain}, {c.country}</div></div>
             <OtherDesk worldId={c.world_id} /></div>
           {f ? (
@@ -338,13 +338,14 @@ function CompanySheet({ id }: { id: string }) {
           ) : null}
           {c.owner ? (
             <Section title="Owner">
-              <dl className="kv"><dt><T>In the active plan</T></dt><dd>{c.owner.id ? <button className="link" onClick={() => openSheet("person", c.owner.id)}>{c.owner.name}</button> : "Unassigned"}</dd>
+              <dl className="kv"><dt><T>In the active plan</T></dt><dd>{c.owner.id ? <><button className="link" onClick={() => openSheet("person", c.owner.id)}>{c.owner.name}</button><span className="mute">, {c.owner.seat ? `${c.owner.seat}, ` : ""}from {say(c.owner.source)}</span></> : "Unassigned"}</dd>
                 <dt><T>Why</T></dt><dd>{({ rule: "Territory rule", test: "Segment test", existing_owner: "Customer", open_deal: "Open deal", balance_move: "Moved to balance", manual: "Moved by hand" } as any)[c.owner.reason] || c.owner.reason}</dd>
                 {c.owner.note ? <><dt><T>Note</T></dt><dd>{c.owner.note}</dd></> : null}
                 {c.owner.moved_from ? <><dt><T>From</T></dt><dd>{c.owner.moved_from}</dd></> : null}
                 {(c.coming || []).map((m: any) => m.by_hand
                   ? <span key={m.role + "h"} style={{ display: "contents" }}><dt><T>{`${m.role === "SDR" ? "SDR" : "Owner"} plan change dropped`}</T></dt><dd>{`Changed by hand${m.kept ? ` to ${m.kept}` : ""}`}</dd></span>
-                  : <span key={m.role} style={{ display: "contents" }}><dt><T>{`${m.role === "SDR" ? "SDR" : "Owner"} from ${day(m.from)}`}</T></dt><dd>{m.name}</dd></span>)}</dl>
+                  : <span key={m.role} style={{ display: "contents" }}><dt><T>{`${m.role === "SDR" ? "SDR" : "Owner"} from ${day(m.from)}`}</T></dt><dd>{m.name}</dd></span>)}
+                {c.draft_owner ? <><dt className="mute"><T>In a draft plan</T></dt><dd className="mute">{`${c.draft_owner.name || "Unassigned"}${c.draft_owner.seat ? `, ${c.draft_owner.seat}` : ""}, draft: not in force until a manager activates ${c.draft_owner.plan}`}</dd></> : null}</dl>
               <OwnerForm company={c} />
             </Section>
           ) : null}
@@ -381,7 +382,7 @@ function CompanySheet({ id }: { id: string }) {
             <Section title="Desk results">
               <div className="ledger">{c.results.map((r: any) => (
                 <div key={r.id} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) 80px 90px" }}>
-                  <span className="cell-main"><span className="t">{r.destination === "events_desk" ? "Events Desk" : r.held_back ? "Held back" : "Account Desk"}</span><span className="s">{day(r.period_start)} to {day(r.period_end)}</span></span>
+                  <span className="cell-main"><span className="t">{r.destination === "events_desk" ? deskName("events_desk") : r.held_back ? "Held back" : deskName("account_desk")}</span><span className="s">{day(r.period_start)} to {day(r.period_end)}</span></span>
                   <span className="num" data-label="Meetings">{r.meetings} {r.meetings === 1 ? "meeting" : "meetings"}</span><span className="num" data-label="Deals opened">{r.opportunities} {r.opportunities === 1 ? "deal" : "deals"}</span>
                 </div>
               ))}</div>
@@ -442,7 +443,7 @@ function VersionSheet({ id }: { id: string }) {
     <Wrap kind="version" path={`/api/profile/versions/${id}`}>{(v) => (
       <Frame kind="version" crumb={`Version ${v.number}`}
         foot={v.status === "draft" ? <>
-          {v.can_publish ? <button className="btn" onClick={() => openSheet("publish", v.id)}>Publish</button>
+          {v.can_publish ? <button className="btn" title={writeHint()} onClick={() => openSheet("publish", v.id)}>Publish</button>
             : <span className="small mute">A manager other than {v.author} publishes it. It shows in their Waiting on you.</span>}
         </> : undefined}>
         <Title sub={`${v.author}, ${day(v.created_at)}${v.publisher ? `. Published by ${v.publisher}, ${day(v.published_at)}` : ""}`}>Version {v.number}</Title>
@@ -459,7 +460,7 @@ function VersionSheet({ id }: { id: string }) {
         <Section title="Rules">
           <div className="ledger">{v.rules.map((r: any) => (
             <button key={r.kind + r.key} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) 44px 150px" }} disabled={!r.finding} onClick={() => r.finding && openSheet("finding", r.finding.id)}>
-              <span className="cell-main"><span className="t">{r.label}</span><span className="s">{r.kind === "factors" ? "Adds points" : r.kind === "penalties" ? "Removes points" : "Excluded"}{!r.travels ? ", not sent to Account Desk" : ""}</span></span>
+              <span className="cell-main"><span className="t">{r.label}</span><span className="s">{r.kind === "factors" ? "Adds points" : r.kind === "penalties" ? "Removes points" : "Excluded"}{!r.travels ? `, not sent to ${deskName("account_desk")}` : ""}</span></span>
               <span className="num">{r.weight === null || r.weight === undefined ? "" : r.kind === "penalties" ? `−${r.weight}` : r.weight}</span>{r.finding ? <Verdict v={r.finding.verdict} /> : <Status kind="none">Hypothesis</Status>}
             </button>
           ))}</div>
@@ -586,7 +587,7 @@ function ProposalSheet({ id }: { id: string }) {
 function BookSheet({ id }: { id: string }) {
   return (
     <Wrap kind="book" path={`/api/books/${id}`}>{(b) => (
-      <Frame kind="book" crumb={b.destination === "account_desk" ? "Account Desk" : "Events Desk"}>
+      <Frame kind="book" crumb={b.destination === "account_desk" ? deskName("account_desk") : deskName("events_desk")}>
         <Title sub={`${day(b.created_at)}, profile v${b.icp_number}, ${b.plan_name}`}>Version {b.version}</Title>
         <div className="figs">
           <Fig sm value={n0(b.rows)} label="Rows" />
@@ -621,13 +622,22 @@ function SourceSheet({ id }: { id: string }) {
   return (
     <Wrap kind="source" path={`/api/sources/${id}`}>{(s) => (
       <Frame kind="source" crumb={s.label}>
-        <Title sub={s.adapter === "sim" ? "Simulated data" : "Live"}>{s.label}</Title>
+        <Title sub={s.adapter === "sim" ? "Sample data" : "Live"}>{s.label}</Title>
         <dl className="kv">
           <dt><T>Runs every</T></dt><dd>{s.cadence_hours >= 48 ? `${Math.round(s.cadence_hours / 24)} days` : `${s.cadence_hours} hours`}</dd>
           <dt><T>Cost</T></dt><dd>{s.paid ? (s.price_cents_per_unit !== undefined ? <>{`$${(s.price_cents_per_unit / 100).toFixed(2)} a ${s.unit}`} <span className="mute">Our assumption</span></> : "Paid") : "Free"}</dd>
           <dt><T>Licence</T></dt><dd>{s.licence_note}</dd>
           {s.no_redistribution ? <><dt><T>In books</T></dt><dd>Not exported</dd></> : null}
         </dl>
+        {s.depends && (s.depends.fields.length || s.depends.rules.length) ? (
+          <Section title="What depends on it">
+            {s.depends.fields.length ? <div className="small">It fills {s.depends.fields.map((f: any) => `${f.field.toLowerCase()} for ${n0(f.n)} companies`).join(", ")}.</div> : null}
+            {s.depends.rules.length ? <>
+              <div className="small">These rules of profile version {s.depends.version} read those fields, so a missed run changes who is scored as a fit:</div>
+              <div className="ledger">{s.depends.rules.map((r: string) => <div key={r} className="row" style={{ gridTemplateColumns: "minmax(0,1fr)" }}><span>{r}</span></div>)}</div>
+            </> : <div className="small">No rule of the published profile reads these fields.</div>}
+          </Section>
+        ) : null}
         <Section title="Runs">
           <div className="ledger">{s.runs.map((r: any) => (
             <div key={r.id} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) 90px 90px" }}><span>{r.finished_at ? dayTime(r.finished_at) : `${day(r.started_at)}, did not finish`}</span><span className="num">{n0(r.rows_read)} read</span><span className="num">{n0(r.rows_changed)} changed</span></div>

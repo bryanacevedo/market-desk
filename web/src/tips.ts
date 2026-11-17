@@ -1,6 +1,17 @@
 // What each term on the screens means, in one or two plain sentences. One place, used by the Tip component for
 // figures, column heads, section titles, sheet terms and status words. The README glossary says the same.
 export const TIPS: Record<string, string> = {
+  // words the first-visit review flagged (S4): each in one plain sentence
+  "ICP": "Ideal customer profile: the rules that score how well a company fits what you sell. A score gives a tier.",
+  "Band": "A stretch on a scale: from the low estimate to the high one. The true value likely sits inside it.",
+  "Hollow tick": "An outlined mark on a scale: the figure for every other deal, or the earlier figure, so you can compare with the solid tick.",
+  "Make a draft": "Puts the changes you ticked into a new ICP version. A draft changes nothing until a second person publishes it.",
+  "Roll back": "Puts the earlier version in force again. It needs a reason, and the other managers are told.",
+  "Territory rule": "The rule that gives accounts to people by region and segment. Each account's owner shows the rule that placed it.",
+  "Handoffs": "The files this desk makes for your other tools, with what changed since the last file and what came back.",
+  "Acting as": "Pick who you are in this sample. RevOps drafts profiles and plans; a manager publishes and activates them, so every change has a second person.",
+  "Draft": "A version that is not in force yet. A second person publishes it.",
+  "Worked": "Accounts someone is actively contacting, as opposed to held back.",
   // market sizing
   "TAM": "Total market: tier A and B companies times deal size. The low end counts only companies we can score; the high end adds likely fits we cannot score yet and uses the larger deal sizes.",
   "SAM": "The part of TAM in our regions whose buyer a contact source can find. Same low and high ends as TAM.",

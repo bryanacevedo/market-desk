@@ -1,6 +1,6 @@
 import { ArrowsLeftRight, DownloadSimple } from "@phosphor-icons/react";
 import { api } from "../api";
-import { Empty, Failed, Fig, Loading, Section, day, money, n0, useBusy, useData, T } from "../lib";
+import { Empty, Failed, Fig, Loading, Section, day, deskName, money, n0, say, useBusy, useData, writeHint, T } from "../lib";
 import { openSheet } from "../sheets";
 
 export const DEST: Record<string, string> = { account_desk: "Account Desk", events_desk: "Events Desk" };
@@ -17,12 +17,12 @@ export function Handoffs() {
   return (
     <div className="page">
       <div className="head">
-        <h1>Handoffs</h1>
+        <div><h1>Handoffs</h1><div className="sub">The files this desk makes for your other tools, and what came back from them.</div></div>
         {revops && data.next ? <span className="small mute">New files use profile v{data.next.profile}{data.next.plan ? ` and ${data.next.plan}` : ""}</span> : null}
         {revops ? (
           <div className="actions">
-            <button className="btn line" disabled={busy} onClick={() => run(() => api("/api/books", { method: "POST", body: { destination: "events_desk" } }), "Events Desk file written.")}>New Events Desk file</button>
-            <button className="btn line" disabled={busy} onClick={() => run(() => api("/api/books", { method: "POST", body: { destination: "account_desk" } }), "Account Desk file written.")}>New Account Desk file</button>
+            <button className="btn line" disabled={busy} title={writeHint()} onClick={() => run(() => api("/api/books", { method: "POST", body: { destination: "events_desk" } }), "The events file is written.")}>New file for {deskName("events_desk")}</button>
+            <button className="btn line" disabled={busy} title={writeHint()} onClick={() => run(() => api("/api/books", { method: "POST", body: { destination: "account_desk" } }), "The outreach file is written.")}>New file for {deskName("account_desk")}</button>
           </div>
         ) : null}
       </div>
@@ -30,7 +30,7 @@ export function Handoffs() {
         const books = data.books.filter((b: any) => b.destination === d);
         const back = books.find((b: any) => b.results.accounts);
         return (
-          <Section key={d} title={DEST[d]} icon={ArrowsLeftRight}>
+          <Section key={d} title={`Files for ${DEST[d]}`} icon={ArrowsLeftRight}>
             {books.length ? (
               <div className="ledger">
                 <div className="row head" style={{ gridTemplateColumns: cols }}><T>Version</T><T num>Rows</T><T num>Added</T><T num>Removed</T><T num>Tier moved</T><T num>Owner moved</T><T>Files</T></div>
@@ -43,8 +43,8 @@ export function Handoffs() {
                   </div>
                 ))}
               </div>
-            ) : <Empty title="Nothing sent yet" />}
-            {d === "account_desk" && books[0] && !back ? <div className="small mute" style={{ marginTop: 8 }}>No results back from Account Desk yet</div> : null}
+            ) : <Empty title="No file made yet" example={d === "account_desk" ? "Version 1, 14 Nov, profile v3, 1,300 rows, with accounts.csv and icp.json to download." : "Version 1, 14 Nov, profile v3, with icp.md to download."}>{d === "account_desk" ? "Each file lists the accounts the plan gives to people, with their tier and owner, for the outreach tool." : "Each file is the ICP as a document for the events tool."}</Empty>}
+            {d === "account_desk" && books[0] && !back ? <div className="small mute" style={{ marginTop: 8 }}>{`No results back from ${deskName("account_desk")} yet`}</div> : null}
             {d === "account_desk" && back ? (
               <div className="figs" style={{ marginTop: 8 }}>
                 <Fig value={n0(back.results.accounts)} label={`Accounts worked from version ${back.version}`} />
@@ -73,7 +73,7 @@ export function Handoffs() {
             {data.crm.errors.length ? <Fig value={n0(data.crm.errors.length)} label="Not taken" /> : null}
           </div>
           {data.crm.failed.length ? (
-            <div className="notice" style={{ marginTop: 8 }}>{data.crm.failed.length === 1 ? "One send was" : `${data.crm.failed.length} sends were`} refused by CRM Desk: {data.crm.failed[0].last_error}</div>
+            <div className="notice" style={{ marginTop: 8 }}>{data.crm.failed.length === 1 ? "One send was" : `${data.crm.failed.length} sends were`} {say("refused by CRM Desk")}: {data.crm.failed[0].last_error}</div>
           ) : null}
           {data.crm.errors.length ? (
             <div className="ledger" style={{ marginTop: 8 }}>
@@ -109,7 +109,7 @@ export function Handoffs() {
                 <div key={d.key} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)" }}><span className="t">{d.rule}</span><span className="mute">{d.why}</span></div>
               ))}
             </div>
-          ) : <Empty title="All rules sent" />}
+          ) : <Empty title="All rules sent">Every rule of this draft fits the outreach file. A rule it cannot carry would be listed here with the reason.</Empty>}
         </Section>
       ))}
     </div>

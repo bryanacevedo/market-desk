@@ -1,25 +1,36 @@
+# Sample day: # (the demo keeps its own clock).#
 # account# to #
 # accounts free to test, # needed
 # accounts, worked and held back
 # now, # in the draft
-# refused by CRM Desk: #
 # to # days
 #, # accounts free to test
 : # to # points
+: every other deal, or the held-back accounts
+: from the low estimate to the high one
+: where the true rate likely sits
+: where the true win rate likely sits
+A change appears here when the evidence run finds a gap worth acting on.
 A company fact we test against win rate, such as industry, size or technology.
+A company name, tier A, 240 employees, owned by an SDR from the territory plan.
 A company with this score or more is tier A.
 A company with this score or more, below the A cutoff, is tier B.
+A draft is a changed copy of the profile that a second person publishes. Make one from Changes.
 A draft is a new ICP version: tick the changes to put in it, then Make a draft
 A manager other than # publishes it. It shows in their Waiting on you.
 A manager other than the author publishes it
 A new draft starts from the open draft v# and carries its rules.
 A new draft starts from the published version: the open drafts were made before it was published.
+A plan gives accounts to people by region and segment.
 A rule needs at least this many deals behind an unclear verdict before Changes proposes dropping it.
 A rule of the published ICP, tested like any trait: deals that match it against deals that do not.
+A run reads every closed deal, so it takes a moment.
 A segment's planning win rate is pulled toward the overall rate as if it had this many more deals at the overall rate.
+A stretch on a scale: from the low estimate to the high one. The true value likely sits inside it.
 A tier A account nobody has hours for. It counts toward the hiring gap.
 A trait value needs at least this many closed deals before it gets a verdict.
 A trait value needs at least this many wins before it gets a verdict.
+A version that is not in force yet. A second person publishes it.
 Account Desk has no field for this rule, so its book leaves it out and lists it.
 Accounts RevOps moved outside the territory rules, each with a note.
 Accounts dropped since the version before.
@@ -30,6 +41,7 @@ Accounts in the plan's regions
 Accounts in the segment no one has worked recently, so they can join a test.
 Accounts in the segment test that Account Desk worked.
 Accounts new since the version before.
+Accounts someone is actively contacting, as opposed to held back.
 Accounts that already buy from us or have a deal open. Their owners come from the CRM.
 Accounts the person would gain.
 Accounts the person would lose.
@@ -38,11 +50,12 @@ Accounts whose owner changed since the version before.
 Accounts whose tier changed since the version before.
 Add every account a person owns
 An ICP version no longer in use.
+An outlined mark on a scale: the figure for every other deal, or the earlier figure, so you can compare with the solid tick.
 At meeting rates this low, more accounts, or more time, are needed before a difference can be read.
-Band: from the low estimate to the high one
-Band: where the true rate likely sits
-Band: where the true win rate likely sits
 CRM Desk keeps what it takes. Rolling back sends the earlier plan over it, and owners pinned there stay as they are.
+Changes are not saved in the public demo.
+Changes are refused in the public demo and nothing is saved.
+Changes stay in this sample only.
 Closed deals with a different known value for the same trait.
 Closed new-business deals in the evidence window.
 Companies in each segment whose tier would change.
@@ -57,16 +70,19 @@ Deals before a rule is proposed for removal
 Deals closed in this many months count as evidence.
 Deals opened from these accounts.
 Decisions only you can make right now.
+Each account is a company scored against the ICP, with its tier and owner. Change the search or the filters above.
+Each file is the ICP as a document for the events tool.
+Each file lists the accounts the plan gives to people, with their tier and owner, for the outreach tool.
 Each person's expected value is within 15% of the territory average and nobody is over capacity.
 Every account that changes owner if this draft is activated, customers and open deals included, so it can differ from the A and B count beside each person.
 Every other deal with a known value for the same trait.
+Every rule of this draft fits the outreach file. A rule it cannot carry would be listed here with the reason.
 Extra SDRs at full hours it would take to work every unassigned A and B account in the plan's regions.
 Fewer than 30 deals or 5 wins.
 Fewer than 30 opportunities or 5 wins.
+Find it by name below.
 Findings whose verdict is new or different from the run before this one.
-Handoffs exports these books for Account Desk
-Hollow tick: every other deal
-Hollow tick: every other deal, or the held-back accounts
+Handoffs: the files this desk makes for your other tools, and what came back.
 Hours a month it would take to work every unassigned A and B account.
 Hours a month one tier A account needs while it is worked. Our assumption.
 Hours a month one tier B account needs while it is worked. Our assumption.
@@ -88,22 +104,31 @@ How the draft would tier known groups. A good ICP rates current customers A far 
 How these companies split by tier: A strong fit, B good fit, C weak fit, X excluded, already a customer or an open deal. Not judged means too little is known to score.
 How to read the ranges
 How to read the win rates
+ICP: the ideal customer profile, the rules that score how well a company fits.
+Ideal customer profile: the rules that score how well a company fits what you sell.
+Ideal customer profile: the rules that score how well a company fits what you sell. A score gives a tier.
+If you are judging the work
+Industry: Healthcare software, 9% of deals won against 23% for the rest, a clear gap.
 Less than 60% of the ICP is known for this company, so it gets no tier.
 Less than 60% of the profile is known for this company.
+Market Desk shows which companies are worth selling to, how big that market is, and who should work which accounts.
 Marks: each one is ten times the last
 Median size of won new-business deals in the last two years, with the middle half of deals as the range.
 Meeting rate, worked vs held back
 Meetings booked with these accounts.
 Months an account is worked
+Moves are proposed for the accounts listed here.
 Moves to # from #
 New files use profile v##
 No CRM is set, so nothing is sent.
 No evidence behind this rule yet.
-No results back from Account Desk yet
+No rule of the published profile reads these fields.
 Not sent to Account Desk
 Nothing in this territory is left to move to this person
+Nothing passes the verdict and trait choices above. Each finding compares one kind of company with every other deal.
 On its start date the scheduled plan still gives this account to #.
 Only a draft can be published
+Only accounts the plan in effect gives to someone can be moved. Find another account by name below.
 Open deals leave their owner
 Our CRM. Each account's tier, segment, fit score and owner go there from here, so sellers see them where they work.
 Our tool that plans events and who to meet there. It receives the ICP as a document from here.
@@ -112,10 +137,15 @@ Overdue by # ##
 Page # of #
 Points the rule adds to, or removes from, a company's fit score out of 100.
 Points this rule adds to or removes from the company's score.
-Read-only snapshot of the Market Desk demo, taken #. Lumen Ledger and everything in it are invented sample data. Nothing you change is saved.
+Puts the changes you ticked into a new ICP version. A draft changes nothing until a second person publishes it.
+Puts the earlier version in force again. It needs a reason, and the other managers are told.
+Read-only snapshot of the Market Desk demo, taken #. # and everything in it are invented sample data.
 Reason, sent to the other managers and RevOps
 Rolled back. Every company is rescored.
-Running. This page updates when it finishes.
+Running. # This page updates when it finishes.
+Sample company with invented data.
+See the clearest gap in the deals
+See what the deals say
 Share held back in a test
 Share of a test's accounts kept unworked so the worked ones can be compared.
 Share of closed new-business deals that were won. Where a band is drawn, the true rate likely sits inside it and the black tick is the rate measured.
@@ -131,6 +161,10 @@ Share rated C, excluded, or not judged.
 Share the draft rates A. Compare with A now.
 Someone's book needs more hours than they hold.
 Someone's expected value is more than 15% from the territory average.
+Start here: the clearest gap in the deals
+TAM is the whole market, SAM the part you can reach, SOM what the plan can win in 12 months
+Territories: who works which accounts, and whether they have the hours.
+Tests: working some accounts and holding others back to see whether a segment books more meetings.
 That did not go through.
 The AI's wording failed its check twice, so only the figures show.
 The ICP version in use now, here and in the files sent to Account Desk and Events Desk.
@@ -142,12 +176,21 @@ The day owners change, once a manager approves the move and activates the plan i
 The difference could be chance.
 The difference goes away within each company size band.
 The draft rates churned customers A as often as current ones, which a good ICP should not do.
+The events file is written.
+The files for # and # still use the version before. Nothing goes out by itself: this makes both files from version #, and you download and pass them on from Handoffs.
+The files for # and # use version #. They are on Handoffs to download.
+The files this desk makes for your other tools, and what came back from them.
+The files this desk makes for your other tools, with what changed since the last file and what came back.
 The gap goes away when you compare companies of the same size, so company size, not this trait, explains it.
 The loss reason coded from the rep's note.
 The middle half of won-deal cycles.
+The numbers the evidence and the plans rest on. Point at a name for what it does.
+The outreach file is written.
 The part of TAM in our regions whose buyer a contact source can find. Same low and high ends as TAM.
 The plan starts #. Owners change on that date.
+The public demo does not do this. Run it yourself to try it.
 The reason the account has this owner, or the reason given for a decision.
+The rule that gives accounts to people by region and segment. Each account's owner shows the rule that placed it.
 The same comparison inside each company size band. If the gap disappears here, size explains it.
 The scheduled plan stops moving this account's owner.
 The segment's win rate pulled toward the overall rate, as if it had 20 more deals at the overall rate, so a few lucky deals do not carry the plan.
@@ -155,6 +198,7 @@ The territory's average expected value per person.
 The test has run its course and its result is in.
 The test is still running and has too few meetings to read a difference.
 The test was clear, so a change to give this segment weight is open on Changes.
+These rules of profile version # read those fields, so a missed run changes who is scored as a fit:
 This becomes # proposals of # accounts at most, decided one at a time.
 This moves the account now, outside any plan, and writes the reason to the audit log.
 Tick: the win rate measured
@@ -165,10 +209,15 @@ Tier A and B accounts in our regions nobody has hours for.
 Tier A and B accounts in the plan's regions that nobody has hours for, and the SDRs it would take to work them.
 Tier A and B accounts the plan gives to someone.
 Tier A and B companies in our regions whose buyer a contact source can find. This is the SAM count.
+Tiers: A strong fit, B good, C weak, X excluded
+To run this on your own deals and customers,
+To run this on your own deals and customers, contact Leandrive.
 Too few accounts to read a difference yet.
 Trait values whose win rate is clearly higher or clearly lower than the rest.
 Value of the deals opened.
 Values CRM Desk kept its own version of instead of taking ours.
+Version 1, 14 Nov, profile v3, 1,300 rows, with accounts.csv and icp.json to download.
+Version 1, 14 Nov, profile v3, with icp.md to download.
 Waiting for a manager to decide
 What Account Desk last reported for the account: a meeting booked or not.
 What Account Desk or Events Desk reported back for this account.
@@ -180,8 +229,10 @@ What the evidence says about this trait: clearly higher, clearly lower, explaine
 What the person's book should win in 12 months: for each account, the chance it becomes a deal and is won, times deal size, weighted by how well it fits, added up.
 What the source cost this month: rows read times its price per row. Free sources show Free.
 What the source's terms let us do with its data.
+What this desk is for
 When the rescore finishes, the active plan's accounts go to CRM Desk with their new tier. Owners are not sent, so pins there stay as they are.
 When the source last finished a run, or when the evidence was last computed.
+Where each company fact comes from, when it last ran, and what it costs.
 Whether worked accounts booked meetings clearly more often than held-back ones.
 Who owns the account under the plan in effect now.
 Who took part in won deals, and who signed.
@@ -193,3 +244,13 @@ Wins less often than the rest, by more than chance.
 Wins more often than the rest, by more than chance.
 Worked accounts booked meetings at a clearly different rate from held-back ones.
 Worked and held-back accounts booked meetings at about the same rate.
+changes only through a draft that a second person publishes.
+gives the market as ranges, each with a low and a high estimate.
+lists what the deals suggest changing, with the evidence beside each.
+makes the account files your outreach tool reads.
+shows every trait compared, including the ones with too few deals to tell.
+shows how big your market is and how much of it a plan can reach.
+shows which kinds of company win more often than the rest.
+shows who has the hours, and flags a tier A account nobody has hours for.
+splits accounts between people by the hours they have.
+turns what the evidence shows into a draft profile you can publish.

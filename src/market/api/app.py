@@ -33,6 +33,7 @@ from .. import (
     fit,
     handoff,
     jobs,
+    names,
     notices,
     profiles,
     proposals,
@@ -315,11 +316,16 @@ def me(u: dict = Depends(current_user)) -> dict:
             n = open_changes
             if n:
                 waiting.append({"what": f"{n} open change{'s' if n != 1 else ''}", "path": "/changes"})
+            behind = views.books_behind(cur)
+            if behind:   # after a publish, a person makes the new files; the desk only says they are behind
+                pub_no = db.val(cur, "select number from icp_versions where status = 'published'")
+                waiting.append({"what": f"Send new books now: the files still use an earlier profile than version {pub_no}", "path": "/handoffs"})
         now = db.val(cur, "select app_now()")
         sim = db.val(cur, "select enabled from sim_clock")
     return {"user": {k: u[k] for k in ("id", "name", "role")}, "users": users, "counts": counts, "money": money(u),
             "waiting": waiting, "links": desk_links(),
-            "now": now, "simulated": sim, "public_demo": CONFIG.public_demo, "seller": CONFIG.seller}
+            "now": now, "simulated": sim, "public_demo": CONFIG.public_demo, "seller": CONFIG.seller,
+            "names": names.desk_names(), "integrated_with": sorted(names.connected())}
 
 
 def desk_links() -> dict[str, str]:
@@ -332,6 +338,12 @@ def desk_links() -> dict[str, str]:
         if k.strip() in ("crm_desk", "account_desk", "events_desk") and v.strip().startswith("https://"):
             out[k.strip()] = v.strip().rstrip("/")
     return out
+
+
+@app.get("/api/start")
+def start(u: dict = Depends(current_user)) -> dict:
+    with db.tx() as cur:
+        return views.start(cur)
 
 
 @app.get("/api/market")
@@ -925,10 +937,13 @@ def run_evidence(request: Request, u: dict = Depends(writer)) -> dict:
                message="The evidence has been run 6 times in the last hour. Try again later.")
     from .. import proposals, sizing
     try:
+        started = time.monotonic()
         with db.tx() as cur:     # one transaction: a run that fails leaves the earlier run, sizing and proposals as they were
             rid = evidence.run(cur)
             sizing.run(cur)
             proposals.generate(cur)
+            from .. import audit  # how long it took, so the page can say what to expect the next time
+            audit.log(cur, u["name"], "evidence_run", "analysis_run", rid, {"seconds": round(time.monotonic() - started, 1)}, actor_id=u["id"])
     except Exception as exc:
         raise _fail(exc) from exc
     return {"run": rid}

@@ -5,7 +5,7 @@
    so the identity colour never reads as a status. */
 
 :root {
-  --accent: #A2671F;          /* ochre: 4.67:1 on white, and white on it */
+  --accent: #98601A;          /* ochre: 4.8:1 on the grey well, 5.2:1 on white, and white on it (tests/test_contrast.py) */
   --accent-2: #8F5A18;        /* pressed, and accent text on the wash: 5.09:1 */
   --accent-wash: #F7F0E6;
   --accent-line: #E4D2B8;
@@ -66,13 +66,13 @@ h1 { font-size: 30px; line-height: 36px; font-weight: 560; letter-spacing: -0.01
 .range-line::before { content: ""; position: absolute; left: 0; right: 0; top: 6.5px; height: 1px; background: var(--line-2); }
 .range-band { position: absolute; top: 4px; height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--accent) 28%, var(--ground));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent); transform-origin: center;
-  animation: range-open 520ms var(--ease) both; }
+  animation: range-open 120ms var(--ease) both; }
 .range-point { position: absolute; top: 1px; width: 2px; height: 12px; margin-left: -1px; background: var(--ink); border-radius: 1px; }
 .range-other { position: absolute; top: 1px; width: 5px; height: 12px; margin-left: -2.5px; border-radius: 2px;
   border: 1.5px solid var(--series-2); background: var(--ground); }
 .range.stacked { grid-template-columns: minmax(0, 1fr); gap: 3px; }
 .range.stacked .range-val { text-align: right; }
-@keyframes range-open { from { transform: scaleX(0.05); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
+@keyframes range-open { from { transform: scaleX(0.6); } to { transform: scaleX(1); } }
 
 /* Nested market ranges on one scale: TAM, then SAM inside it, then SOM inside that. */
 .nest { display: grid; gap: 5px; min-width: 0; }
@@ -88,7 +88,7 @@ h1 { font-size: 30px; line-height: 36px; font-weight: 560; letter-spacing: -0.01
   color: var(--ink); background: color-mix(in srgb, var(--accent) calc(var(--tone) * 1%), var(--ground));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, var(--line)); display: flex; flex-direction: column;
   justify-content: space-between; overflow: hidden; cursor: pointer; transition: transform 200ms var(--ease), box-shadow 200ms var(--ease);
-  animation: tile-in 480ms var(--ease) both; }
+  animation: tile-in 120ms var(--ease) both; }
 .tile:hover { transform: translateY(-2px); box-shadow: inset 0 0 0 1px var(--accent), 0 8px 22px -14px rgba(110, 70, 20, .5); }
 .tile.dark { color: #fff; }
 .tile.muted { background: var(--well); box-shadow: inset 0 0 0 1px var(--line); color: var(--ink-2); }
@@ -98,7 +98,7 @@ h1 { font-size: 30px; line-height: 36px; font-weight: 560; letter-spacing: -0.01
 .tile.narrow .tile-val { display: none; }
 .tile.narrow { padding: 10px 8px; }
 .field-key { display: flex; justify-content: space-between; gap: 12px; font-size: 12px; color: var(--mute); margin-top: 8px; flex-wrap: wrap; }
-@keyframes tile-in { from { opacity: 0; transform: translateY(6px); } }
+@keyframes tile-in { from { transform: translateY(3px); } }
 
 @media (max-width: 900px) {
   .main { padding: 20px 16px 96px; }
@@ -235,6 +235,7 @@ h1 { font-size: 30px; line-height: 36px; font-weight: 560; letter-spacing: -0.01
   opacity: 0; visibility: hidden; transform: translateY(-2px); transition: opacity 120ms var(--ease), transform 120ms var(--ease); pointer-events: none; }
 .tip:hover > .tip-box, .tip:focus-visible > .tip-box {
   opacity: 1; visibility: visible; transform: none; }
+.tip.off > .tip-box { opacity: 0; visibility: hidden; }
 .num .tip-box, .tip.end .tip-box { left: auto; right: 0; }
 @media (prefers-reduced-motion: reduce) { .tip-box { transition: none; } }
 
@@ -251,7 +252,7 @@ h1 { font-size: 30px; line-height: 36px; font-weight: 560; letter-spacing: -0.01
 .ledger.market .range, .ledger.evidence .range, .range.axis { grid-template-columns: 44px minmax(0, 1fr); }
 .range.axis .axis-line small:last-child { transform: translateX(-100%); }
 /* The key under the tile field: what a band, a tick and a mark mean, drawn as they look. */
-.range-key { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 12px; color: var(--mute); margin: 18px 0 2px; }
+.range-key { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 12px; color: var(--label); margin: 18px 0 2px; }
 .range-key span { display: inline-flex; align-items: center; gap: 7px; }
 .key-band { width: 22px; height: 6px; border-radius: 3px; background: color-mix(in srgb, var(--accent) 28%, var(--ground));
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent); }
@@ -327,3 +328,42 @@ h1 { font-size: 30px; line-height: 36px; font-weight: 560; letter-spacing: -0.01
 
 /* The Tests page's meeting-rate pair overflowed a 390 px screen by 17 px. */
 @media (max-width: 480px) { .pair, .range.axis.pair-axis { grid-template-columns: 78px minmax(60px, 1fr); } }
+
+/* Route changes do not fade: a page is readable at once. Motion stays under 150 ms and never starts from transparent. */
+.page-enter { animation: none; }
+.rise > * { animation-duration: 120ms; }
+.prop-row { animation-duration: 120ms; }
+
+/* The demo banner: one slim bar at the top of every screen, on a phone too. */
+.demo-banner { padding: 6px 16px; background: var(--accent-wash); border-bottom: 1px solid var(--accent-line); color: var(--accent-2);
+  font-size: 12.5px; line-height: 18px; }
+.demo-banner b { font-weight: 620; }
+.demo-banner a, .demo-banner-hide { margin-left: 6px; text-decoration: underline; text-underline-offset: 3px; font-weight: 560; }
+.demo-banner-hide { border: 0; background: none; padding: 0; color: inherit; font: inherit; font-weight: 560; cursor: pointer; }
+@media (max-width: 900px) { .demo-banner a, .demo-banner-hide { display: inline-block; min-height: 24px; } }
+
+/* First screen: what the desk is for, and the one thing to do first. */
+.first-step { display: grid; gap: 10px; padding: 14px 16px; border-radius: var(--r); background: var(--well); }
+.value-line { font-size: 15px; line-height: 22px; color: var(--ink); max-width: 68ch; margin: 0; }
+.first-step-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.first-step-row .link { min-height: 36px; display: inline-flex; align-items: center; }
+.start-tag { font-size: 12px; font-weight: 600; color: var(--accent-2); background: var(--accent-wash); padding: 2px 8px; border-radius: 4px; }
+.start .head .sub, .head .sub { color: var(--mute); margin-top: 2px; }
+.paths { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; }
+@media (max-width: 900px) { .paths { grid-template-columns: minmax(0, 1fr); } }
+.steps { list-style: decimal; padding-left: 20px; display: grid; gap: 8px; }
+.steps li { padding-left: 4px; line-height: 20px; }
+.steps a { text-decoration: underline; text-underline-offset: 3px; }
+.next-step { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--line); }
+.glossary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 28px; margin: 0; }
+@media (max-width: 900px) { .glossary { grid-template-columns: minmax(0, 1fr); } }
+.glossary dt { font-weight: 600; }
+.glossary dd { margin: 2px 0 0; color: var(--ink-2); }
+.empty-example { margin-top: 6px; padding: 6px 10px; border-radius: 6px; background: var(--well); color: var(--ink-2); font-size: 13px; }
+.ask { font-size: 15px; font-weight: 600; margin: 8px 0 4px; }
+
+/* Territories: names wrap at a narrow width instead of ending in an ellipsis. */
+.ledger.wrap-cells .clip, .ledger.wrap-cells .said-quote, .ledger.wrap-cells .cell-main .t, .ledger.wrap-cells .cell-main .s { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: break-word; }
+.ledger.scroll-x { overflow-x: auto; }
+.ledger.scroll-x > .row { min-width: max-content; }
+.ledger.wrap-cells .row > .clip, .ledger.wrap-cells .row > .said-quote { text-align: left; }

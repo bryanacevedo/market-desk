@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { CheckSquare, Lightbulb } from "@phosphor-icons/react";
 import { api } from "../api";
-import { Empty, Failed, Loading, Section, Status, navigate, toast, useBusy, useData, T } from "../lib";
+import { Empty, Failed, Loading, Section, Status, Tip, navigate, toast, useBusy, useData, writeHint, T } from "../lib";
+import { TIPS } from "../tips";
 import { RangeLine, VERDICT_WORD, Verdict } from "../parts";
 
 const fromOpen = (n: number) => `A new draft starts from the open draft v${n} and carries its rules.`;
@@ -47,6 +48,7 @@ function Evidence({ p }: { p: any }) {
 export function Changes() {
   const { data, error, reload } = useData<any>("/api/changes");
   const me = useData<any>("/api/me").data;
+  const best = useData<any>("/api/start").data?.best ?? null;
   const [busy, run] = useBusy();
   const [picked, setPicked] = useState<number[]>([]);
   const [dismissing, setDismissing] = useState<number | null>(null);
@@ -59,23 +61,26 @@ export function Changes() {
     <div className="page">
       <div className="head">
         <h1>Changes</h1>
-        {revops ? <button className="btn" disabled={busy || !picked.length}
+        {revops ? <button className="btn" disabled={busy || !picked.length} title={writeHint() ?? TIPS["Make a draft"]}
           onClick={() => run(async () => { const r = await api<any>("/api/proposals/draft", { method: "POST", body: { ids: picked } }); setPicked([]); toast(r.note || "Draft made."); navigate(`/profile?sheet=version:${r.version}`); })}>
           Make a draft{picked.length ? ` of ${picked.length}` : ""}</button> : null}
       </div>
       <div className="range-key" aria-label="How to read a change">
-        <span><i className="key-band" />Band: where the true rate likely sits</span>
+        <span><i className="key-band" /><span><Tip tip={TIPS["Band"]}>Band</Tip>: where the true rate likely sits</span></span>
         <span><i className="key-tick" />Tick: the rate measured</span>
-        <span><i className="key-hollow" />Hollow tick: every other deal, or the held-back accounts</span>
+        <span><i className="key-hollow" /><span><Tip tip={TIPS["Hollow tick"]}>Hollow tick</Tip>: every other deal, or the held-back accounts</span></span>
         {revops ? <span>A draft is a new ICP version: tick the changes to put in it, then Make a draft</span> : null}
       </div>
       {revops && (data.open_drafts || []).length ? <div className="notice"><Status kind="hold">{`Draft v${data.open_drafts.join(" and v")} ${data.open_drafts.length > 1 ? "are" : "is"} already open.`}</Status>{data.new_draft_starts_from ? fromOpen(data.new_draft_starts_from) : FROM_PUBLISHED}</div> : null}
       <Section title="Open" count={data.open.length} icon={Lightbulb}>
         {data.open.length ? (
           <div className="props">
-            {data.open.map((p: any, i: number) => (
-              <div key={p.id} className={`prop${i === 0 ? " halo" : ""}`}>
+            {data.open.map((p: any, i: number) => {
+              const first = best ? (p.finding_ids || []).includes(best.id) : i === 0;
+              return (
+              <div key={p.id} className={`prop${first ? " halo" : ""}`}>
                 <div className="prop-top">
+                  {first && best ? <span className="start-tag">Start here: the clearest gap in the deals</span> : null}
                   {revops ? <label><input type="checkbox" aria-label="Choose for a draft" checked={picked.includes(p.id)} onChange={() => toggle(p.id)} /></label> : null}
                   <button className="link-row" onClick={() => openSheet("proposal", p.id)}>
                     <span className="t prop-kind">{KIND[p.kind]}: {p.change.value_label}</span>
@@ -98,12 +103,13 @@ export function Changes() {
                         onClick={() => run(() => api(`/api/proposals/${p.id}/dismiss`, { method: "POST", body: { reason } }), "Dismissed.").then(() => { setDismissing(null); setReason(""); })}>Dismiss</button>
                       <button className="btn quiet sm" onClick={() => setDismissing(null)}>Cancel</button>
                     </span>
-                  ) : <button className="btn quiet sm" onClick={() => setDismissing(p.id)}>Dismiss</button>}
+                  ) : <button className="btn quiet sm" title={writeHint()} onClick={() => setDismissing(p.id)}>Dismiss</button>}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
-        ) : <Empty title="Nothing open" icon={CheckSquare} />}
+        ) : <Empty title="Nothing open" icon={CheckSquare} example="Add a rule: Healthcare software, 9% of deals won against 23% for the rest.">A change appears here when the evidence run finds a gap worth acting on.</Empty>}
       </Section>
       {data.decided.length ? (
         <Section title="Decided" count={data.decided.length}>

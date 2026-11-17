@@ -204,7 +204,7 @@ def crawl(client, db_url: str, *, account_pages: int | None = None, log=print) -
     k.actors = [str(i) for i, _ in users]
     k.default_actor = default_actor
 
-    fixed = ["/api/me", "/api/market?by=segment", "/api/market?by=region_group", "/api/evidence", "/api/profile", "/api/changes",
+    fixed = ["/api/me", "/api/start", "/api/market?by=segment", "/api/market?by=region_group", "/api/evidence", "/api/profile", "/api/changes",
              "/api/tests", "/api/territories", "/api/move-proposals", "/api/move-proposals/options", "/api/handoffs",
              "/api/sources", "/api/settings", "/api/profile/rollback-preview", "/api/plans/rollback-preview"]
     fixed += [f"/api/territories?plan={p}" for p in plan_ids]

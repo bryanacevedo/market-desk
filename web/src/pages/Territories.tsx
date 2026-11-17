@@ -1,5 +1,6 @@
 import { ClockCounterClockwise, MapTrifold, Swap, UsersThree } from "@phosphor-icons/react";
-import { Empty, Failed, Fig, Loading, Section, Seg, Status, day, money, n0, navigate, useData, usePath, withParam, T, Tip } from "../lib";
+import { Empty, Failed, Fig, Loading, Section, Seg, Status, day, deskName, money, n0, navigate, useData, usePath, withParam, writeHint, T, Tip } from "../lib";
+import { TIPS } from "../tips";
 import { CapacityRange, PlanShift } from "../parts";
 import { openSheet } from "../sheets";
 import { History } from "../sheets_moves";
@@ -15,11 +16,11 @@ export function Territories() {
   if (error) return <div className="page"><Failed error={error} retry={reload} /></div>;
   if (!data) return <div className="page"><div className="head"><h1>Territories</h1></div><Loading /></div>;
   const plan = data.plan;
-  if (!plan) return <div className="page"><div className="head"><h1>Territories</h1></div><Empty title="No plan yet" /></div>;
+  if (!plan) return <div className="page"><div className="head"><h1>Territories</h1></div><Empty title="No plan yet" example="Active since 2 Jun: 6 people and 1,300 accounts, each with an owner.">A plan gives accounts to people by region and segment.</Empty></div>;
   const canActivate = plan.status === "draft" && me?.user.role === "manager" && me?.user.id !== plan.author_id;
   const activateButton = <div className="actions">
             <button className="btn" disabled={!canActivate}
-              title={canActivate ? undefined : "A manager other than the author activates it"}
+              title={canActivate ? writeHint() : "A manager other than the author activates it"}
               onClick={() => openSheet("activate", plan.id)}>Activate</button>
   </div>;
   return (
@@ -34,8 +35,8 @@ export function Territories() {
         {plan.status === "draft" ? (
           canActivate ? activateButton : <span className="small mute">Waiting for a manager to activate; it is in their Waiting on you</span>
         ) : <span className="actions"><span className="mute small">{plan.status === "active" ? `Active since ${day(plan.restored_at || plan.activated_at)}, by ${plan.activated_by}` : plan.status === "scheduled" ? `Starts ${day(plan.effective_on)}, scheduled by ${plan.activated_by}` : plan.status === "retired" ? "Retired" : ""}</span>
-          {plan.status === "scheduled" && me?.user.role === "manager" ? <button className="btn line sm" onClick={() => openSheet("cancelschedule", plan.id)}>Cancel schedule</button> : null}
-          {plan.status === "active" && plan.replaced && me?.user.role === "manager" ? <button className="btn line sm" onClick={() => openSheet("rollback", "plan")}>Roll back</button> : null}</span>}
+          {plan.status === "scheduled" && me?.user.role === "manager" ? <button className="btn line sm" title={writeHint()} onClick={() => openSheet("cancelschedule", plan.id)}>Cancel schedule</button> : null}
+          {plan.status === "active" && plan.replaced && me?.user.role === "manager" ? <button className="btn line sm" title={writeHint() ?? TIPS["Roll back"]} onClick={() => openSheet("rollback", "plan")}>Roll back</button> : null}</span>}
       </div>
       {tab === "plan" ? <PlanView data={data} proposals={proposals?.proposals || []} active={plan.status === "draft" && activeData?.plan?.id !== plan.id ? activeData : null} money={!!me?.money} /> : <CapacityView data={data} />}
     </div>
@@ -54,7 +55,8 @@ function PlanView({ data, active, proposals, money: showMoney }: { data: any; ac
   const shiftMax = Math.max(1, ...data.people.map(ab), ...[...was.values()]);
   const hmax = hoursMax(data.people);
   const vs = (now: number, then: number | null | undefined) => (then === null || then === undefined ? undefined : `${n0(then)} now, ${now - then >= 0 ? "+" : "−"}${n0(Math.abs(now - then))}`);
-  const cols = (draft ? "minmax(0,1.1fr) minmax(0,1fr) minmax(150px,1fr) minmax(190px,1.2fr)" : "minmax(0,1.1fr) minmax(0,1.1fr) 58px 58px minmax(190px,1.2fr)") + (showMoney ? " 110px 110px" : "");
+  // Each column keeps a width a name fits in; below that the table scrolls sideways instead of cutting names to "Dan...".
+  const cols = (draft ? "minmax(130px,1.1fr) minmax(150px,1fr) minmax(150px,1fr) minmax(190px,1.2fr)" : "minmax(130px,1.1fr) minmax(150px,1.1fr) 52px 52px minmax(190px,1.2fr)") + (showMoney ? " 100px 100px" : "");
   return (
     <>
       <div className="figs">
@@ -82,8 +84,8 @@ function PlanView({ data, active, proposals, money: showMoney }: { data: any; ac
           </div>
         </Section></div>
       ) : null}
-      <Section title="People" icon={UsersThree} right={<span className="small mute">Handoffs exports these books for Account Desk</span>}>
-        <div className="ledger">
+      <Section title="People" icon={UsersThree} right={<span className="small mute">{`Handoffs makes these books into files for ${deskName("account_desk")}`}</span>}>
+        <div className="ledger wrap-cells scroll-x">
           <div className="row head" style={{ gridTemplateColumns: cols }}><T>Person</T><T>Territory</T>{draft ? <T>A and B, hollow: now</T> : <><T num>A</T><span className="num"><Tip tip="Tier B accounts in the person's book.">B</Tip></span></>}<T>Hours needed, of held</T>{showMoney ? <><T num>Expected value</T><T num>Average</T></> : null}</div>
           {data.people.map((p: any) => (
             <button key={p.user_id} className="row" style={{ gridTemplateColumns: cols }} onClick={() => openSheet("person", p.user_id)}>
@@ -98,10 +100,10 @@ function PlanView({ data, active, proposals, money: showMoney }: { data: any; ac
         </div>
       </Section>
       <Section title="Territories" icon={MapTrifold}>
-        <div className="ledger">
-          <div className="row head" style={{ gridTemplateColumns: "minmax(0,1.2fr) minmax(0,1fr) 80px 130px" }}><T>Territory</T><T>People</T><T num>A and B</T><span /></div>
+        <div className="ledger wrap-cells scroll-x">
+          <div className="row head" style={{ gridTemplateColumns: "minmax(140px,1.2fr) minmax(150px,1fr) 70px 130px" }}><T>Territory</T><T>People</T><T num>A and B</T><span /></div>
           {data.territories.map((t: any) => (
-            <div key={t.id} className="row" style={{ gridTemplateColumns: "minmax(0,1.2fr) minmax(0,1fr) 80px 130px" }}>
+            <div key={t.id} className="row" style={{ gridTemplateColumns: "minmax(140px,1.2fr) minmax(150px,1fr) 70px 130px" }}>
               <span className="cell-main"><span className="t">{t.label}</span><span className="s">{t.segments.join(", ")}</span></span>
               <span className="clip">{t.people.map((p: any) => p.name).join(", ")}{t.ae ? <span className="mute">; AE {t.ae}</span> : null}</span>
               <span className="num" data-label="Accounts">{n0(t.accounts)}</span>
@@ -112,8 +114,8 @@ function PlanView({ data, active, proposals, money: showMoney }: { data: any; ac
       </Section>
 
       {plan.status !== "retired" ? (
-        <Section title="Move proposals" icon={Swap} count={proposals.filter((p: any) => p.status === "open").length}
-          right={<button className="btn line sm" onClick={() => openSheet("transfer", "new")}>Propose a move</button>}>
+        <Section title="Move proposals" icon={Swap} count={proposals.filter((p: any) => p.status === "open").length} countLabel="open"
+          right={<button className="btn line sm" title={writeHint()} onClick={() => openSheet("transfer", "new")}>Propose a move</button>}>
           {proposals.length ? <div className="ledger">
             <div className="row head" style={{ gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1fr) 110px 100px" }}><T>Move</T><T>Reason</T><T>Effective</T><T>Status</T></div>
             {proposals.map((m: any) => (
@@ -124,7 +126,7 @@ function PlanView({ data, active, proposals, money: showMoney }: { data: any; ac
                 <Status kind={m.status === "open" ? "wait" : m.status === "approved" ? "ok" : "off"}>{m.status === "open" ? "Open" : m.status === "approved" ? "Approved" : "Rejected"}</Status>
               </button>
             ))}
-          </div> : <Empty title="No proposals" />}
+          </div> : <Empty title="No proposals" example="3 accounts to a named person from a date, with a reason.">A proposal moves chosen accounts to another person from a date; a second person approves it.</Empty>}
         </Section>
       ) : null}
 
@@ -133,7 +135,7 @@ function PlanView({ data, active, proposals, money: showMoney }: { data: any; ac
           <div className="ledger">
             {data.manual.map((m: any) => (
               <button key={m.company} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) minmax(0,1.6fr)" }} onClick={() => openSheet("move", `${plan.id}-${m.company}`)}>
-                <span className="cell-main"><span className="t">{m.name}</span><span className="s">{m.moved_from} to {m.owner}</span></span>
+                <span className="cell-main"><span className="t">{m.name}</span><span className="s">{m.moved_from || "Unassigned"} to {m.owner}{m.by_name ? `, by ${m.by_name}` : ""}{m.moved_at ? `, ${day(m.moved_at)}` : ""}</span></span>
                 <span className="said-quote">{m.note}</span>
               </button>
             ))}

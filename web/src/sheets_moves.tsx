@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { X } from "@phosphor-icons/react";
 import { api } from "./api";
-import { Empty, Fig, Section, Seg, Status, day, n0, navigate, toast, useBusy, useData, T } from "./lib";
+import { Empty, Fig, Loading, Section, Seg, Status, day, n0, navigate, toast, useBusy, useData, writeHint, deskName, T } from "./lib";
 import { Tier } from "./parts";
 import { Frame, Title, Wrap, closeSheet, openSheet } from "./sheets";
 
@@ -30,7 +30,7 @@ const tierMoves = (rows: any[]) => rows.length ? (
 function Foot({ busy, label, ok, onGo }: { busy: boolean; label: string; ok: boolean; onGo: () => void }) {
   return <>
     <button className="btn quiet" onClick={closeSheet}>Cancel</button>
-    <button className="btn" disabled={busy || !ok} onClick={onGo}>{label}</button>
+    <button className="btn" disabled={busy || !ok} title={writeHint()} onClick={onGo}>{label}</button>
   </>;
 }
 
@@ -69,10 +69,37 @@ export function CancelScheduleSheet() {
 
 export function PublishSheet({ id }: { id: string }) {
   const [busy, run] = useBusy();
+  const [published, setPublished] = useState<number | null>(null);
+  const [made, setMade] = useState(false);
+  const me = useData<any>("/api/me").data;
+  if (published !== null) {
+    // Decision 67: after a publish the desk asks, once, whether to make the new files now. It never does it by itself, and only RevOps
+    // makes files, so a manager who published is told it is waiting for RevOps.
+    const revops = me?.user?.role === "revops";
+    return (
+      <Frame kind="publish" foot={<>
+        <button className="btn quiet" onClick={closeSheet}>{made || !revops ? "Close" : "Not now"}</button>
+        {made ? <button className="btn" onClick={() => { closeSheet(); navigate("/handoffs"); }}>Open Handoffs</button>
+          : revops ? <button className="btn" disabled={busy} title={writeHint()} onClick={() => run(async () => {
+            await api("/api/books", { method: "POST", body: { destination: "account_desk" } });
+            await api("/api/books", { method: "POST", body: { destination: "events_desk" } });
+            setMade(true);
+          }, "Both files written.")}>Make both files now</button> : null}
+      </>}>
+        <Title sub="Every company is rescored.">Version {published} is published</Title>
+        <h3 className="ask">Send new books now?</h3>
+        <div className="small">{made
+          ? `The files for ${deskName("account_desk")} and ${deskName("events_desk")} use version ${published}. They are on Handoffs to download.`
+          : revops
+            ? `The files for ${deskName("account_desk")} and ${deskName("events_desk")} still use the version before. Nothing goes out by itself: this makes both files from version ${published}, and you download and pass them on from Handoffs.`
+            : `The files for ${deskName("account_desk")} and ${deskName("events_desk")} still use the version before. RevOps makes the new files; it shows under their Waiting on you. Nothing goes out by itself.`}</div>
+      </Frame>
+    );
+  }
   return (
     <Wrap kind="publish" path={`/api/profile/versions/${id}/publish-preview`}>{(p) => (
       <Frame kind="publish" foot={<Foot busy={busy} label="Publish" ok={p.can_publish}
-        onGo={() => run(async () => { await api(`/api/profile/versions/${p.id}/publish`, { method: "POST" }); closeSheet(); }, "Published. Every company is being rescored.")} />}>
+        onGo={() => run(async () => { await api(`/api/profile/versions/${p.id}/publish`, { method: "POST" }); setPublished(p.number); }, "Published. Every company is being rescored.")} />}>
         <Title sub={`Replaces version ${p.replaces}`}>Publish version {p.number}</Title>
         {!p.can_publish ? <Status kind="stop">{p.status === "draft" ? "A manager other than the author publishes it" : "Only a draft can be published"}</Status> : null}
         <div className="figs">
@@ -161,8 +188,13 @@ function NewTransfer({ first }: { first: number | null }) {
       .then((r) => { if (live) setMatch(r); }).catch(() => { if (live) setMatch(null); });
     return () => { live = false; };
   }, [mode, src, to]);
+  // Opened from an account: that account is already chosen. If the plan in effect does not hold it, say so instead of an empty list.
+  const [carried, setCarried] = useState<"none" | "loading" | "yes" | "not_in_plan" | "failed">(first ? "loading" : "none");
   useEffect(() => {
-    if (first) api<any>(`/api/move-proposals/candidates?only=${first}`).then((r) => setPicked(r.accounts)).catch(() => undefined);
+    if (!first) return;
+    api<any>(`/api/move-proposals/candidates?only=${first}`)
+      .then((r) => { setPicked(r.accounts); setCarried(r.accounts.length ? "yes" : "not_in_plan"); })
+      .catch(() => setCarried("failed"));
   }, [first]);
   useEffect(() => {
     if (q.trim().length < 2) { setFound([]); return; }
@@ -256,7 +288,10 @@ function NewTransfer({ first }: { first: number | null }) {
               <button className="iconbtn" aria-label={`Remove ${a.name}`} onClick={() => setPicked((x) => x.filter((y) => y.id !== a.id))}><X size={16} /></button>
             </div>
           ))}
-        </div> : <Empty title="No accounts chosen" />}
+        </div> : carried === "loading" ? <Loading rows={1} /> : carried === "not_in_plan"
+          ? <Empty title="This account is not in the plan in effect">Only accounts the plan in effect gives to someone can be moved. Find another account by name below.</Empty>
+          : carried === "failed" ? <Empty title="The account could not be added from here">Find it by name below.</Empty>
+          : <Empty title="No accounts chosen" example="Find an account by name or domain, or add everything one person owns.">Moves are proposed for the accounts listed here.</Empty>}
         {clash ? <Status kind="stop">{`${n0(clash)} already belong to this person`}</Status> : null}
       </Section>}
     </Frame>

@@ -3,7 +3,7 @@ roles that may not see company money (docs/SPEC.md 3)."""
 from __future__ import annotations
 
 from .. import catalog as C
-from .. import crm, db, fit, handoff, profiles, proposals, tests_seg
+from .. import crm, db, fit, handoff, names, profiles, proposals, tests_seg
 from .. import territories as terr
 from ..evidence import rule_label
 
@@ -22,6 +22,22 @@ def strip(obj, allowed: bool):
     if isinstance(obj, list):
         return [strip(x, allowed) for x in obj]
     return obj
+
+
+CUSTOMER_REASONS = {"existing_owner", "customer_team", "open_deal"}
+
+
+def _plain_dropped(rows):
+    return [{**d, "why": names.say(d["why"])} for d in rows or []]
+
+
+def owner_source(reason: str | None) -> str:
+    """Where an owner comes from (decision 66): the plan for a prospect, customer records for a customer or an open deal."""
+    return names.desk_names()["crm_desk"] if reason in CUSTOMER_REASONS else "the territory plan"
+
+
+def _seat(role: str | None) -> str | None:
+    return {"sdr": "SDR", "ae": "AE"}.get(role or "")
 
 
 def _published(cur) -> dict:
@@ -131,7 +147,9 @@ def evidence(cur, allowed: bool) -> dict:
         changes = db.all(cur, """select f.id, f.trait, f.value_label, f.verdict, p.verdict as was from findings f
                                  left join findings p on p.run = %s and p.trait = f.trait and p.value = f.value
                                  where f.run = %s and (p.id is null or p.verdict <> f.verdict)""", prev, run["id"])
-    return strip({"run": {"id": run["id"], "ran_at": run["ran_at"], "deals": run["deals_considered"],
+    took = db.val(cur, """select (detail->>'seconds')::numeric from audit_log where action = 'evidence_run' and object_id = %s::text
+                          order by id desc limit 1""", run["id"])
+    return strip({"run": {"id": run["id"], "ran_at": run["ran_at"], "deals": run["deals_considered"], "seconds": took and float(took),
                           "tested": run["tests_run"], "window_start": run["window_start"], "window_end": run["window_end"]},
                   "rows": [finding_row(f) for f in rows], "changes": changes,
                   "traits": sorted({(r["trait"], C.FIELD_LABEL.get(r["trait"], "Rule")) for r in rows})}, allowed)
@@ -308,7 +326,7 @@ def version(cur, vid: int, u: dict) -> dict | None:
             "other_drafts": other_drafts,
             "can_publish": v["status"] == "draft" and u["role"] == "manager" and v["author"] != u["id"],
             "is_author": v["author"] == u["id"],
-            "dropped": handoff.compile_for_account_desk(v["rules"])[1]}
+            "dropped": _plain_dropped(handoff.compile_for_account_desk(v["rules"])[1])}
 
 
 # ---------------------------------------------------------------- Accounts and companies
@@ -369,13 +387,15 @@ def accounts(cur, u: dict, *, q: str, tier: str, segment: str, owner: str, page:
     rows = db.all(cur, """select c.id, c.name, c.primary_domain, c.lifecycle, c.employees, c.region_group, c.region,
                           coalesce(c.industry, (select v.value #>> '{}' from field_values v where v.company = c.id
                                                 and v.field = 'industry' and v.source = 'model' limit 1)) as industry,
-                          f.tier, f.judged, f.score, f.scored_out_of, f.segment, u.name as owner, a.reason_code,
+                          f.tier, f.judged, f.score, f.scored_out_of, f.segment, u.name as owner, u.role as owner_role, a.reason_code,
                           (select r.meetings from desk_results r where r.company = c.id order by r.period_end desc limit 1) as last_meetings,
                           (select r.destination from desk_results r where r.company = c.id order by r.period_end desc limit 1) as last_dest
                           """ + sql + " order by f.judged desc, f.score desc nulls last, c.name limit %s offset %s",
                    pub["id"], plan, *args, PAGE, (page - 1) * PAGE)
     for r in rows:
         r["segment_label"] = C.SEGMENT_LABEL.get(r["segment"], r["segment"])
+        r["owner_seat"] = _seat(r["owner_role"]) if r["owner"] else None
+        r["owner_source"] = owner_source(r["reason_code"]) if r["owner"] else None
         # A tier A prospect in our regions that nobody has hours for (SPEC 7: shown, never demoted).
         r["over_capacity"] = (r["tier"] == "A" and r["judged"] and r["lifecycle"] == "prospect" and not r["owner"]
                               and r["region"] in C.SERVED_REGIONS)
@@ -393,7 +413,7 @@ def company(cur, cid: int, u: dict, allowed: bool | None = None) -> dict | None:
     if not c:
         return None
     plan = _active_plan(cur)
-    a = db.one(cur, """select a.*, u.name as owner_name, m.name as moved_from_name from assignments a left join users u on u.id = a.owner
+    a = db.one(cur, """select a.*, u.name as owner_name, u.role as owner_role, m.name as moved_from_name from assignments a left join users u on u.id = a.owner
                        left join users m on m.id = a.moved_from where a.plan = %s and a.company = %s""", plan, cid)
     if allowed is None:
         allowed = u["role"] in ("revops", "manager")
@@ -438,9 +458,23 @@ def company(cur, cid: int, u: dict, allowed: bool | None = None) -> dict | None:
                                                         "segment": cur_fit["segment"], "segment_label": C.SEGMENT_LABEL.get(cur_fit["segment"]),
                                                         "breakdown": breakdown, "version": pub["number"]},
                   "history": history, "coming": _coming(cur, [cid]).get(cid, []), "owner": a and {"name": a["owner_name"], "id": a["owner"], "reason": a["reason_code"],
-                                                      "note": a["note"], "moved_from": a["moved_from_name"]},
+                                                      "note": a["note"], "moved_from": a["moved_from_name"],
+                                                      "seat": _seat(a["owner_role"]) if a["owner"] else None,
+                                                      "source": owner_source(a["reason_code"])},
+                  "draft_owner": _draft_owner(cur, cid, a),
                   "owner_changes": owner_changes, "hand_owner": _hand_owner(cur, cid, a, u),
                   "deals": deals, "results": results, "tests": tests}, allowed)
+
+
+def _draft_owner(cur, cid: int, a: dict | None) -> dict | None:
+    """The owner the newest draft plan would give this account (decision 69), shown last and marked draft. None when no draft
+    plan holds the account or it gives the same person."""
+    d = db.one(cur, """select p.id, p.name, x.owner, u.name as owner_name, u.role as owner_role from territory_plans p
+                       join assignments x on x.plan = p.id and x.company = %s left join users u on u.id = x.owner
+                       where p.status = 'draft' order by p.id desc limit 1""", cid)
+    if not d or d["owner"] == (a or {}).get("owner"):
+        return None
+    return {"plan": d["name"], "name": d["owner_name"], "seat": _seat(d["owner_role"]) if d["owner"] else None}
 
 
 def _hand_owner(cur, cid: int, a: dict | None, u: dict) -> dict | None:
@@ -507,8 +541,11 @@ def territories(cur, plan_id: int | None, allowed: bool) -> dict:
         p["ev_mean"] = t["ev_mean"] if t else None
     gap = terr.hiring_gap(cur, plan_id)
     ch = terr.what_changes(cur, plan_id) if plan["status"] == "draft" else None
-    manual = db.all(cur, """select a.company, c.name, a.note, u.name as owner, m.name as moved_from from assignments a
-                            join companies c on c.id = a.company left join users u on u.id = a.owner left join users m on m.id = a.moved_from
+    manual = db.all(cur, """select a.company, c.name, a.note, u.name as owner, m.name as moved_from, x.name as by_name,
+                            (select max(l.at) from audit_log l where l.action = 'manual_move' and l.object_kind = 'company'
+                             and l.object_id = a.company::text and (l.detail->>'plan')::int = a.plan) as moved_at
+                            from assignments a join companies c on c.id = a.company left join users u on u.id = a.owner
+                            left join users m on m.id = a.moved_from left join users x on x.id = a.created_by
                             where a.plan = %s and a.reason_code = 'manual'""", plan_id)
     s = {r["key"]: r for r in db.all(cur, "select key, value, note from settings")}
     pub = _published(cur)
@@ -615,6 +652,29 @@ def changes(cur) -> dict:
             "new_draft_starts_from": (proposals.open_draft(cur) or {}).get("number")}
 
 
+def books_behind(cur) -> list[dict]:
+    """The destinations whose newest file was made from a profile version other than the published one: after a publish the files
+    are behind until RevOps makes new ones (decision 67). Nothing is made by itself. Empty when no file was ever made."""
+    pub = _published(cur)["number"]
+    return [r for r in db.all(cur, """select distinct on (b.destination) b.destination, v.number as made_from from target_books b
+                                      join icp_versions v on v.id = b.icp_version order by b.destination, b.created_at desc, b.id desc""")
+            if r["made_from"] != pub]
+
+
+def start(cur) -> dict:
+    """The one moment worth seeing first: of the findings behind the open changes, the one whose win rate differs most from the
+    rest of the deals. It is where the first screen and Changes point a visitor. None when nothing open rests on a clear finding."""
+    row = db.one(cur, """select f.id, f.trait, f.value_label, f.opps, f.win_rate, f.rest_wins, f.rest_opps
+                         from change_proposals p, lateral jsonb_array_elements_text(coalesce(p.evidence->'finding_ids', '[]'::jsonb)) x(fid)
+                         join findings f on f.id = x.fid::int
+                         where p.status = 'open' and f.trait <> 'rule' and f.verdict in ('clear_higher', 'clear_lower') and f.rest_opps > 0
+                         order by abs(f.diff) desc, f.opps desc limit 1""")
+    if not row:
+        return {"best": None}
+    return {"best": {"id": row["id"], "label": row["value_label"], "trait": C.FIELD_LABEL.get(row["trait"], row["trait"]),
+                     "rate": float(row["win_rate"]), "rest_rate": row["rest_wins"] / row["rest_opps"], "opps": row["opps"]}}
+
+
 def proposal(cur, pid: int) -> dict | None:
     p = db.one(cur, """select p.*, u.name as decided_by_name, v.number as draft_number from change_proposals p
                        left join users u on u.id = p.decided_by left join icp_versions v on v.id = p.draft_version where p.id = %s""", pid)
@@ -641,6 +701,10 @@ def handoffs(cur, allowed: bool) -> dict:
                             from desk_results where destination = 'events_desk'""")
     drafts = db.all(cur, "select id, number from icp_versions where status = 'draft' order by number")
     previews = [handoff.preview(cur, d["id"]) | {"id": d["id"]} for d in drafts]
+    for p in previews:
+        p["dropped_rules"] = _plain_dropped(p["dropped_rules"])
+    for b in books:
+        b["dropped_rules"] = _plain_dropped(b["dropped_rules"])
     pub = _published(cur)
     plan = db.val(cur, "select name from territory_plans where status = 'active'")
     return strip({"books": books, "events": events, "previews": previews, "crm": crm_desk(cur),
@@ -659,11 +723,14 @@ def crm_desk(cur) -> dict | None:
         r["proposed_name"] = (db.val(cur, "select name from users where email = %s", r["proposed"]) if isinstance(r["proposed"], str) else None) or r["proposed"]
         r["what"] = {"sdr_owner_id": "SDR", "owner_id": "Owner", "mqa_at": "Marketing qualified", "mqa_points": "Engagement points",
                      "mqa_people": "People engaged"}.get(r["field"], r["field"])
-        r["why"] = {"owner_pinned": "A manager pinned it in CRM Desk",
+        r["why"] = names.say({"owner_pinned": "A manager pinned it in CRM Desk",
                     "kept_value_a_person_entered": "Someone in CRM Desk entered a different value",
                     "computed_by_crm_desk": "CRM Desk decides marketing qualified itself until it is set to follow this desk"
-                    }.get(r["reason"], "CRM Desk kept its own value")
+                    }.get(r["reason"], "CRM Desk kept its own value"))
+    for f in s.get("failed") or []:
+        f["last_error"] = names.say(f.get("last_error"))
     for e in s["errors"]:
+        e["error"] = names.say(e.get("error"))
         c = db.one(cur, "select id, name from companies where primary_domain = %s", e["domain"])
         e["company"], e["name"] = (c["id"], c["name"]) if c else (None, e["domain"])
     from .. import mqa
@@ -686,7 +753,7 @@ def book(cur, bid: int, allowed: bool) -> dict | None:
     if b["destination"] == "events_desk":
         md = bytes(db.val(cur, "select bytes from target_book_files where book = %s and path = 'icp.md'", bid)).decode()
     return strip({**{k: b[k] for k in ("id", "version", "destination", "created_at", "rows", "dropped_rules", "diff", "icp_number",
-                                       "plan_name", "file_sha256")}, "files": files, "sample": rows, "markdown": md}, allowed)
+                                       "plan_name", "file_sha256")}, "dropped_rules": _plain_dropped(b["dropped_rules"]), "files": files, "sample": rows, "markdown": md}, allowed)
 
 
 # ---------------------------------------------------------------- Sources, Settings
@@ -713,7 +780,14 @@ def source(cur, key: str, allowed: bool) -> dict | None:
     if not s:
         return None
     runs = db.all(cur, "select * from source_runs where source = %s order by started_at desc limit 10", key)
-    return strip({**s, "runs": runs}, allowed)
+    # What reads this source (S5 review): the fields it fills, and the published rules and tiers that use those fields.
+    fills = db.all(cur, """select field, count(distinct company) as n from field_values where source = %s group by field order by field""", key)
+    fields = {f["field"] for f in fills}
+    pub = _published(cur)
+    uses = [rule_label(r) for _k, r in profiles.all_rules(pub["rules"]) if r.get("field") in fields]
+    depends = {"fields": [{"field": C.FIELD_LABEL.get(f["field"], f["field"]), "n": f["n"]} for f in fills], "rules": uses,
+               "tiers": bool(uses), "version": pub["number"]}
+    return strip({**s, "runs": runs, "depends": depends}, allowed)
 
 
 

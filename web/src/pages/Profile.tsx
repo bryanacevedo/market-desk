@@ -1,5 +1,6 @@
 import { ClockCounterClockwise, ListChecks, PencilSimpleLine, Scales } from "@phosphor-icons/react";
-import { Bar, Empty, Failed, Fig, Loading, Section, Status, day, n0, useData, T } from "../lib";
+import { Bar, Empty, Failed, Fig, Loading, Section, Status, day, deskName, n0, useData, writeHint, T } from "../lib";
+import { TIPS } from "../tips";
 import { Verdict } from "../parts";
 import { openSheet } from "../sheets";
 import { History } from "../sheets_moves";
@@ -18,7 +19,7 @@ export function RuleRows({ rules }: { rules: any[] }) {
               <button key={r.key} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) 56px 170px" }}
                 onClick={() => r.finding && openSheet("finding", r.finding.id)} disabled={!r.finding}>
                 <span className="cell-main"><span className="t">{r.label}</span>{r.reason ? <span className="s">{r.reason}</span> : null}
-                  {!r.travels ? <span className="s">Not sent to Account Desk</span> : null}</span>
+                  {!r.travels ? <span className="s">{`Not sent to ${deskName("account_desk")}`}</span> : null}</span>
                 <span className="num">{r.weight === null || r.weight === undefined ? "" : k === "penalties" ? `−${r.weight}` : r.weight}</span>
                 {r.finding ? <Verdict v={r.finding.verdict} /> : <Status kind="none">Hypothesis</Status>}
               </button>
@@ -80,7 +81,7 @@ export function Profile() {
   const p = data.published;
   return (
     <div className="page">
-      <div className="head"><h1>ICP</h1>{data.can_roll_back ? <button className="btn line" onClick={() => openSheet("rollback", "icp")}>Roll back</button> : null}</div>
+      <div className="head"><div><h1>ICP</h1><div className="sub">Ideal customer profile: the rules that score how well a company fits what you sell.</div></div>{data.can_roll_back ? <button className="btn line" title={writeHint() ?? TIPS["Roll back"]} onClick={() => openSheet("rollback", "icp")}>Roll back</button> : null}</div>
       <div className="figs">
         <Fig value={`v${p.number}`} label="Published" />
         <Fig value={day(p.published_at)} label="Since" />
@@ -92,14 +93,14 @@ export function Profile() {
         <div key={d.id} className="halo"><Section title={`Draft v${d.number}`} icon={PencilSimpleLine}
           right={<div className="actions">
             <button className="btn line sm" onClick={() => openSheet("version", d.id)}>Open</button>
-            {d.can_publish ? <button className="btn sm" onClick={() => openSheet("publish", d.id)}>Publish</button> : null}
+            {d.can_publish ? <button className="btn sm" title={writeHint()} onClick={() => openSheet("publish", d.id)}>Publish</button> : null}
           </div>}>
           <div className="small mute">{d.note}</div>
           {!d.can_publish ? <div className="small">A manager other than {d.author} publishes</div> : null}
           <Moves id={d.id} />
         </Section></div>
       ))}
-      {!data.drafts.length ? <Empty title="No draft" icon={Scales} /> : null}
+      {!data.drafts.length ? <Empty title="No draft" icon={Scales} example="Draft v4: usage pricing added, a penalty for 2,000 to 4,999 employees.">A draft is a changed copy of the profile that a second person publishes. Make one from Changes.</Empty> : null}
       <Section title="Published" icon={ListChecks}><RuleRows rules={p.rules} /></Section>
       <Section title="Versions" icon={ClockCounterClockwise}>
         <div className="ledger">
