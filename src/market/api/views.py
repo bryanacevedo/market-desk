@@ -258,7 +258,16 @@ def version(cur, vid: int, u: dict) -> dict | None:
                        left join users p on p.id = v.published_by where v.id = %s""", vid)
     if not v:
         return None
-    prev = db.one(cur, "select rules from icp_versions where number = %s", v["number"] - 1)
+    # A draft is built on the published version (proposals.make_draft), so it is compared with that one. A published or retired
+    # version is compared with the one it replaced when that is recorded, else with the number before.
+    if v["status"] == "draft":
+        prev = db.one(cur, "select number, rules from icp_versions where status = 'published'")
+    elif v["replaced"]:
+        prev = db.one(cur, "select number, rules from icp_versions where id = %s", v["replaced"])
+    else:
+        prev = db.one(cur, "select number, rules from icp_versions where number = %s", v["number"] - 1)
+    other_drafts = [d["number"] for d in db.all(cur, "select number from icp_versions where status = 'draft' and id <> %s order by number", vid)] \
+        if v["status"] == "draft" else []
     diff = []
     if prev:
         old = {(k, r["key"]): rule_label(r) for k, r in profiles.all_rules(prev["rules"])}
@@ -277,7 +286,8 @@ def version(cur, vid: int, u: dict) -> dict | None:
                 diff.append({"change": "Reweighted", "kind": k, "rule": rule_label(r), "was": str(oldw[r["key"]])})
     return {"id": v["id"], "number": v["number"], "status": v["status"], "note": v["note"], "author": v["author_name"],
             "publisher": v["publisher"], "created_at": v["created_at"], "published_at": v["published_at"],
-            "tiers": v["rules"]["tiers"], "rules": _rules_view(cur, v["rules"]), "diff": diff,
+            "tiers": v["rules"]["tiers"], "rules": _rules_view(cur, v["rules"]), "diff": diff, "diff_base": prev["number"] if prev else None,
+            "other_drafts": other_drafts,
             "can_publish": v["status"] == "draft" and u["role"] == "manager" and v["author"] != u["id"],
             "is_author": v["author"] == u["id"],
             "dropped": handoff.compile_for_account_desk(v["rules"])[1]}
@@ -456,7 +466,8 @@ def territories(cur, plan_id: int | None, allowed: bool) -> dict:
                              and f.tier = 'A' and f.judged and c.lifecycle = 'prospect' and c.region = any(%s)""", pub["id"], C.SERVED_REGIONS)
     if ch:
         people_ids = sorted(set(ch["gains"]) | set(ch["losses"]), key=lambda k: names[k])
-        ch = {"changes": ch["changes"], "crossing": len(ch["crossing"]),
+        ch = {"changes": ch["changes"], "owner_changes": ch["owner_changes"], "newly_assigned": ch["newly_assigned"],
+              "newly_unassigned": ch["newly_unassigned"], "crossing": len(ch["crossing"]),
               "people": [{"name": names[k], "gains": ch["gains"].get(k, 0), "losses": ch["losses"].get(k, 0)} for k in people_ids]}
     hist = history(cur, ("plan_activated", "plan_rolled_back"))
     return strip({"plans": plans, "plan": plan, "history": hist, "people": people, "territories": terrs, "gap": gap, "changes": ch,
@@ -548,7 +559,8 @@ def changes(cur) -> dict:
                           left join users u on u.id = p.decided_by left join icp_versions v on v.id = p.draft_version
                           order by case p.status when 'open' then 0 else 1 end, p.id""")
     return {"open": [_proposal_row(cur, p) for p in rows if p["status"] == "open"],
-            "decided": [_proposal_row(cur, p) for p in rows if p["status"] != "open"]}
+            "decided": [_proposal_row(cur, p) for p in rows if p["status"] != "open"],
+            "open_drafts": [r["number"] for r in db.all(cur, "select number from icp_versions where status = 'draft' order by number")]}
 
 
 def proposal(cur, pid: int) -> dict | None:
@@ -577,7 +589,10 @@ def handoffs(cur, allowed: bool) -> dict:
                             from desk_results where destination = 'events_desk'""")
     drafts = db.all(cur, "select id, number from icp_versions where status = 'draft' order by number")
     previews = [handoff.preview(cur, d["id"]) | {"id": d["id"]} for d in drafts]
-    return strip({"books": books, "events": events, "previews": previews, "crm": crm_desk(cur)}, allowed)
+    pub = _published(cur)
+    plan = db.val(cur, "select name from territory_plans where status = 'active'")
+    return strip({"books": books, "events": events, "previews": previews, "crm": crm_desk(cur),
+                  "next": {"profile": pub["number"], "plan": plan}}, allowed)
 
 
 def crm_desk(cur) -> dict | None:

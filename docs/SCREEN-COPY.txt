@@ -10,7 +10,9 @@ A company fact we test against win rate, such as industry, size or technology.
 A company with this score or more is tier A.
 A company with this score or more, below the A cutoff, is tier B.
 A draft is a new ICP version: tick the changes to put in it, then Make a draft
+A manager other than # publishes it. It shows in their Waiting on you.
 A manager other than the author publishes it
+A new draft starts from the published version, not from an open draft, so it leaves out the open draft's changes.
 A rule needs at least this many deals behind an unclear verdict before Changes proposes dropping it.
 A rule of the published ICP, tested like any trait: deals that match it against deals that do not.
 A segment's planning win rate is pulled toward the overall rate as if it had this many more deals at the overall rate.
@@ -20,6 +22,7 @@ A trait value needs at least this many wins before it gets a verdict.
 Account Desk has no field for this rule, so its book leaves it out and lists it.
 Accounts RevOps moved outside the territory rules, each with a note.
 Accounts dropped since the version before.
+Accounts gain or lose an owner
 Accounts in a test deliberately not worked, so meetings can be compared.
 Accounts in the file: tier A and B prospects in the plan on the day it was made. Customers, open deals and held-back test accounts are left out, so it can be a few under the plan's count.
 Accounts in the plan's regions
@@ -32,7 +35,7 @@ Accounts the person would lose.
 Accounts the plan can work
 Accounts whose owner changed since the version before.
 Accounts whose tier changed since the version before.
-Add all of one person's
+Add every account a person owns
 An ICP version no longer in use.
 At meeting rates this low, more accounts, or more time, are needed before a difference can be read.
 Band: from the low estimate to the high one
@@ -47,6 +50,7 @@ Companies in our data, excluding competitors.
 Companies that match the filters. One-person businesses are never listed, so this is a few under the count on Market.
 Companies that score as a strong (A) or good (B) fit under the published ICP.
 Companies whose tier would change if this draft were published.
+Companies whose tier would change under this version.
 Days from opening to winning, on won deals only.
 Deals before a rule is proposed for removal
 Deals closed in this many months count as evidence.
@@ -58,6 +62,7 @@ Every other deal with a known value for the same trait.
 Extra SDRs at full hours it would take to work every unassigned A and B account in the plan's regions.
 Fewer than 30 deals or 5 wins.
 Fewer than 30 opportunities or 5 wins.
+Findings whose verdict is new or different from the run before this one.
 Handoffs exports these books for Account Desk
 Hollow tick: every other deal
 Hollow tick: every other deal, or the held-back accounts
@@ -90,6 +95,7 @@ Meeting rate, worked vs held back
 Meetings booked with these accounts.
 Months an account is worked
 Moves to # from #
+New files use profile v##
 No CRM is set, so nothing is sent.
 No evidence behind this rule yet.
 No results back from Account Desk yet
@@ -128,6 +134,7 @@ The account's tier under each ICP version, newest last.
 The active plan's accounts go back to CRM Desk with the earlier version's tier. Owners are not sent.
 The average expected value of everyone in the person's territory. Balanced means each person is within 15% of it. AEs mostly hold customers and open deals, so their figures are small.
 The buyers' own words from call notes, with a short summary.
+The day owners change, once a manager approves the move and activates the plan it makes.
 The difference could be chance.
 The difference goes away within each company size band.
 The draft rates churned customers A as often as current ones, which a good ICP should not do.
@@ -136,6 +143,7 @@ The loss reason coded from the rep's note.
 The middle half of won-deal cycles.
 The part of TAM in our regions whose buyer a contact source can find. Same low and high ends as TAM.
 The plan starts #. Owners change on that date.
+The reason the account has this owner, or the reason given for a decision.
 The same comparison inside each company size band. If the gap disappears here, size explains it.
 The segment's win rate pulled toward the overall rate, as if it had 20 more deals at the overall rate, so a few lucky deals do not carry the plan.
 The territory's average expected value per person.
@@ -154,7 +162,8 @@ Tier A and B companies in our regions whose buyer a contact source can find. Thi
 Too few accounts to read a difference yet.
 Trait values whose win rate is clearly higher or clearly lower than the rest.
 Value of the deals opened.
-Waiting for a manager to activate
+Values CRM Desk kept its own version of instead of taking ours.
+Waiting for a manager to decide
 What Account Desk last reported for the account: a meeting booked or not.
 What Account Desk or Events Desk reported back for this account.
 What CRM Desk already took stays there until the earlier plan is sent over it. Owners pinned there stay as they are.
@@ -163,8 +172,12 @@ What the active plan's people can work in 12 months, times the share that become
 What the active plan's people can work in 12 months, times the share that becomes a deal, times the win rate, times deal size. Low end uses the low rates, high end the high ones.
 What the evidence says about this trait: clearly higher, clearly lower, explained by size, not clear, or too few to tell.
 What the person's book should win in 12 months: for each account, the chance it becomes a deal and is won, times deal size, weighted by how well it fits, added up.
+What the source cost this month: rows read times its price per row. Free sources show Free.
+What the source's terms let us do with its data.
 When the rescore finishes, the active plan's accounts go to CRM Desk with their new tier. Owners are not sent, so pins there stay as they are.
+When the source last finished a run, or when the evidence was last computed.
 Whether worked accounts booked meetings clearly more often than held-back ones.
+Who owns the account under the plan in effect now.
 Who took part in won deals, and who signed.
 Who works the account in the active plan, and why: a territory rule, a segment test, a hand move, or an existing customer or deal.
 Why it was lost, top reasons

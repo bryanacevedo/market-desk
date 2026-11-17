@@ -18,6 +18,7 @@ export function Handoffs() {
     <div className="page">
       <div className="head">
         <h1>Handoffs</h1>
+        {revops && data.next ? <span className="small mute">New files use profile v{data.next.profile}{data.next.plan ? ` and ${data.next.plan}` : ""}</span> : null}
         {revops ? (
           <div className="actions">
             <button className="btn line" disabled={busy} onClick={() => run(() => api("/api/books", { method: "POST", body: { destination: "events_desk" } }), "Events Desk file written.")}>New Events Desk file</button>

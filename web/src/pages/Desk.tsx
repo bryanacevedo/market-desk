@@ -17,6 +17,7 @@ export function Sources() {
   return (
     <div className="page">
       <div className="head"><h1>Sources</h1></div>
+      {(data.alerts || []).map((a: any) => <div key={a.id} className="notice"><Status kind="hold">{a.title}</Status>{a.body}</div>)}
       <div className="ledger">
         <div className="row head" style={{ gridTemplateColumns: cols }}><T>Source</T><T>Kind</T><T>Last run</T><T>Fields filled</T><T num>This month</T></div>
         {data.rows.map((s: any) => (

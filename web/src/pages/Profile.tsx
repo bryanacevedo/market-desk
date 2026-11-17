@@ -40,6 +40,7 @@ export function Moves({ id }: { id: number }) {
       <Section title="What moves" count={data.total}>
         <div className="bars">
           {data.moves.slice(0, 8).map((m: any) => <Bar key={`${m.from}${m.to}`} label={`${m.from} to ${m.to}`} value={m.count} of={max} />)}
+          {data.moves.length > 8 ? <Bar label="Other moves" value={data.moves.slice(8).reduce((n: number, m: any) => n + m.count, 0)} of={max} tone="soft" /> : null}
         </div>
         <div className="ledger" style={{ marginTop: 12 }}>
           <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) auto" }}><T>By segment</T><T num>Companies changing tier</T></div>

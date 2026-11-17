@@ -32,7 +32,7 @@ export function Territories() {
         <Seg label="Plan" value={String(plan.id)} options={data.plans.filter((p: any) => p.status !== "retired").map((p: any) => [String(p.id), `${p.name}${p.status === "draft" ? ", draft" : p.status === "scheduled" ? ", scheduled" : ""}`])}
           onChange={(v) => navigate(withParam("plan", v), true)} />
         {plan.status === "draft" ? (
-          canActivate ? activateButton : <span className="small mute">Waiting for a manager to activate</span>
+          canActivate ? activateButton : <span className="small mute">Waiting for a manager to activate; it is in their Waiting on you</span>
         ) : <span className="actions"><span className="mute small">{plan.status === "active" ? `Active since ${day(plan.restored_at || plan.activated_at)}, by ${plan.activated_by}` : plan.status === "scheduled" ? `Starts ${day(plan.effective_on)}, scheduled by ${plan.activated_by}` : plan.status === "retired" ? "Retired" : ""}</span>
           {plan.status === "scheduled" && me?.user.role === "manager" ? <button className="btn line sm" onClick={() => openSheet("cancelschedule", plan.id)}>Cancel schedule</button> : null}
           {plan.status === "active" && plan.replaced && me?.user.role === "manager" ? <button className="btn line sm" onClick={() => openSheet("rollback", "plan")}>Roll back</button> : null}</span>}
@@ -66,6 +66,11 @@ function PlanView({ data, active, proposals, money: showMoney }: { data: any; ac
       {plan.status === "draft" && data.changes ? (
         <div className="halo"><Section title="What changes" count={data.changes.changes}>
           {data.changes.crossing ? <Status kind="stop">{`${n0(data.changes.crossing)} open deals would leave their owner`}</Status> : null}
+          <div className="figs">
+            <Fig sm value={n0(data.changes.owner_changes)} label="Change owner" />
+            {data.changes.newly_assigned ? <Fig sm value={n0(data.changes.newly_assigned)} label="Gain an owner" /> : null}
+            {data.changes.newly_unassigned ? <Fig sm value={n0(data.changes.newly_unassigned)} label="Lose their owner" /> : null}
+          </div>
           <div className="ledger">
             <div className="row head" style={{ gridTemplateColumns: "minmax(0,1fr) 80px 80px 80px" }}><T>Person</T><T num>Gains</T><T num>Losses</T><T num>Net</T></div>
             {data.changes.people.map((g: any) => (

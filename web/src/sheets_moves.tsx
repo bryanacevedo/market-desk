@@ -43,7 +43,8 @@ export function ActivateSheet({ id }: { id: string }) {
         <Title sub={p.replaces ? `Replaces ${p.replaces}` : undefined}>{p.starts_later ? "Schedule" : "Activate"} {p.name}</Title>
         {p.blocked ? <Status kind="stop">{p.blocked}</Status> : null}
         <div className="figs">
-          <Fig sm value={n0(p.starts_later ? p.scheduled_changes : p.owner_changes)} label="Accounts change owner" />
+          <Fig sm value={n0(p.starts_later ? p.scheduled_changes : p.changes_hands)} label="Accounts change owner" />
+          {!p.starts_later && p.owner_changes > p.changes_hands ? <Fig sm value={n0(p.owner_changes - p.changes_hands)} label="Accounts gain or lose an owner" /> : null}
           <Fig sm value={n0(p.crossing)} label="Open deals leave their owner" />
           <Fig sm value={p.crm ? n0(p.batches) : "None"} label="Requests to CRM Desk" />
         </div>
@@ -204,7 +205,7 @@ function NewTransfer({ first }: { first: number | null }) {
           {takers.map((t: any) => <option key={t.key} value={t.key}>{t.label}</option>)}
         </select>
       </label> : null}
-      <label className="form-field"><span className="small mute">Effective</span>
+      <label className="form-field"><span className="small mute"><T>Effective</T></span>
         <input className="input" type="date" min={opts.today} value={date} onChange={(e) => setOn(e.target.value)} />
       </label>
       <label className="form-field"><span className="small mute">Reason</span>
@@ -236,7 +237,7 @@ function NewTransfer({ first }: { first: number | null }) {
           <select className="select" aria-label="Add everything one person owns" value="" onChange={(e) => {
             if (e.target.value) api<any>(`/api/move-proposals/candidates?owner=${e.target.value}`).then((r) => add(r.accounts)).catch(() => toast("That did not go through."));
           }}>
-            <option value="">Add all of one person's</option>
+            <option value="">Add every account a person owns</option>
             {opts.people.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </div>
@@ -277,7 +278,8 @@ function TransferView({ id }: { id: string }) {
         <button className="btn line" disabled={busy} onClick={() => setRejecting(true)}>Reject</button>
         <button className="btn" disabled={busy}
           onClick={() => run(async () => { const r = await api<any>(`/api/move-proposals/${p.id}/approve`, { method: "POST" }); navigate(`/territories?plan=${r.plan}`); }, "Approved. A draft plan is ready to activate.")}>Approve</button>
-      </>) : p.plan ? <button className="btn" onClick={() => navigate(`/territories?plan=${p.plan}`)}>Open the plan</button> : undefined}>
+      </>) : p.status === "open" ? <span className="small mute">Waiting for a manager to decide</span>
+        : p.plan ? <button className="btn" onClick={() => navigate(`/territories?plan=${p.plan}`)}>Open the plan</button> : undefined}>
         <Title sub={`${p.proposed_by}, ${day(p.proposed_at)}`}>{n0(p.count)} account{p.count === 1 ? "" : "s"} to {p.to_owner}</Title>
         <Status kind={p.status === "open" ? "wait" : p.status === "approved" ? "ok" : "off"}>{p.status === "open" ? "Open" : p.status === "approved" ? "Approved" : "Rejected"}</Status>
         <dl className="kv">

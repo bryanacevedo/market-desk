@@ -5,7 +5,7 @@ import {
 } from "@phosphor-icons/react";
 import { api } from "./api";
 import { Logo } from "./marks";
-import { Bar, Empty, Failed, Fig, Loading, Section, Status, day, money, n0, navigate, pct, useBusy, useData, T, Tip } from "./lib";
+import { Bar, Empty, Failed, Fig, Loading, Section, Status, day, dayTime, money, n0, navigate, pct, useBusy, useData, T, Tip } from "./lib";
 import { ActivateSheet, CancelScheduleSheet, PublishSheet, RollbackSheet, TransferSheet } from "./sheets_moves";
 import { Hours, Nest, RangeLine, Tier, TierMix, Verdict, moneyScale, RateAxis } from "./parts";
 
@@ -393,13 +393,15 @@ function VersionSheet({ id }: { id: string }) {
     <Wrap kind="version" path={`/api/profile/versions/${id}`}>{(v) => (
       <Frame kind="version" crumb={`Version ${v.number}`}
         foot={v.status === "draft" ? <>
-          <button className="btn" disabled={!v.can_publish} title={v.can_publish ? undefined : "A manager other than the author publishes"} onClick={() => openSheet("publish", v.id)}>Publish</button>
+          {v.can_publish ? <button className="btn" onClick={() => openSheet("publish", v.id)}>Publish</button>
+            : <span className="small mute">A manager other than {v.author} publishes it. It shows in their Waiting on you.</span>}
         </> : undefined}>
         <Title sub={`${v.author}, ${day(v.created_at)}${v.publisher ? `. Published by ${v.publisher}, ${day(v.published_at)}` : ""}`}>Version {v.number}</Title>
         <Status kind={v.status === "published" ? "ok" : v.status === "draft" ? "wait" : "off"}>{v.status === "published" ? "Published" : v.status === "draft" ? "Draft" : "Retired"}</Status>
         <div className="small">{v.note}</div>
+        {(v.other_drafts || []).length ? <Status kind="hold">{`Draft v${v.other_drafts.join(" and v")} ${v.other_drafts.length > 1 ? "are" : "is"} also open. This draft does not include ${v.other_drafts.length > 1 ? "their" : "its"} changes; publishing one leaves the other out.`}</Status> : null}
         {v.diff.length ? (
-          <Section title="Against the version before">
+          <Section title={v.diff_base ? `Against version ${v.diff_base}` : "Against the version before"}>
             <div className="ledger">{v.diff.map((d: any, i: number) => (
               <div key={i} className="row" style={{ gridTemplateColumns: "90px minmax(0,1fr)" }}><span className="mute">{d.change}</span><span className="cell-main"><span className="t">{d.rule}</span>{d.was ? <span className="s">Was {d.was}</span> : null}</span></div>
             ))}</div>
@@ -579,7 +581,7 @@ function SourceSheet({ id }: { id: string }) {
         </dl>
         <Section title="Runs">
           <div className="ledger">{s.runs.map((r: any) => (
-            <div key={r.id} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) 90px 90px" }}><span>{day(r.started_at)}</span><span className="num">{n0(r.rows_read)} read</span><span className="num">{n0(r.rows_changed)} changed</span></div>
+            <div key={r.id} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) 90px 90px" }}><span>{r.finished_at ? dayTime(r.finished_at) : `${day(r.started_at)}, did not finish`}</span><span className="num">{n0(r.rows_read)} read</span><span className="num">{n0(r.rows_changed)} changed</span></div>
           ))}</div>
         </Section>
       </Frame>

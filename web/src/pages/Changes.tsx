@@ -67,6 +67,7 @@ export function Changes() {
         <span><i className="key-hollow" />Hollow tick: every other deal, or the held-back accounts</span>
         {revops ? <span>A draft is a new ICP version: tick the changes to put in it, then Make a draft</span> : null}
       </div>
+      {revops && (data.open_drafts || []).length ? <div className="notice"><Status kind="hold">{`Draft v${data.open_drafts.join(" and v")} ${data.open_drafts.length > 1 ? "are" : "is"} already open.`}</Status>A new draft starts from the published version, not from an open draft, so it leaves out the open draft's changes.</div> : null}
       <Section title="Open" count={data.open.length} icon={Lightbulb}>
         {data.open.length ? (
           <div className="props">

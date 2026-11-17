@@ -73,6 +73,7 @@ export function App() {
   const pick = (id: number) => { setActingAs(id); changed(); };
   return (
     <div className="app">
+      <a className="skip" href="#main" onClick={(e) => { e.preventDefault(); document.getElementById("main")?.focus(); }}>Skip to the page</a>
       <aside className="side">
         <div className="brand-block"><div className="brand"><Mark />Market Desk</div></div>
         <nav className="nav" aria-label="Main">
@@ -99,7 +100,7 @@ export function App() {
           ) : null}
         </div>
       </aside>
-      <main className="main">
+      <main className="main" id="main" tabIndex={-1}>
         <div className="phone-bar">
           <span className="brand" style={{ margin: 0 }}><Mark />{route.label}</span>
           {me && me.users.length ? (

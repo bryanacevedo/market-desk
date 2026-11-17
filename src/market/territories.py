@@ -301,7 +301,13 @@ def what_changes(cur, plan_id: int) -> dict:
             losses[r["from_owner"]] = losses.get(r["from_owner"], 0) + 1
     # An open deal may follow its CRM owner; moving it to anyone else needs a manual move with a note.
     crossing = [r for r in rows if r["open_deal"] and r["to_owner"] != r["crm_owner"] and r["reason_code"] != "manual"]
-    return {"changes": len(rows), "gains": gains, "losses": losses, "crossing": crossing, "sample": rows[:200], "all": rows}
+    # "changes" counts every row whose owner differs. Of those, only the accounts with an owner on both sides change hands;
+    # the rest gain an owner (nobody had them) or lose theirs (nobody takes them).
+    owner_changes = sum(1 for r in rows if r["from_owner"] and r["to_owner"])
+    newly_assigned = sum(1 for r in rows if r["to_owner"] and not r["from_owner"])
+    newly_unassigned = sum(1 for r in rows if r["from_owner"] and not r["to_owner"])
+    return {"changes": len(rows), "owner_changes": owner_changes, "newly_assigned": newly_assigned, "newly_unassigned": newly_unassigned,
+            "gains": gains, "losses": losses, "crossing": crossing, "sample": rows[:200], "all": rows}
 
 
 def scheduled_plan(cur) -> dict | None:
@@ -574,7 +580,8 @@ def activation_preview(cur, plan_id: int, by: dict) -> dict:
         why = f"A plan is scheduled for {sched['effective_on']:%-d %b %Y}: cancel it first."
     return {"scheduled_changes": len(scheduled_moves_for(cur, plan_id, active and active["id"])), "starts_later": plan["effective_on"] > today,
             "id": plan_id, "name": plan["name"], "status": plan["status"], "effective_on": plan["effective_on"], "today": today,
-            "replaces": active and active["name"], "owner_changes": ch["changes"], "crossing": len(ch["crossing"]),
+            "replaces": active and active["name"], "owner_changes": ch["changes"], "changes_hands": ch["owner_changes"],
+            "crossing": len(ch["crossing"]),
             "people": [{"name": names[k], "gains": ch["gains"].get(k, 0), "losses": ch["losses"].get(k, 0)} for k in ids],
             "crm": crm.enabled(), "batches": crm.batch_count(cur, plan_id), "can_activate": why is None, "blocked": why}
 
