@@ -1,0 +1,2 @@
+# Environment variables the code reads that the README need not document, one per line: NAME, then why.
+# System variables belong here (PATH, HOME, CI). Nothing is allowed yet: every variable the code reads is in the README.

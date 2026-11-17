@@ -1,4 +1,4 @@
-.PHONY: setup db demo serve web dev test lint evals evals-live audit export
+.PHONY: setup db demo serve web dev test lint evals evals-live audit export docs-check
 PY = PYTHONPATH=src .venv/bin/python
 
 setup:            ## install Python and web dependencies
@@ -35,6 +35,9 @@ evals:            ## every AI eval, replayed from recordings (free; what CI does
 
 evals-live:       ## every AI eval against live Claude, recording each answer (capped at $15)
 	ANTHROPIC_LIVE=1 $(PY) evals/run.py --cap-cents 1500
+
+docs-check:       ## fail when README, PROJECT-STATUS or the decisions drift from the code (no database, under a second)
+	$(PY) scripts/docs_check.py
 
 lint:
 	.venv/bin/ruff check src tests evals scripts

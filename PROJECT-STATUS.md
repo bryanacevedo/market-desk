@@ -1,8 +1,14 @@
 # Market Desk: project status
 
-**Updated:** 2026-11-16. **Spec:** `docs/SPEC.md` (section 15 holds the gate 0 corrections and wins where they differ); decisions `docs/DECISIONS.md` 1 to 61.
+**Updated:** 2026-11-17. **Spec:** `docs/SPEC.md` (section 15 holds the gate 0 corrections and wins where they differ); decisions `docs/DECISIONS.md` 1 to 61.
 
 ## Where it stands
+
+Docs are part of done: README, PROJECT-STATUS and docs change in the same commit as the behaviour, counts or setup they describe. `make docs-check` (`scripts/docs_check.py`, also run by `tests/test_docs_check.py`) fails when the README carries a test count, a migration range differs from `migrations/`, an environment variable the code reads is missing from the README, the decision count here differs from `docs/DECISIONS.md`, or this Updated date is more than a day behind the last code commit. A pre-push hook is proposed in `docs/PRE-PUSH-HOOK.md`, not installed.
+
+**Journal refresh (2026-11-16, 1b2646f):** `world/journal.jsonl` replaced by this desk's 30 steps of the four-desk rehearsal of 2026-11-16 (60 lines changed, no code change); the demo replays it when the image is built.
+
+**Docs pass S2b (2026-11-17):** README made true to the code (no test count: the suite collects 201 tests, which the README no longer states; a configuration table of every variable the code reads; migrations 0001 to 0008; deploys are manual). Decisions 11, 29, 39 and 49 each carry one appended "Superseded in part" line; no decision was reworded. DESIGN-CHECKLIST now names this desk's pages and gates (it had Account Desk's). Checked: ruff, `make docs-check`, `tests/test_docs_check.py`.
 
 **bl_136 landed (2026-11-15):** the delivered 30-step `world/journal.jsonl` is refreshed so the account executives' opportunity steps replay as themselves; rebased onto 9c34d10 and the full suite and ruff pass.
 
