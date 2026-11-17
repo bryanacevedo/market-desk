@@ -49,7 +49,7 @@ Pick who you are acting as in the demo's sidebar: RevOps or the sales manager. T
 - **Market.** For each segment and each region: companies by tier, coverage against public counts, reachable companies, and TAM, SAM and SOM as ranges. SAM counts only companies whose signer a contact source can find; SOM counts only what the active plan's people can work in 12 months, times the share that becomes a deal, times the win rate. TAM is always shown as a range.
 - **Territories and capacity.** Hours a month per account by tier against each person's selling hours and ramp; assignment by territory rule with the reason stated; a balancing pass on expected value; a hiring gap; a draft plan previewed as what changes before a manager activates it. On a draft plan, "What changes" splits the accounts that change hands from those that gain or lose an owner.
 - **Segment tests.** Work a cohort of a segment, hold back one in five, and compare meetings before the segment gets territory. Below the sample the comparison needs, it says how many more accounts it needs.
-- **Handoffs.** A versioned book for Account Desk (its exact `accounts.csv` columns and `icp.json` shape, with every rule it cannot read listed) and an ICP document for Events Desk in its own format. Results come back by account. The page names the profile version and plan the next file will use.
+- **Handoffs.** A versioned book for Account Desk (its exact `accounts.csv` columns and `icp.json` shape, with every rule it cannot read listed) and an ICP document for Events Desk in its own format. Results come back by account. For RevOps, the page names the profile version and plan the next file will use.
 - **Changes.** Proposals decided by code from the evidence and the tests, worded by the model, made into a draft by RevOps and published by someone else.
 
 ## How it fits with the other two desks
@@ -80,9 +80,9 @@ With no CRM, the desk can still run on your own deal history: `python -m market 
 
 ## The shared world
 
-Market Desk's companies, deals, customers and call notes now come from Lumen Ledger's shared world, `lumen-world`, which every desk's demo reads. Its slice for this desk is vendored in `world/` (decision 40): the same 18,005 companies this desk used to draw for itself (27 renamed because they carried the seller's name), the history moved into working hours and cut at 13 August 2026, the one team roster, and counts of findable roles per company. The slice holds no people, and call notes arrive with the names they mention and are redacted before anything is stored (decision 1). `WORLD=legacy` rebuilds the desk's own world from `src/market/sim/world.py`.
+Market Desk's companies, deals, customers and call notes now come from Lumen Ledger's shared world, `lumen-world` (a separate repository, not public), which every desk's demo reads. Its slice for this desk is vendored in `world/` (decision 40): the same 18,005 companies this desk used to draw for itself (27 renamed because they carried the seller's name), the history moved into working hours and cut at 13 August 2026, the one team roster, and counts of findable roles per company. The slice holds no people, and call notes arrive with the names they mention and are redacted before anything is stored (decision 1). `WORLD=legacy` rebuilds the desk's own world from `src/market/sim/world.py`.
 
-With `CRM=crmdesk`, activating a plan sends its books to CRM Desk: every assigned account with its tier, segment, fit score, profile version, the AE who owns it and the SDR who works it (decision 41). Handoffs shows what was sent and what CRM Desk refused, such as an SDR a manager pinned there. With no CRM set, nothing is sent and the desk works alone, as before. Also with `CRM=crmdesk`, the desk decides which accounts are marketing qualified (a tier the rule names, and enough points from enough people in 30 days) and sends `mqa_at`, `mqa_points` and `mqa_people` to CRM Desk, which takes them from this desk only while it is set to follow it (decisions 49 to 51). The desk holds the fit and reads the engagement from CRM Desk, counts it and keeps only the result; it stores no people. The rule is published at `/api/definitions/mqa` with a version and a hash, and `python -m market crm-mqa` runs it once. In the demo the conversation was recorded once, with both desks running (`lumen-world/stage/rehearse.py`), and replayed when the image is built, so the two public demos agree without calling each other.
+With `CRM=crmdesk`, activating a plan sends its books to CRM Desk: every assigned account with its tier, segment, fit score, profile version, the AE who owns it and the SDR who works it (decision 41). Handoffs shows what was sent and what CRM Desk refused, such as an SDR a manager pinned there. With no CRM set, nothing is sent and the desk works alone, as before. Also with `CRM=crmdesk`, the desk decides which accounts are marketing qualified (a tier the rule names, and enough points from enough people in 30 days) and sends `mqa_at`, `mqa_points` and `mqa_people` to CRM Desk, which takes them from this desk only while it is set to follow it (decisions 49 to 51). The desk holds the fit and reads the engagement from CRM Desk, counts it and keeps only the result; it stores no people. The rule is published at `/api/definitions/mqa` with a version and a hash, and `python -m market crm-mqa` runs it once. In the demo the conversation was recorded once, in a rehearsal with both desks running, and is replayed from `world/journal.jsonl` when the image is built, so the two public demos agree without calling each other.
 
 ## Run it
 
@@ -93,7 +93,7 @@ make setup
 make demo
 ```
 
-`make demo` starts a private Postgres in `.data/`, builds the demo from the vendored world (about 15 seconds) and serves it at http://localhost:8800. `make test` runs the suite on real Postgres 18 (it starts the private one first). `make docs-check` checks that this README, `PROJECT-STATUS.md` and the decisions still agree with the code. `make audit` checks the demo database against every product rule. `make evals` replays the AI evals from their recordings, free; `make evals-live` calls Claude, capped at $15. `python -m market mcp` is a read-only MCP server (find accounts, why an account has its tier, a segment's figures, who owns what).
+`make demo` starts a private Postgres in `.data/`, builds the demo from the vendored world (a few seconds on a laptop) and serves it at http://localhost:8800. `make test` runs the suite on real Postgres 18 (it starts the private one first). `make docs-check` checks that this README, `PROJECT-STATUS.md` and the decisions still agree with the code. `make audit` checks the demo database against every product rule. `make evals` replays the AI evals from their recordings, free; `make evals-live` calls Claude, capped at $15. `python -m market mcp` is a read-only MCP server (find accounts, why an account has its tier, a segment's figures, who owns what).
 
 Schema migrations are plain SQL in `migrations/` (0001 to 0008), applied when the server starts.
 
@@ -156,16 +156,16 @@ Every figure scores the model's first attempt; the gate's catches are reported a
 
 | | What was planted | What the desk says |
 |---|---|---|
-| P1 | Usage-based pricing wins far more often, independent of size and region | Clearly higher: 114 of 321 deals (36%) against 15% for other known pricing models; proposed as a rule; listed as a rule Account Desk cannot read |
-| P2 | 2,000 to 4,999 employees rarely close and take longer | Clearly lower: 10 of 168 (6%), won-deal cycle 220 days; proposed as a penalty |
-| P3 | Healthcare software loses on compliance | Clearly lower: 16 of 189; compliance is 61% of its losses; proposed as an exclude |
-| P4 | Salesforce users win more only because they are the right size | Explained by size: 27% against 10% for deals without it, and the difference goes away within size bands |
+| P1 | Usage-based pricing wins far more often, independent of size and region | Clearly higher: 113 of 314 deals (36%) against 15% for other known pricing models; proposed as a rule; listed as a rule Account Desk cannot read |
+| P2 | 2,000 to 4,999 employees rarely close and take longer | Clearly lower: 10 of 168 (6%), won-deal cycle 219 days; proposed as a penalty |
+| P3 | Healthcare software loses on compliance | Clearly lower: 16 of 183; compliance is 60% of its losses; proposed as an exclude |
+| P4 | Salesforce users win more only because they are the right size | Explained by size: 28% against 10% for deals without it, and the difference goes away within size bands |
 | P5 | Brazil: 9 opportunities, all marketplaces, 5 won | Too few to tell; never a rule |
-| P6 | Buying roles in DACH are hard to find (about 40% against 85%) | DACH's SAM is $9.2M to $19.1M against a TAM of $23.6M to $48.5M |
+| P6 | Buying roles in DACH are hard to find (about 40% against 85%) | DACH's SAM is $8.5M to $17.6M against a TAM of $23.6M to $48.3M |
 | P7 | Two finished segment tests: fintech 120 to 499 books meetings at 22% worked against 11% held back; developer tools at 11% against 11% | A clear difference and an open proposal to expand fintech; no clear difference for developer tools |
 | P8 | HQ city and founding year carry no effect | Not one of them is clear |
 
-The world was adjusted until the rules found the planted effects; the rules were left unchanged (`docs/DECISIONS.md`). Other figures, over all three years: a 20% win rate on closed new business, an 80-day median won-deal cycle, a $38,655 median deal. Not like the plan: 16% of new-business deals are open (the plan said about 5%; the desks' results opened deals in the last weeks), and the public counts hold 991 cells, not about 1,200.
+The world was adjusted until the rules found the planted effects; the rules were left unchanged (`docs/DECISIONS.md`). Other figures, over all three years: a 21% win rate on closed new business, an 82-day median won-deal cycle, a $38,612 median won new-business deal. Not like the plan: 12% of new-business deals are open (the plan said about 5%; the desks' results opened deals in the last weeks), and the public counts hold 991 cells, not about 1,200.
 
 ## Not yet proven
 
