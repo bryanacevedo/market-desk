@@ -1,4 +1,4 @@
-.PHONY: setup db demo serve web dev test lint evals evals-live audit export docs-check
+.PHONY: setup db demo serve web dev test lint evals evals-live audit export docs-check snapshot
 PY = PYTHONPATH=src .venv/bin/python
 
 setup:            ## install Python and web dependencies
@@ -20,6 +20,9 @@ web:              ## build the web app
 
 dev:              ## web app with hot reload on :5173, API on :8800
 	$(PY) -m market serve & cd web && npm run dev
+
+snapshot: db web  ## static snapshot of the public demo in .snapshot/ (the crawl changes nothing in the demo database; see docs/RUNBOOK.md)
+	$(PY) scripts/build_static_snapshot.py --out .snapshot --skip-web-build
 
 test: db          ## the whole suite, on real Postgres
 	$(PY) -m pytest

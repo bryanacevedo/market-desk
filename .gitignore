@@ -11,3 +11,5 @@ web/dist/
 .claude/
 evals/results-replay.json
 world-export/
+.snapshot/
+.wrangler/

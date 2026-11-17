@@ -17,7 +17,7 @@ import { Handoffs } from "./pages/Handoffs";
 import { Settings, Sources } from "./pages/Desk";
 
 export type Me = { user: { id: number; name: string; role: string }; users: { id: number; name: string; role: string }[];
-  counts: Record<string, number>; money: boolean; now: string; simulated: boolean; public_demo: boolean; seller: string };
+  counts: Record<string, number>; money: boolean; now: string; simulated: boolean; public_demo: boolean; seller: string; snapshot?: { taken_on: string } };
 
 type Route = { path: string; label: string; icon: ReactNode; page: () => JSX.Element; roles: string[]; count?: string; group?: string; bar?: boolean };
 const LEAD = ["revops", "manager"];
@@ -109,6 +109,7 @@ export function App() {
             </select>
           ) : null}
         </div>
+        {me?.snapshot ? <div className="snapshot-note" role="note">Read-only snapshot of the Market Desk demo, taken {me.snapshot.taken_on}. Lumen Ledger and everything in it are invented sample data. Nothing you change is saved.</div> : null}
         {me ? <div className="page-enter" key={`${route.path}:${me.user.id}`}><Page /></div> : null}
       </main>
       <nav className="phone-nav" aria-label="Main">

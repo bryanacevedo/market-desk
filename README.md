@@ -93,7 +93,7 @@ make setup
 make demo
 ```
 
-`make demo` starts a private Postgres in `.data/`, builds the demo from the vendored world (a few seconds on a laptop) and serves it at http://localhost:8800. `make test` runs the suite on real Postgres 18 (it starts the private one first). `make docs-check` checks that this README, `PROJECT-STATUS.md` and the decisions still agree with the code. `make audit` checks the demo database against every product rule. `make evals` replays the AI evals from their recordings, free; `make evals-live` calls Claude, capped at $15. `python -m market mcp` is a read-only MCP server (find accounts, why an account has its tier, a segment's figures, who owns what).
+`make demo` starts a private Postgres in `.data/`, builds the demo from the vendored world (a few seconds on a laptop) and serves it at http://localhost:8800. `make test` runs the suite on real Postgres 18 (it starts the private one first). `make docs-check` checks that this README, `PROJECT-STATUS.md` and the decisions still agree with the code. `make snapshot` builds the public demo as static files in `.snapshot/` from a demo database, the crawl changing nothing (`docs/RUNBOOK.md` says how it is built, deployed and rolled back). `make audit` checks the demo database against every product rule. `make evals` replays the AI evals from their recordings, free; `make evals-live` calls Claude, capped at $15. `python -m market mcp` is a read-only MCP server (find accounts, why an account has its tier, a segment's figures, who owns what).
 
 Schema migrations are plain SQL in `migrations/` (0001 to 0008), applied when the server starts.
 

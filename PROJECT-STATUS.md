@@ -1,10 +1,12 @@
 # Market Desk: project status
 
-**Updated:** 2026-11-17. **Spec:** `docs/SPEC.md` (section 15 holds the gate 0 corrections and wins where they differ); decisions `docs/DECISIONS.md` 1 to 61.
+**Updated:** 2026-11-17. **Spec:** `docs/SPEC.md` (section 15 holds the gate 0 corrections and wins where they differ); decisions `docs/DECISIONS.md` 1 to 62.
 
 ## Where it stands
 
 Docs are part of done: README, PROJECT-STATUS and docs change in the same commit as the behaviour, counts or setup they describe. `make docs-check` (`scripts/docs_check.py`, also run by `tests/test_docs_check.py`) fails when the README carries a test count, a migration range differs from `migrations/`, an environment variable the code reads is missing from the README, the decision count here differs from `docs/DECISIONS.md`, or this Updated date is more than a day behind the last code commit. A pre-push hook is proposed in `docs/PRE-PUSH-HOOK.md`, not installed.
+
+**Static snapshot S7 (2026-11-17, bl_116, decision 62):** the public demo built as static files (`make snapshot`, `scripts/build_static_snapshot.py`, `scripts/static_snapshot/shim.js`, `.github/workflows/static-snapshot.yml`), deployed once from the laptop to Cloudflare Pages project `market-desk-demo` (the workflow deploys only once the secrets are set). Staged: noindex (meta, `X-Robots-Tag`, robots.txt), unlinked (not in the README, a post or any doc), a free project with no custom domain; Render untouched. Both people, every page, every company sheet and every list page it can reach are saved; search and combined filters on Accounts are not (`docs/RUNBOOK.md` says what degrades). GitHub Actions minutes: the run triggered by the push of this change (noted below once it ends); no other run. The Cloudflare secrets are not set on this repository, so the workflow builds and keeps the bundle as an artifact and deploys nothing until Bryan sets them (commands in the runbook). Tests: `tests/test_static_snapshot.py`. The same change fixes a 17 px sideways scroll of the Tests page at 390 px (`.pair` columns narrower under 480 px).
 
 **Journal refresh (2026-11-16, 1b2646f):** `world/journal.jsonl` replaced by this desk's 30 steps of the four-desk rehearsal of 2026-11-16 (60 lines changed, no code change); the demo replays it when the image is built.
 

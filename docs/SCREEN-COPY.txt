@@ -110,6 +110,7 @@ Overdue by # ##
 Page # of #
 Points the rule adds to, or removes from, a company's fit score out of 100.
 Points this rule adds to or removes from the company's score.
+Read-only snapshot of the Market Desk demo, taken #. Lumen Ledger and everything in it are invented sample data. Nothing you change is saved.
 Reason, sent to the other managers and RevOps
 Rolled back. Every company is rescored.
 Share held back in a test
