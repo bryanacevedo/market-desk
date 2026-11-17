@@ -48,17 +48,18 @@ const NAV_HELP: Record<string, string> = {
   "/tests": "Tests: working some accounts and holding others back to see whether a segment books more meetings.",
 };
 
-/** Whether the visitor is in the sample world and what changes do there. The public demo does not save changes. */
+/** Whether the visitor is in the sample world and what changes do there: refused (the snapshot), kept until the service restarts
+ * and seen by anyone visiting meanwhile (the public demo), or kept in this sample (anywhere else). */
 function DemoBanner({ me }: { me: Me }) {
   const [hidden, setHidden] = useState(() => { try { return sessionStorage.getItem("banner-hidden") === "1"; } catch { return false; } });
   if (hidden || !(me.simulated || me.public_demo || me.snapshot)) return null;
   const sampleDay = new Date(me.now).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
-  const saved = me.snapshot || me.public_demo
-    ? (me.snapshot ? "Changes are refused in the public demo and nothing is saved." : "Changes are not saved in the public demo.")
+  const saved = me.snapshot ? "Changes are refused in the public demo and nothing is saved."
+    : me.public_demo ? "Changes last until the demo restarts after 15 idle minutes, and anyone visiting meanwhile sees them."
     : "Changes stay in this sample only.";
   return (
     <div className="demo-banner" role="note">
-      <b>Sample company with invented data.</b> {saved} Sample day: {sampleDay} (the demo keeps its own clock).{" "}
+      <b>Sample company with invented data.</b> {saved} Sample day: {sampleDay}{me.simulated ? " (the demo keeps its own clock)" : ""}.{" "}
       <a href="/start" onClick={(e) => { e.preventDefault(); navigate("/start"); }}>Take the tour</a>{" "}
       <button type="button" className="demo-banner-hide" onClick={() => { try { sessionStorage.setItem("banner-hidden", "1"); } catch { /* private mode */ } setHidden(true); }}>Hide</button>
     </div>
@@ -82,9 +83,8 @@ export function App() {
       if (revops && me.user.id !== revops.id) { setActingAs(revops.id); changed(); }
     }
   }, [me]);
-  useEffect(() => { if (me?.now) setNow(me.now); }, [me?.now]);
   // The server says which desks are connected and whether this is the read-only snapshot; every screen reads it from here.
-  if (me) { setNames(me.names); setRefuses(!!me.snapshot); }
+  if (me) { setNames(me.names); setRefuses(!!me.snapshot); if (me.now) setNow(me.now); }
   const routes = ROUTES.filter((r) => me && r.roles.includes(me.user.role));
   const bar = routes.filter((r) => r.bar);
   const rest = routes.filter((r) => !r.bar);
@@ -104,7 +104,6 @@ export function App() {
   const pick = (id: number) => { setActingAs(id); changed(); };
   return (
     <>
-    {me ? <DemoBanner me={me} /> : null}
     <div className="app">
       <a className="skip" href="#main" onClick={(e) => { e.preventDefault(); document.getElementById("main")?.focus(); }}>Skip to the page</a>
       <aside className="side">
@@ -134,6 +133,7 @@ export function App() {
         </div>
       </aside>
       <main className="main" id="main" tabIndex={-1}>
+        {me ? <DemoBanner me={me} /> : null}
         <div className="phone-bar">
           <span className="brand" style={{ margin: 0 }}><Mark />{route.label}</span>
           {me && me.users.length ? (

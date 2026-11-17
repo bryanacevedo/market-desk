@@ -102,12 +102,20 @@ async def headers_and_errors(request: Request, call_next):
 
 
 from fastapi.exceptions import RequestValidationError  # noqa: E402
+from starlette.exceptions import HTTPException as StarletteHTTPException  # noqa: E402
 
 
 @app.exception_handler(RequestValidationError)
 async def _invalid(request: Request, exc: RequestValidationError):
     fields = sorted({".".join(str(x) for x in e.get("loc", [])[1:]) or "body" for e in exc.errors()})
     return JSONResponse({"error": "Some fields are missing or wrong.", "fields": fields}, status_code=422)
+
+
+@app.exception_handler(StarletteHTTPException)
+async def _plain_error(request: Request, exc: StarletteHTTPException):
+    """Every refusal reaches a toast; a desk that is not connected is named in plain words there too (decision 66)."""
+    detail = names.say(exc.detail) if isinstance(exc.detail, str) else exc.detail
+    return JSONResponse({"detail": detail}, status_code=exc.status_code, headers=getattr(exc, "headers", None))
 
 
 _hits: dict[str, deque] = defaultdict(deque)
@@ -174,7 +182,8 @@ def current_user(request: Request) -> dict:
         raise HTTPException(401, "Sign in to use the desk.")
     if u["role"] not in ("revops", "manager"):
         # Sellers see the result where they work: their books in Account Desk and CRM Desk, not here.
-        raise HTTPException(403, "Sellers see their books in Account Desk and CRM Desk.")
+        _n = names.desk_names()
+        raise HTTPException(403, f"Sellers see their books in {_n['account_desk']} and {_n['crm_desk']}.")
     return u
 
 
@@ -319,7 +328,7 @@ def me(u: dict = Depends(current_user)) -> dict:
             behind = views.books_behind(cur)
             if behind:   # after a publish, a person makes the new files; the desk only says they are behind
                 pub_no = db.val(cur, "select number from icp_versions where status = 'published'")
-                waiting.append({"what": f"Send new books now: the files still use an earlier profile than version {pub_no}", "path": "/handoffs"})
+                waiting.append({"what": f"Send new books now: the files use a profile other than the published version {pub_no}", "path": "/handoffs"})
         now = db.val(cur, "select app_now()")
         sim = db.val(cur, "select enabled from sim_clock")
     return {"user": {k: u[k] for k in ("id", "name", "role")}, "users": users, "counts": counts, "money": money(u),
@@ -342,6 +351,7 @@ def desk_links() -> dict[str, str]:
 
 @app.get("/api/start")
 def start(u: dict = Depends(current_user)) -> dict:
+    need(u, "revops", "manager")
     with db.tx() as cur:
         return views.start(cur)
 
@@ -873,7 +883,7 @@ class NewBook(BaseModel):
 @app.post("/api/books")
 def new_book(body: NewBook, u: dict = Depends(writer)) -> dict:
     if body.destination not in ("account_desk", "events_desk"):
-        raise HTTPException(422, "Account Desk or Events Desk.")
+        raise HTTPException(422, f"{names.desk_names()['account_desk']} or {names.desk_names()['events_desk']}.")
     try:
         with db.tx() as cur:
             return {"id": handoff.build_book(cur, body.destination, u)}

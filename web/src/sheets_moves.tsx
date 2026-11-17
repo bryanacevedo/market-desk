@@ -70,29 +70,21 @@ export function CancelScheduleSheet() {
 export function PublishSheet({ id }: { id: string }) {
   const [busy, run] = useBusy();
   const [published, setPublished] = useState<number | null>(null);
-  const [made, setMade] = useState(false);
   const me = useData<any>("/api/me").data;
   if (published !== null) {
-    // Decision 67: after a publish the desk asks, once, whether to make the new files now. It never does it by itself, and only RevOps
-    // makes files, so a manager who published is told it is waiting for RevOps.
+    // Decision 67: after a publish the desk says, once, that the files are behind. It never makes them by itself, and only RevOps makes
+    // files (a manager publishes, RevOps makes books), so the button that makes both lives on Handoffs, where RevOps is sent.
     const revops = me?.user?.role === "revops";
     return (
       <Frame kind="publish" foot={<>
-        <button className="btn quiet" onClick={closeSheet}>{made || !revops ? "Close" : "Not now"}</button>
-        {made ? <button className="btn" onClick={() => { closeSheet(); navigate("/handoffs"); }}>Open Handoffs</button>
-          : revops ? <button className="btn" disabled={busy} title={writeHint()} onClick={() => run(async () => {
-            await api("/api/books", { method: "POST", body: { destination: "account_desk" } });
-            await api("/api/books", { method: "POST", body: { destination: "events_desk" } });
-            setMade(true);
-          }, "Both files written.")}>Make both files now</button> : null}
+        <button className="btn quiet" onClick={closeSheet}>{revops ? "Not now" : "Close"}</button>
+        {revops ? <button className="btn" onClick={() => { closeSheet(); navigate("/handoffs"); }}>Open Handoffs</button> : null}
       </>}>
         <Title sub="Every company is rescored.">Version {published} is published</Title>
         <h3 className="ask">Send new books now?</h3>
-        <div className="small">{made
-          ? `The files for ${deskName("account_desk")} and ${deskName("events_desk")} use version ${published}. They are on Handoffs to download.`
-          : revops
-            ? `The files for ${deskName("account_desk")} and ${deskName("events_desk")} still use the version before. Nothing goes out by itself: this makes both files from version ${published}, and you download and pass them on from Handoffs.`
-            : `The files for ${deskName("account_desk")} and ${deskName("events_desk")} still use the version before. RevOps makes the new files; it shows under their Waiting on you. Nothing goes out by itself.`}</div>
+        <div className="small">{revops
+          ? `The files for ${deskName("account_desk")} and ${deskName("events_desk")} still use the version before. Nothing goes out by itself: Handoffs has one button that makes both files from version ${published}, and you download and pass them on from there.`
+          : `The files for ${deskName("account_desk")} and ${deskName("events_desk")} still use the version before. Only RevOps makes the new files; it shows under their Waiting on you and on Handoffs. Nothing goes out by itself.`}</div>
       </Frame>
     );
   }

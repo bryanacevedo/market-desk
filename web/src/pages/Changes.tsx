@@ -48,7 +48,8 @@ function Evidence({ p }: { p: any }) {
 export function Changes() {
   const { data, error, reload } = useData<any>("/api/changes");
   const me = useData<any>("/api/me").data;
-  const best = useData<any>("/api/start").data?.best ?? null;
+  const startData = useData<any>("/api/start").data;
+  const best = startData?.best ?? null;
   const [busy, run] = useBusy();
   const [picked, setPicked] = useState<number[]>([]);
   const [dismissing, setDismissing] = useState<number | null>(null);
@@ -76,7 +77,7 @@ export function Changes() {
         {data.open.length ? (
           <div className="props">
             {data.open.map((p: any, i: number) => {
-              const first = best ? (p.finding_ids || []).includes(best.id) : i === 0;
+              const first = !startData ? false : best ? (p.finding_ids || []).includes(best.id) : i === 0;
               return (
               <div key={p.id} className={`prop${first ? " halo" : ""}`}>
                 <div className="prop-top">

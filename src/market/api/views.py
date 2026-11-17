@@ -6,6 +6,7 @@ from .. import catalog as C
 from .. import crm, db, fit, handoff, names, profiles, proposals, tests_seg
 from .. import territories as terr
 from ..evidence import rule_label
+from ..names import say as _say
 
 VERDICT = {"clear_higher": "Clearly higher", "clear_lower": "Clearly lower", "not_clear": "Not clear",
            "too_few": "Too few to tell", "explained_by_size": "Explained by size"}
@@ -33,6 +34,8 @@ def _plain_dropped(rows):
 
 def owner_source(reason: str | None) -> str:
     """Where an owner comes from (decision 66): the plan for a prospect, customer records for a customer or an open deal."""
+    if reason == "manual":
+        return "a hand change"
     return names.desk_names()["crm_desk"] if reason in CUSTOMER_REASONS else "the territory plan"
 
 
@@ -204,6 +207,8 @@ def profile(cur, u: dict) -> dict:
     versions = db.all(cur, """select v.id, v.number, v.status, v.note, v.created_at, v.published_at, a.name as author,
                               p.name as published_by, v.author as author_id from icp_versions v join users a on a.id = v.author
                               left join users p on p.id = v.published_by order by v.number desc""")
+    for v in versions:
+        v["note"] = names.say(v["note"])
     drafts = [v for v in versions if v["status"] == "draft"]
     return {"published": {"id": pub["id"], "number": pub["number"], "tiers": pub["rules"]["tiers"],
                           "rules": _rules_view(cur, pub["rules"]), "published_at": pub["restored_at"] or pub["published_at"]},
@@ -320,7 +325,7 @@ def version(cur, vid: int, u: dict) -> dict | None:
         for k, r in profiles.all_rules(v["rules"]):
             if r["key"] in oldw and oldw[r["key"]] != r.get("weight") and r.get("weight") is not None:
                 diff.append({"change": "Reweighted", "kind": k, "rule": rule_label(r), "was": str(oldw[r["key"]])})
-    return {"id": v["id"], "number": v["number"], "status": v["status"], "note": v["note"], "author": v["author_name"],
+    return {"id": v["id"], "number": v["number"], "status": v["status"], "note": names.say(v["note"]), "author": v["author_name"],
             "publisher": v["publisher"], "created_at": v["created_at"], "published_at": v["published_at"],
             "tiers": v["rules"]["tiers"], "rules": _rules_view(cur, v["rules"]), "diff": diff, "diff_base": prev["number"] if prev else None,
             "other_drafts": other_drafts,
@@ -467,11 +472,11 @@ def company(cur, cid: int, u: dict, allowed: bool | None = None) -> dict | None:
 
 
 def _draft_owner(cur, cid: int, a: dict | None) -> dict | None:
-    """The owner the newest draft plan would give this account (decision 69), shown last and marked draft. None when no draft
-    plan holds the account or it gives the same person."""
+    """The owner the newest draft plan would give this account (decision 69), shown last and marked draft. None when there is no
+    draft plan, the newest draft does not hold the account, or it gives the same person."""
     d = db.one(cur, """select p.id, p.name, x.owner, u.name as owner_name, u.role as owner_role from territory_plans p
                        join assignments x on x.plan = p.id and x.company = %s left join users u on u.id = x.owner
-                       where p.status = 'draft' order by p.id desc limit 1""", cid)
+                       where p.id = (select max(id) from territory_plans where status = 'draft')""", cid)
     if not d or d["owner"] == (a or {}).get("owner"):
         return None
     return {"plan": d["name"], "name": d["owner_name"], "seat": _seat(d["owner_role"]) if d["owner"] else None}
@@ -542,7 +547,7 @@ def territories(cur, plan_id: int | None, allowed: bool) -> dict:
     gap = terr.hiring_gap(cur, plan_id)
     ch = terr.what_changes(cur, plan_id) if plan["status"] == "draft" else None
     manual = db.all(cur, """select a.company, c.name, a.note, u.name as owner, m.name as moved_from, x.name as by_name,
-                            (select max(l.at) from audit_log l where l.action = 'manual_move' and l.object_kind = 'company'
+                            (select max(l.at) from audit_log l where l.action in ('manual_move', 'owner_changed_by_hand') and l.object_kind = 'company'
                              and l.object_id = a.company::text and (l.detail->>'plan')::int = a.plan) as moved_at
                             from assignments a join companies c on c.id = a.company left join users u on u.id = a.owner
                             left join users m on m.id = a.moved_from left join users x on x.id = a.created_by
@@ -559,7 +564,7 @@ def territories(cur, plan_id: int | None, allowed: bool) -> dict:
               "people": [{"name": names[k], "gains": ch["gains"].get(k, 0), "losses": ch["losses"].get(k, 0)} for k in people_ids]}
     hist = history(cur, ("plan_activated", "plan_rolled_back"))
     return strip({"plans": plans, "plan": plan, "history": hist, "people": people, "territories": terrs, "gap": gap, "changes": ch,
-                  "manual": manual, "hours_per_tier": s["hours_per_tier"]["value"], "hours_note": s["hours_per_tier"]["note"],
+                  "manual": manual, "hours_per_tier": s["hours_per_tier"]["value"], "hours_note": _say(s["hours_per_tier"]["note"]),
                   "a_capacity": {"held": a_cap["held"] or 0, "tier_a": a_total}}, allowed)
 
 
@@ -708,7 +713,8 @@ def handoffs(cur, allowed: bool) -> dict:
     pub = _published(cur)
     plan = db.val(cur, "select name from territory_plans where status = 'active'")
     return strip({"books": books, "events": events, "previews": previews, "crm": crm_desk(cur),
-                  "next": {"profile": pub["number"], "plan": plan}}, allowed)
+                  "next": {"profile": pub["number"], "plan": plan},
+                  "behind": {"profile": pub["number"], "destinations": [b["destination"] for b in books_behind(cur)]}}, allowed)
 
 
 def crm_desk(cur) -> dict | None:
@@ -793,7 +799,7 @@ def source(cur, key: str, allowed: bool) -> dict | None:
 
 
 def settings(cur) -> dict:
-    rows = db.all(cur, "select key, value, note, updated_at from settings order by key")
+    rows = [{**r, "note": names.say(r["note"])} for r in db.all(cur, "select key, value, note, updated_at from settings order by key")]
     team = db.all(cur, "select id, name, role, started_on, ramp_months, selling_hours_month, active from users order by role, name")
     return {"settings": rows, "team": team}
 

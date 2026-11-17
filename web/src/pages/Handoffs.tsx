@@ -1,6 +1,6 @@
 import { ArrowsLeftRight, DownloadSimple } from "@phosphor-icons/react";
 import { api } from "../api";
-import { Empty, Failed, Fig, Loading, Section, day, deskName, money, n0, say, useBusy, useData, writeHint, T } from "../lib";
+import { Empty, Failed, Fig, Loading, Section, day, deskName, money, n0, say, Status, changed, useBusy, useData, writeHint, T } from "../lib";
 import { openSheet } from "../sheets";
 
 export const DEST: Record<string, string> = { account_desk: "Account Desk", events_desk: "Events Desk" };
@@ -12,6 +12,13 @@ export function Handoffs() {
   if (error) return <div className="page"><Failed error={error} retry={reload} /></div>;
   if (!data) return <div className="page"><div className="head"><h1>Handoffs</h1></div><Loading /></div>;
   const revops = me?.user.role === "revops";
+  const behind: string[] = data.behind?.destinations || [];
+  // Decision 67: after a publish the files are behind; RevOps (the only role that makes files) makes both here, one after the other.
+  const makeBoth = () => run(async () => {
+    await api("/api/books", { method: "POST", body: { destination: "account_desk" } });
+    try { await api("/api/books", { method: "POST", body: { destination: "events_desk" } }); }
+    catch (e: any) { changed(); throw new Error(`The file for ${deskName("account_desk")} was written. The file for ${deskName("events_desk")} was not: ${e.message}`); }
+  }, "Both files written. Download and pass them on from here.");
   const cols = "minmax(0,1.2fr) 70px 70px 80px 90px 100px minmax(0,1fr)";
   const crmCols = "minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr)";
   return (
@@ -26,6 +33,13 @@ export function Handoffs() {
           </div>
         ) : null}
       </div>
+      {behind.length ? (
+        <div className="notice waiting"><Status kind="wait">{`The files use a profile other than the published version ${data.behind.profile}`}</Status>
+          {revops
+            ? <button className="btn" disabled={busy} title={writeHint()} onClick={makeBoth}>Make both files now</button>
+            : <span className="small mute">RevOps makes the new files. Nothing goes out by itself.</span>}
+        </div>
+      ) : null}
       {["account_desk", "events_desk"].map((d) => {
         const books = data.books.filter((b: any) => b.destination === d);
         const back = books.find((b: any) => b.results.accounts);

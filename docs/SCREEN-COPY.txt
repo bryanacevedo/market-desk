@@ -1,10 +1,11 @@
-# Sample day: # (the demo keeps its own clock).#
+# Sample day: ##.#
 # account# to #
 # accounts free to test, # needed
 # accounts, worked and held back
 # now, # in the draft
 # to # days
 #, # accounts free to test
+(the demo keeps its own clock)
 : # to # points
 : every other deal, or the held-back accounts
 : from the low estimate to the high one
@@ -52,9 +53,10 @@ Add every account a person owns
 An ICP version no longer in use.
 An outlined mark on a scale: the figure for every other deal, or the earlier figure, so you can compare with the solid tick.
 At meeting rates this low, more accounts, or more time, are needed before a difference can be read.
+Both files written. Download and pass them on from here.
 CRM Desk keeps what it takes. Rolling back sends the earlier plan over it, and owners pinned there stay as they are.
-Changes are not saved in the public demo.
 Changes are refused in the public demo and nothing is saved.
+Changes last until the demo restarts after 15 idle minutes, and anyone visiting meanwhile sees them.
 Changes stay in this sample only.
 Closed deals with a different known value for the same trait.
 Closed new-business deals in the evidence window.
@@ -141,6 +143,7 @@ Puts the changes you ticked into a new ICP version. A draft changes nothing unti
 Puts the earlier version in force again. It needs a reason, and the other managers are told.
 Read-only snapshot of the Market Desk demo, taken #. # and everything in it are invented sample data.
 Reason, sent to the other managers and RevOps
+RevOps makes the new files. Nothing goes out by itself.
 Rolled back. Every company is rescored.
 Running. # This page updates when it finishes.
 Sample company with invented data.
@@ -177,10 +180,11 @@ The difference could be chance.
 The difference goes away within each company size band.
 The draft rates churned customers A as often as current ones, which a good ICP should not do.
 The events file is written.
-The files for # and # still use the version before. Nothing goes out by itself: this makes both files from version #, and you download and pass them on from Handoffs.
-The files for # and # use version #. They are on Handoffs to download.
+The file for # was written. The file for # was not: #
+The files for # and # still use the version before. Nothing goes out by itself: Handoffs has one button that makes both files from version #, and you download and pass them on from there.
 The files this desk makes for your other tools, and what came back from them.
 The files this desk makes for your other tools, with what changed since the last file and what came back.
+The files use a profile other than the published version #
 The gap goes away when you compare companies of the same size, so company size, not this trait, explains it.
 The loss reason coded from the rep's note.
 The middle half of won-deal cycles.

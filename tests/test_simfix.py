@@ -85,10 +85,33 @@ def test_publishing_asks_before_it_makes_the_files():
     assert "Send new books now?" in src and "Not now" in src
     publish = src[src.index("export function PublishSheet"):src.index("export function RollbackSheet")]
     prompt, form = publish.split("  return (\n    <Wrap", 1)
-    # the publish call only records that it happened; files are made by the prompt's own button, and only there
+    # the publish call only records that it happened; no file is made from the sheet at all
     assert 'api("/api/books"' not in form and "setPublished(p.number)" in form
-    assert 'revops ? <button className="btn"' in prompt, "only RevOps makes files; a manager is told it waits for them"
-    assert prompt.count('"/api/books"') == 2 and "Make both files now" in prompt
+    # Changed on review: this test used to pin a "Make both files now" button in the prompt shown to RevOps. That branch could never
+    # run: only a manager publishes and only RevOps makes books, and switching "Acting as" remounts the sheet. The button now lives
+    # on Handoffs, and the prompt sends RevOps there.
+    assert '"/api/books"' not in prompt and "Make both files now" not in prompt
+    assert 'navigate("/handoffs")' in prompt and "Open Handoffs" in prompt
+
+
+def test_handoffs_has_the_one_button_that_makes_both_files_when_they_are_behind(cur):
+    page = _src("pages/Handoffs.tsx")
+    assert "Make both files now" in page and "behind.length" in page and page.count('"/api/books"') >= 4
+    assert "was written. The file for" in page, "a second POST that fails must still say the first file exists"
+    # a manager sees the notice but not the button; RevOps is the only role that makes files
+    assert "revops\n            ? <button" in page
+    from market import profiles
+    mgr = db.one(cur, "select * from users where role = 'manager' and active order by id limit 1")
+    assert views.handoffs(cur, True)["behind"]["destinations"] == []
+    draft = db.one(cur, "select id from icp_versions where status = 'draft' order by number limit 1")
+    profiles.publish(cur, draft["id"], mgr, rescore_now=False)
+    h = views.handoffs(cur, True)
+    assert h["behind"]["destinations"] and h["behind"]["profile"] == views._published(cur)["number"]
+
+
+def test_the_waiting_line_does_not_say_earlier_after_a_rollback():
+    src = (ROOT / "src" / "market" / "api" / "app.py").read_text()
+    assert "a profile other than the published version" in src and "an earlier profile than" not in src
 
 
 # ---- 68: first screen, tour, banner
@@ -112,8 +135,11 @@ def test_the_start_page_has_between_4_and_6_steps_a_path():
 def test_the_demo_banner_is_on_every_screen_and_says_what_is_true():
     app = _src("App.tsx")
     assert "<DemoBanner me={me} />" in app and "Sample company with invented data." in app
+    # three branches, each true where it shows: the snapshot refuses, the Render demo keeps changes until it restarts, anywhere else keeps them in the sample
     assert "Changes are refused in the public demo and nothing is saved." in app and "Sample day: {sampleDay}" in app
-    assert "the demo keeps its own clock" in app
+    assert "Changes last until the demo restarts after 15 idle minutes, and anyone visiting meanwhile sees them." in app
+    assert "Changes stay in this sample only." in app and "Changes are not saved in the public demo" not in app
+    assert 'me.simulated ? " (the demo keeps its own clock)"' in app
     css = _src("market.css")
     assert ".demo-banner" in css and "@media (max-width: 900px) { .demo-banner a" in css
 
@@ -174,8 +200,9 @@ def test_a_draft_plans_owner_is_on_the_account_sheet_when_it_differs(cur):
 
 def test_the_sheet_shows_the_draft_owner_last_and_muted():
     src = _src("sheets.tsx")
-    assert "c.draft_owner ?" in src and "draft: not in force until a manager activates" in src
-    assert src.index("c.draft_owner ?") > src.index("c.coming || []")
+    # the row is "{c.draft_owner ? <>": the section guard "c.owner || c.draft_owner ?" is a separate, earlier match
+    assert "{c.draft_owner ? <>" in src and "draft: not in force until a manager activates" in src
+    assert src.index("{c.draft_owner ? <>") > src.index("c.coming || []")
 
 
 # ---- 70: Territories, dates, empties
@@ -267,3 +294,54 @@ def test_after_a_publish_the_files_are_behind_and_revops_is_told_but_nothing_is_
     behind = views.books_behind(cur)
     assert behind and {b["destination"] for b in behind} <= {"account_desk", "events_desk"}
     assert db.val(cur, "select count(*) from target_books") == before, "publishing must not make a file by itself"
+
+
+# ---- review fixes
+
+def test_notes_and_errors_do_not_name_a_desk_that_is_not_connected(cur, monkeypatch):
+    monkeypatch.setattr(names, "CONFIG", SimpleNamespace(integrated_with=frozenset()))
+    monkeypatch.delenv("CRM", raising=False)
+    rv = db.one(cur, "select * from users where role = 'revops' and active order by id limit 1")
+    text = repr(views.profile(cur, rv)) + repr(views.settings(cur)) + repr(views.territories(cur, db.val(cur, "select id from territory_plans where status = 'active'"), True)["hours_note"])
+    assert not re.search(r"\b(Account|Events|CRM) Desk\b", text), re.findall(r".{20}(?:Account|Events|CRM) Desk.{10}", text)[:3]
+
+
+def test_an_error_body_says_the_plain_words_when_the_desk_is_not_connected(monkeypatch):
+    import asyncio
+
+    from fastapi import HTTPException
+
+    from market.api import app as appmod
+    monkeypatch.setattr(names, "CONFIG", SimpleNamespace(integrated_with=frozenset()))
+    monkeypatch.delenv("CRM", raising=False)
+    r = asyncio.run(appmod._plain_error(None, HTTPException(403, "Sellers see their books in Account Desk and CRM Desk.")))
+    assert b"Account Desk" not in r.body and b"your outreach tool" in r.body
+
+
+def test_a_hand_change_owner_is_sourced_to_a_hand_change_and_dated(cur):
+    assert views.owner_source("manual") == "a hand change"
+    assert views.owner_source("rule") == "the territory plan"
+    rv = db.one(cur, "select * from users where role = 'revops' and active order by id limit 1")
+    active = db.val(cur, "select id from territory_plans where status = 'active'")
+    row = db.one(cur, "select company, owner from assignments where plan = %s and owner is not null and reason_code = 'rule' limit 1", active)
+    other = db.val(cur, "select id from users where active and role = (select role from users where id = %s) and id <> %s limit 1", row["owner"], row["owner"])
+    terr.change_owner_by_hand(cur, row["company"], other, "Covers the region now", rv)
+    m = [x for x in views.territories(cur, active, True)["manual"] if x["company"] == row["company"]]
+    assert m and m[0]["moved_at"] is not None
+
+
+def test_the_draft_owner_is_on_the_sheet_even_when_the_active_plan_holds_no_owner():
+    src = _src("sheets.tsx")
+    assert "c.owner || c.draft_owner ?" in src
+
+
+def test_the_banner_is_inside_main_and_the_skip_link_is_first():
+    app = _src("App.tsx")
+    assert app.index('className="skip"') < app.index("<DemoBanner me={me} />")
+    assert app.index('<main className="main"') < app.index("<DemoBanner me={me} />")
+    assert "setNames(me.names); setRefuses(!!me.snapshot); if (me.now) setNow(me.now);" in app, "the clock is set during render, like the names"
+
+
+def test_start_is_for_the_two_roles_that_see_the_market():
+    src = (ROOT / "src" / "market" / "api" / "app.py").read_text()
+    assert 'def start(u: dict = Depends(current_user)) -> dict:\n    need(u, "revops", "manager")' in src

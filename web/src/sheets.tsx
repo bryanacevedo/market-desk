@@ -336,12 +336,12 @@ function CompanySheet({ id }: { id: string }) {
               <dl className="kv small"><dt><T>Segment</T></dt><dd>{f.segment_label}</dd></dl>
             </Section>
           ) : null}
-          {c.owner ? (
+          {c.owner || c.draft_owner ? (
             <Section title="Owner">
-              <dl className="kv"><dt><T>In the active plan</T></dt><dd>{c.owner.id ? <><button className="link" onClick={() => openSheet("person", c.owner.id)}>{c.owner.name}</button><span className="mute">, {c.owner.seat ? `${c.owner.seat}, ` : ""}from {say(c.owner.source)}</span></> : "Unassigned"}</dd>
-                <dt><T>Why</T></dt><dd>{({ rule: "Territory rule", test: "Segment test", existing_owner: "Customer", open_deal: "Open deal", balance_move: "Moved to balance", manual: "Moved by hand" } as any)[c.owner.reason] || c.owner.reason}</dd>
-                {c.owner.note ? <><dt><T>Note</T></dt><dd>{c.owner.note}</dd></> : null}
-                {c.owner.moved_from ? <><dt><T>From</T></dt><dd>{c.owner.moved_from}</dd></> : null}
+              <dl className="kv"><dt><T>In the active plan</T></dt><dd>{!c.owner ? "Not in the plan in effect" : c.owner.id ? <><button className="link" onClick={() => openSheet("person", c.owner.id)}>{c.owner.name}</button><span className="mute">{c.owner.seat ? `, ${c.owner.seat}` : ""}{c.owner.reason === "manual" ? "" : `, from ${say(c.owner.source)}`}</span></> : "Unassigned"}</dd>
+                {c.owner ? <><dt><T>Why</T></dt><dd>{({ rule: "Territory rule", test: "Segment test", existing_owner: "Customer", open_deal: "Open deal", balance_move: "Moved to balance", manual: "Moved by hand" } as any)[c.owner.reason] || c.owner.reason}</dd></> : null}
+                {c.owner?.note ? <><dt><T>Note</T></dt><dd>{c.owner.note}</dd></> : null}
+                {c.owner?.moved_from ? <><dt><T>From</T></dt><dd>{c.owner.moved_from}</dd></> : null}
                 {(c.coming || []).map((m: any) => m.by_hand
                   ? <span key={m.role + "h"} style={{ display: "contents" }}><dt><T>{`${m.role === "SDR" ? "SDR" : "Owner"} plan change dropped`}</T></dt><dd>{`Changed by hand${m.kept ? ` to ${m.kept}` : ""}`}</dd></span>
                   : <span key={m.role} style={{ display: "contents" }}><dt><T>{`${m.role === "SDR" ? "SDR" : "Owner"} from ${day(m.from)}`}</T></dt><dd>{m.name}</dd></span>)}
