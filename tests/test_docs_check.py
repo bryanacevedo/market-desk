@@ -41,6 +41,9 @@ def test_a_test_count_in_the_readme_fails(tmp_path):
     _write(root, "README.md", (root / "README.md").read_text() + "186 tests pass.\n![t](https://img.shields.io/badge/tests-53-green)\n")
     problems = docs_check.check(root)
     assert sum(p.startswith("tests:") for p in problems) == 2
+    for text in ("201 test cases", "**53** tests", "tests: 53", "53 Tests"):
+        _write(root, "README.md", "Migrations in `migrations/` (0001 to 0003). `FOO_KEY` `BAR_FLAG`\n" + text + "\n")
+        assert any(p.startswith("tests:") for p in docs_check.check(root)), text
 
 
 def test_a_wrong_or_missing_migration_range_fails(tmp_path):
@@ -61,6 +64,29 @@ def test_an_undocumented_env_variable_fails_until_allowed(tmp_path):
     _write(root, ".env.example", "FOO_KEY=\n")  # a name in .env.example counts as documented
     _write(root, "README.md", (root / "README.md").read_text().replace("`FOO_KEY`", ""))
     assert [p for p in docs_check.check(root) if p.startswith("env:")] == []
+
+
+def test_migration_range_match_is_case_insensitive(tmp_path):
+    root = _fixture(tmp_path)
+    _write(root, "PROJECT-STATUS.md", (root / "PROJECT-STATUS.md").read_text() + "Migrations 0001 to 0002 are applied.\n")
+    assert any(p.startswith("migrations:") and "PROJECT-STATUS" in p for p in docs_check.check(root))
+
+
+def test_aliased_environ_imports_are_caught(tmp_path):
+    root = _fixture(tmp_path)
+    _write(root, "src/a.py", "from os import environ\nx = environ['ALPHA_VAR']\n")
+    _write(root, "src/b.py", "from os import environ as e\ny = e.get('BETA_VAR')\n")
+    _write(root, "src/c.py", "import os as o\nz = o.getenv('GAMMA_VAR')\n")
+    names = {p.split()[1] for p in docs_check.check(root) if p.startswith("env:")}
+    assert names == {"ALPHA_VAR", "BETA_VAR", "GAMMA_VAR"}
+
+
+def test_duplicate_or_missing_decision_numbers_fail(tmp_path):
+    root = _fixture(tmp_path)
+    _write(root, "docs/DECISIONS.md", "## 1. One\n## 2. Two\n## 2. Again\n")
+    assert any("repeat" in p for p in docs_check.check(root))
+    _write(root, "docs/DECISIONS.md", "## 1. One\n## 3. Three\n")
+    assert any("skips" in p for p in docs_check.check(root))
 
 
 def test_a_decision_count_mismatch_fails(tmp_path):

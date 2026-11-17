@@ -49,6 +49,11 @@ def env_vars_read(root: Path) -> set[str]:
             text = _read(f)
             for rx in ENV_READS:
                 found.update(rx.findall(text))
+            aliases = {a or n for n, a in re.findall(r"from\s+os\s+import\s+(environ|getenv)(?:\s+as\s+(\w+))?", text)}
+            aliases |= {a + ".environ" for a in re.findall(r"import\s+os\s+as\s+(\w+)", text)}
+            aliases |= {a + ".getenv" for a in re.findall(r"import\s+os\s+as\s+(\w+)", text)}
+            for a in aliases - {"environ", "getenv"}:
+                found.update(re.findall(re.escape(a) + r"(?:\.get)?\s*[\[(]\s*[\"'](" + ENV_NAME + r")[\"']", text))
             lines = text.splitlines()
             for i, line in enumerate(lines):  # a loop over a tuple of names that reads the environment
                 m = LOOP.search(line)
@@ -72,7 +77,8 @@ def _mentioned(root: Path) -> str:
 
 def _check_tests(root: Path, problems: list[str]) -> None:
     readme = _read(root / "README.md")
-    for m in re.finditer(r"badge/tests-|\b\d[\d,]*\s+(?:passing\s+)?tests\b", readme):
+    count = re.compile(r"badge/tests-|\d[\d,]*\*{0,2}\s+(?:passing\s+)?tests?\b(?:\s+cases?)?|\btests?:\s*\*{0,2}\d", re.I)
+    for m in count.finditer(readme):
         problems.append(f"tests: README.md states a test count ({m.group(0).strip()!r}); drop it, it goes stale")
 
 
@@ -81,7 +87,7 @@ def _check_migrations(root: Path, problems: list[str]) -> None:
     if not files:
         return
     first, last = files[0][:4], files[-1][:4]
-    rx = re.compile(r"migrations?[/`]*\s*\(?\s*(\d{4})\s*(?:to|-|through)\s*(\d{4})")
+    rx = re.compile(r"migrations?[/`]*\s*\(?\s*(\d{4})\s*(?:to|-|through)\s*(\d{4})", re.I)
     seen = False
     docs = [root / "README.md", root / "PROJECT-STATUS.md", *sorted((root / "docs").glob("*.md"))]
     for f in docs:
@@ -107,6 +113,12 @@ def _check_decisions(root: Path, problems: list[str]) -> None:
     if not numbers:
         problems.append("decisions: docs/DECISIONS.md has no numbered decisions")
         return
+    dupes = sorted({n for n in numbers if numbers.count(n) > 1})
+    missing = [n for n in range(1, max(numbers) + 1) if n not in numbers]
+    if dupes:
+        problems.append(f"decisions: DECISIONS.md numbers repeat: {dupes}")
+    if missing:
+        problems.append(f"decisions: DECISIONS.md skips numbers: {missing}")
     m = re.search(r"decisions\s+`?docs/DECISIONS\.md`?\s+1 to (\d+)", _read(root / "PROJECT-STATUS.md"))
     if not m:
         problems.append("decisions: PROJECT-STATUS.md does not state the count ('decisions `docs/DECISIONS.md` 1 to N')")

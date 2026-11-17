@@ -10,4 +10,4 @@ Save as `.git/hooks/pre-push` and make it executable (`chmod +x .git/hooks/pre-p
 make docs-check || { echo "pre-push: docs-check failed; fix the docs in the same commit as the change." >&2; exit 1; }
 ```
 
-Skip it once with `git push --no-verify`. The same check also runs in the normal test suite (`tests/test_docs_check.py`), so CI catches a push that skipped the hook.
+Skip it once with `git push --no-verify`. The same check also runs in the normal test suite (`tests/test_docs_check.py`), so CI catches a push that skipped the hook, except the Updated check, which needs full history.

@@ -67,12 +67,12 @@ Three desks, one family. Each has its own spirit on the same bones.
 - [ ] Work belongs to someone: each page says whether it shows your work or the team's (Changes and the Waiting on you line show the reader's own work), and one owner is named, never two.
 - [ ] Everything that names a segment, a finding, a company, a person, a profile version, a test, a proposal, a book or a source opens it.
 
-## Side sheets (segment, finding, company, profile version, plan move, test, proposal, book, source)
+## Side sheets (segment, finding, company, person, profile version, plan move, test, proposal, book, source)
 
 - [ ] Who or what it is: mark, name, context as links. Each kind has its own mark and a hairline in its own quiet tint.
 - [ ] Its key figures in one row.
 - [ ] The action that matters (publish, activate, approve, reject, test this segment).
-- [ ] The company or segment it belongs to. This desk stores no people.
+- [ ] The company or segment it belongs to. This desk stores no contacts (decision 1); its only people are the team.
 - [ ] What it came from and what it led to (the finding behind a proposal, the evidence behind a rule), each one tap away.
 - [ ] The path so far, as one history of versions, moves and decisions.
 - [ ] A sheet opened from another sheet shows the way back to it.

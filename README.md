@@ -128,6 +128,7 @@ Every variable the code reads. All are optional for a local `make demo`.
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | Local tracing, only to this machine; needs the `otel` extra | off |
 | `PGHOST`, `PGHOSTADDR`, `PGDATABASE`, `PGSERVICE`, `PGSERVICEFILE`, `PGOPTIONS` | Not used; with the guard on, setting any of them stops the desk, because they would override the URL | unset |
 | `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | Checked like the endpoint above | unset |
+| `TEST_DATABASE_URL`, `TEST_DB_PREFIX` | Tests only: the Postgres the suite creates its databases in, and their name prefix | port 54339, `mkb_test_` |
 
 ## AI evals
 
