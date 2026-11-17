@@ -7,7 +7,6 @@
 **Who a B2B team sells to, decided from its own deals.**
 
 [![ci](https://github.com/bryanacevedo/market-desk/actions/workflows/ci.yml/badge.svg)](https://github.com/bryanacevedo/market-desk/actions/workflows/ci.yml)
-![tests](https://img.shields.io/badge/tests-53%20on%20Postgres%2018-2F6B4F)
 [![license](https://img.shields.io/badge/license-PolyForm%20Noncommercial-5E6A62)](LICENSE.md)
 [![live demo](https://img.shields.io/badge/live%20demo-Render-A2671F)](https://market-desk-3kou.onrender.com)
 
@@ -28,7 +27,7 @@ Market Desk learns the ideal customer profile from every deal won, lost and chur
 
 **[Watch the explainer (1:52)](https://bryanacevedo.github.io/project-videos/video/market-desk.mp4)**: a plain-English explainer for someone outside RevOps. It answers two questions a sales team argues about, who to sell to and how many sellers it needs, from the demo's own deals: who the team wins with, how big the reachable market is, what that means per territory, and how the team will know it was right. Every figure in it was read from the live demo on 12 November 2026.
 
-Pick who you are acting as in the demo's sidebar: RevOps or the sales manager. Those are the only two roles. SDRs and AEs are data here, people in the territory plan, and do not sign in: their accounts are meant to reach them where they work. Market Desk already writes one book file in Account Desk's format, with every assigned account and its owner, SDRs' and AEs' alike; with a CRM set, each account also goes to [CRM Desk](https://crm-desk-sevh.onrender.com) with its tier, AE and SDR. If it has been idle, Render takes up to a minute to wake it.
+Pick who you are acting as in the demo's sidebar: RevOps or the sales manager. Those are the only two roles. SDRs and AEs are data here, people in the territory plan, and do not sign in: their accounts are meant to reach them where they work. Market Desk already writes one book file in Account Desk's format, with every assigned account and its owner, SDRs' and AEs' alike; with a CRM set, each account also goes to [CRM Desk](https://crm-desk-sevh.onrender.com) with its tier, AE and SDR. If it has been idle, Render takes up to a minute to wake it. The demo is deployed by hand, not on every push, so it can be behind the code in this repository.
 
 <p align="center">
 <img src="docs/screens/evidence-desktop.png" alt="Evidence: each trait's win rate drawn as a range against the others, with a plain verdict" width="49%">
@@ -94,7 +93,41 @@ make setup
 make demo
 ```
 
-`make demo` starts a private Postgres in `.data/`, builds the demo from the vendored world (about 15 seconds) and serves it at http://localhost:8800. `make test` runs the suite on real Postgres. `make audit` checks the demo database against every product rule. `make evals` replays the AI evals from their recordings, free; `make evals-live` calls Claude, capped at $15. `python -m market mcp` is a read-only MCP server (find accounts, why an account has its tier, a segment's figures, who owns what).
+`make demo` starts a private Postgres in `.data/`, builds the demo from the vendored world (about 15 seconds) and serves it at http://localhost:8800. `make test` runs the suite on real Postgres 18 (it starts the private one first). `make docs-check` checks that this README, `PROJECT-STATUS.md` and the decisions still agree with the code. `make audit` checks the demo database against every product rule. `make evals` replays the AI evals from their recordings, free; `make evals-live` calls Claude, capped at $15. `python -m market mcp` is a read-only MCP server (find accounts, why an account has its tier, a segment's figures, who owns what).
+
+Schema migrations are plain SQL in `migrations/` (0001 to 0008), applied when the server starts.
+
+## Configuration
+
+Every variable the code reads. All are optional for a local `make demo`.
+
+| Variable | What it does | Default |
+|---|---|---|
+| `DATABASE_URL` | Postgres to use | the private one from `make db`, port 54339 |
+| `MODE` | `demo` or `live`; `live` needs `AUTH_MODE=header` and `WEBHOOK_SECRET` | `demo` |
+| `PUBLIC_DEMO` | Marks the public demo (invented data only; refuses `MODE=live`) | off |
+| `AUTH_MODE` | `demo` (the acting-as menu) or `header` (Cloudflare Access token) | `demo` |
+| `CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD` | Needed with `AUTH_MODE=header`, to verify the signed token | none |
+| `WRITE_KEY` | A key writes must send as `X-Write-Key`, outside the public demo | none |
+| `WEBHOOK_SECRET` | HMAC secret for the results webhook; random per process if unset | random |
+| `SELLER` | Name of the selling company in the demo | Lumen Ledger |
+| `WORLD` | `legacy` builds the desk's own world instead of the shared one | shared |
+| `DEMO_COMPANIES` | Companies the demo builds (legacy world) | 18000 |
+| `HOST`, `PORT`, `FORWARDED_ALLOW_IPS` | Where `serve` listens and which proxies it trusts | 127.0.0.1, 8800 |
+| `NO_WORKER` | Do not run the job worker inside the server | off |
+| `ANTHROPIC_LIVE` | Call Claude and record the answers (the demo uses stand-ins); the Anthropic SDK reads `ANTHROPIC_API_KEY` | off |
+| `CRM` | `crmdesk` sends books, scores and marketing qualified marks to CRM Desk; empty or `default` means none | none |
+| `CRM_DESK_URL`, `CRM_DESK_KEY` | CRM Desk's address and key | none |
+| `CRM_PULL` | Read deals from CRM Desk | off |
+| `CRM_MQA` | Set `0` to turn the hourly marketing qualified run off | on with `CRM` |
+| `CRM_JOURNAL` | A file that records each exchange with CRM Desk, one JSON line each | none |
+| `INTEGRATED_WITH` | The other desks present: `crm_desk`, `account_desk`, `events_desk` | none |
+| `DESK_LINKS` | Links to other desks, such as `crm_desk=https://...` | none |
+| `DESK_READ_KEY` | Key for the read endpoints Tally uses (`/api/agreement/*`, `/api/icp`); unset, they answer 404 | none |
+| `SIM_DB_GUARD`, `SIM_ALLOWED_HOSTS`, `SIM_DB_PREFIX` | Refuse any database that is not a local or named simulation one | off |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Local tracing, only to this machine; needs the `otel` extra | off |
+| `PGHOST`, `PGHOSTADDR`, `PGDATABASE`, `PGSERVICE`, `PGSERVICEFILE`, `PGOPTIONS` | Not used; with the guard on, setting any of them stops the desk, because they would override the URL | unset |
+| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | Checked like the endpoint above | unset |
 
 ## AI evals
 
