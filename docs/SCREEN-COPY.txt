@@ -13,6 +13,7 @@ A draft is a new ICP version: tick the changes to put in it, then Make a draft
 A manager other than # publishes it. It shows in their Waiting on you.
 A manager other than the author publishes it
 A new draft starts from the open draft v# and carries its rules.
+A new draft starts from the published version: the open drafts were made before it was published.
 A rule needs at least this many deals behind an unclear verdict before Changes proposes dropping it.
 A rule of the published ICP, tested like any trait: deals that match it against deals that do not.
 A segment's planning win rate is pulled toward the overall rate as if it had this many more deals at the overall rate.
@@ -101,6 +102,7 @@ No evidence behind this rule yet.
 No results back from Account Desk yet
 Not sent to Account Desk
 Nothing in this territory is left to move to this person
+On its start date the scheduled plan still gives this account to #.
 Only a draft can be published
 Open deals leave their owner
 Our CRM. Each account's tier, segment, fit score and owner go there from here, so sellers see them where they work.

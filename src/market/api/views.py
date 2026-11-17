@@ -259,7 +259,7 @@ def _rule_state(rules: dict) -> dict:
 
 def _drafts_with_changes_this_lacks(cur, v: dict, published: dict | None) -> list[int]:
     """Open drafts, other than this one, with a change from the published version that this draft does not carry. A draft
-    made from another open draft (decision 63) carries its rules, so that one is not listed; two drafts made apart are."""
+    made from another open draft (decision 63) carries its rules, so that one is not listed; 2 drafts made apart are."""
     base = _rule_state(published["rules"]) if published else {}
     mine = _rule_state(v["rules"])
     out = []
@@ -445,7 +445,10 @@ def company(cur, cid: int, u: dict, allowed: bool | None = None) -> dict | None:
 
 def _hand_owner(cur, cid: int, a: dict | None, u: dict) -> dict | None:
     """What the owner form on the account sheet shows RevOps, the only role the endpoint lets change an owner by hand
-    (decision 64): who holds the account now and the people who can take the same seat. None for anyone else."""
+    (decision 65): who holds the account now and the people who can take the same seat. None for anyone else.
+    What it says about a scheduled plan follows territories.change_owner_by_hand and reconcile_hand_changes: the plan stops
+    moving the account only when it would move this seat to the same kind of person; when its assignment holds the other kind
+    (decision 57's case left open), the start date still gives the account to that person, and the form says so."""
     if u["role"] != "revops":
         return None
     if a is None:
@@ -453,10 +456,18 @@ def _hand_owner(cur, cid: int, a: dict | None, u: dict) -> dict | None:
     seat = db.val(cur, "select role from users where id = %s", a["owner"]) if a["owner"] else None
     kind = "sdr" if seat == "sdr" else "ae"
     people = db.all(cur, "select id, name from users where active and role = %s and id is distinct from %s order by name", kind, a["owner"])
-    from .. import territories
     role = "sdr" if kind == "sdr" else "owner"
+    drops, still_to = False, None
+    sched = terr.scheduled_plan(cur)
+    if sched:
+        planned = db.one(cur, """select a.owner, u.name, u.role from assignments a join users u on u.id = a.owner
+                                 where a.plan = %s and a.company = %s""", sched["id"], cid)
+        if planned and planned["owner"] != a["owner"] and (planned["role"] == "sdr") != (kind == "sdr"):
+            still_to = planned["name"]
+        else:
+            drops = role in terr.scheduled_moves(cur).get(cid, {})
     return {"can": True, "seat": kind.upper(), "now": {"id": a["owner"], "name": a["owner_name"]}, "choices": people,
-            "drops_scheduled_move": role in territories.scheduled_moves(cur).get(cid, {})}
+            "drops_scheduled_move": drops, "scheduled_still_to": still_to}
 
 
 def raise_forbidden():

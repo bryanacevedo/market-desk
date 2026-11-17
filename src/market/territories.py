@@ -500,6 +500,10 @@ def change_owner_by_hand(cur, company: int, to_user: int, note: str, by: dict) -
         dropped = record_hand_change(cur, sched["id"], company, role, source="market_desk", to_user=to_user, by_name=by["name"], note=note.strip())
         if dropped:
             audit.log(cur, by["name"], "scheduled_move_dropped", "company", company, {"plan": sched["id"], "role": role}, actor_id=by["id"])
+    elif sched:
+        # Already dropped by an earlier hand change: the start date keeps the latest choice, not the first one.
+        db.run(cur, """update plan_hand_changes set source = 'market_desk', to_user = %s, by_name = %s, note = %s, at = app_now()
+                       where plan = %s and company = %s and role = %s""", to_user, by["name"], note.strip(), sched["id"], company, role)
     from . import crm
     crm.queue_hand_change(cur, active, company, role, to_user, dropped)
     return {"role": role, "dropped_from_schedule": dropped}

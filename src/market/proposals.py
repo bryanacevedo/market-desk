@@ -191,8 +191,20 @@ def generate(cur) -> list[int]:
 
 
 def open_draft(cur) -> dict | None:
-    """The newest open draft, the one a new draft starts from (decision 63); None when no draft is open."""
-    return db.one(cur, "select * from icp_versions where status = 'draft' order by number desc limit 1")
+    """The newest open draft made since the published version took effect, the one a new draft starts from (decision 63);
+    None when there is none. A draft made before the last publish or rollback was built on an older published version, so
+    starting from it would silently leave out the published version's own rules."""
+    # Ordered by the audit log, not by time: the demo's clock can stand still, so a draft and a publish can share a timestamp.
+    return db.one(cur, """select d.* from icp_versions d where d.status = 'draft'
+                          and (select max(id) from audit_log where action = 'profile_draft_created' and object_kind = 'icp_version'
+                               and object_id = d.id::text)
+                              > coalesce((select max(id) from audit_log where action in ('profile_published', 'profile_rolled_back')), 0)
+                          order by d.number desc limit 1""")
+
+
+def lock_drafts(cur) -> None:
+    """Makes drafts one at a time, so two at once cannot both start from the same open draft or take the same number."""
+    db.run(cur, "select pg_advisory_xact_lock(hashtext('market:make_draft'))")
 
 
 def make_draft(cur, proposal_ids: list[int], by: dict, note: str | None = None) -> int:
@@ -200,7 +212,8 @@ def make_draft(cur, proposal_ids: list[int], by: dict, note: str | None = None) 
     draft never silently leaves out the first one's rules. The draft's note says which (decision 63)."""
     if by["role"] != "revops":
         raise PermissionError("RevOps turns proposals into a draft.")
-    rows = db.all(cur, "select * from change_proposals where id = any(%s) and status = 'open' for update", proposal_ids)
+    lock_drafts(cur)
+    rows =db.all(cur, "select * from change_proposals where id = any(%s) and status = 'open' for update", proposal_ids)
     if not rows:
         raise ValueError("No open proposals were chosen.")
     base = open_draft(cur) or profiles.published(cur)

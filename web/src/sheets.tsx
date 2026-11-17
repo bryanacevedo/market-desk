@@ -253,7 +253,7 @@ function OtherDesk({ worldId }: { worldId: string }) {
   return <a className="btn line sm" href={`${links.crm_desk}/go/account/world:${worldId}`} target="_blank" rel="noreferrer">Open in CRM Desk</a>;
 }
 
-/** The hand owner change for one account (decision 64): RevOps only, the same seat only, a reason required. It shows who holds the
+/** The hand owner change for one account (decision 65): RevOps only, the same seat only, a reason required. It shows who holds the
     account now, says what pressing the button does, and the result is listed under it from the audit log. */
 function OwnerForm({ company: c }: { company: any }) {
   const h = c.hand_owner;
@@ -290,6 +290,7 @@ function OwnerForm({ company: c }: { company: any }) {
           </label>
           <div className="small mute">This moves the account now, outside any plan, and writes the reason to the audit log.</div>
           {h.drops_scheduled_move ? <div className="small mute">The scheduled plan stops moving this account's owner.</div> : null}
+          {h.scheduled_still_to ? <div className="small mute">On its start date the scheduled plan still gives this account to {h.scheduled_still_to}.</div> : null}
           <div style={{ display: "flex", gap: 8 }}>
             <button type="button" className="btn quiet sm" onClick={() => setOpen(false)}>Cancel</button>
             <button type="submit" className="btn sm" disabled={busy || !ok}>Change owner</button>

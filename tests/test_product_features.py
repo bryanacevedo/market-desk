@@ -1,4 +1,4 @@
-"""Three product features (decisions 63 to 65): a new draft starts from the open draft, the Evidence page can run the deals
+"""3 product features (decisions 63 to 65): a new draft starts from the open draft, the Evidence page can run the deals
 evidence again, and RevOps changes one account's owner by hand from the account sheet. Backend reads and endpoints run on the
 demo database in a rolled-back transaction; the web wiring checks are plain reads of the source (the web app has no browser
 test), next to the typecheck and the screen-copy gate."""
@@ -114,10 +114,10 @@ def test_only_revops_runs_the_evidence_again(client, demo):
 
 def test_the_run_limit_says_what_it_is():
     from market.api.app import rate_limit
-    rate_limit(None, limit=1, window=60.0, key="test-run-limit", message="Six an hour.")  # type: ignore[arg-type]
+    rate_limit(None, limit=1, window=60.0, key="test-run-limit", message="6 an hour.")  # type: ignore[arg-type]
     with pytest.raises(HTTPException) as e:
-        rate_limit(None, limit=1, window=60.0, key="test-run-limit", message="Six an hour.")  # type: ignore[arg-type]
-    assert e.value.status_code == 429 and e.value.detail == "Six an hour."
+        rate_limit(None, limit=1, window=60.0, key="test-run-limit", message="6 an hour.")  # type: ignore[arg-type]
+    assert e.value.status_code == 429 and e.value.detail == "6 an hour."
 
 
 def test_the_run_gives_the_page_a_new_run_date(cur):
@@ -214,3 +214,139 @@ def test_the_account_sheet_wires_the_owner_form_to_the_endpoint():
     assert "function OwnerForm" in src and "<OwnerForm company={c} />" in src
     assert "/owner`" in src and "h.choices" in src and "h.now" in src and "owner_changes" in src
     assert "reason.trim().length >= 3" in src and "disabled={busy || !ok}" in src
+
+
+# ---- review fixes (2026-11-17)
+
+def test_a_draft_made_before_the_last_publish_is_not_a_starting_point(cur, who):
+    """Draft A, then draft B from A; B is published. A is still open but was built on the older version: a new draft must start
+    from the published version (which carries both rules), never from A, which lacks B's rule."""
+    _no_open_draft(cur)
+    rv = _revops(cur)
+    manager = db.one(cur, "select * from users where role = 'manager' and active order by id limit 1")
+    a = proposals.make_draft(cur, [_proposal(cur, "a_extra")], rv)
+    b = proposals.make_draft(cur, [_proposal(cur, "b_extra")], rv)
+    profiles.publish(cur, b, manager)
+    n_a = db.val(cur, "select number from icp_versions where id = %s", a)
+    assert proposals.open_draft(cur) is None
+    ch = views.changes(cur)
+    assert ch["open_drafts"] == [n_a] and ch["new_draft_starts_from"] is None
+    c = proposals.make_draft(cur, [_proposal(cur, "c_extra")], rv)
+    d = db.one(cur, "select * from icp_versions where id = %s", c)
+    assert all(_has(d["rules"], k) for k in ("a_extra", "b_extra", "c_extra"))
+    assert d["note"] == "From proposals"
+    # and a draft made after the publish is a starting point again
+    assert proposals.open_draft(cur)["id"] == c
+
+
+def test_a_rollback_also_makes_earlier_drafts_stale(cur, who):
+    _no_open_draft(cur)
+    rv = _revops(cur)
+    managers = db.all(cur, "select * from users where role = 'manager' and active order by id")
+    first = proposals.make_draft(cur, [_proposal(cur, "r_extra")], rv)
+    second = proposals.make_draft(cur, [_proposal(cur, "s_extra")], rv)
+    profiles.publish(cur, first, managers[0])
+    assert proposals.open_draft(cur) is None              # second was made before first was published
+    profiles.rollback(cur, managers[0], "Not yet")
+    assert proposals.open_draft(cur) is None              # nor after the rollback
+    assert db.val(cur, "select status from icp_versions where id = %s", second) == "draft"
+
+
+def test_the_draft_endpoint_names_the_draft_it_started_from(client, demo):
+    with db.tx() as cur:
+        rv = _revops(cur)
+        start = proposals.open_draft(cur)
+        pid = _proposal(cur, "endpoint_extra")
+    try:
+        r = client.post("/api/proposals/draft", headers={"X-Acting-As": str(rv["id"])}, json={"ids": [pid]})
+        assert r.status_code == 200, r.text
+        body = r.json()
+        assert body["started_from"] == (start["number"] if start else None)
+        assert body["note"] == (proposals.started_from_note(start["number"]) if start else None)
+    finally:
+        with db.tx() as cur:
+            vid = db.val(cur, "select draft_version from change_proposals where id = %s", pid)
+            db.run(cur, "delete from change_proposals where id = %s", pid)
+            if vid:
+                db.run(cur, "delete from icp_versions where id = %s", vid)
+
+
+def test_drafts_are_made_one_at_a_time():
+    src = (Path(__file__).resolve().parents[1] / "src" / "market" / "proposals.py").read_text()
+    assert "pg_advisory_xact_lock" in src and "lock_drafts(cur)" in src
+
+
+def _scheduled(cur, who, to_kind: str):
+    """A plan dated 30 days ahead that moves 3 AE accounts of one AE to a person of `to_kind`, activated so it is scheduled."""
+    from .test_scheduled_plan import _scheduled_move
+    plan, ids, owner, other, day = _scheduled_move(cur, who)
+    if to_kind == "sdr":
+        sdr = db.val(cur, "select id from users where role = 'sdr' and active order by id limit 1")
+        db.run(cur, "update assignments set owner = %s where plan = %s and company = any(%s)", sdr, plan, ids)
+        other = sdr
+    territories.activate(cur, plan, who["Elena"])
+    assert db.val(cur, "select status from territory_plans where id = %s", plan) == "scheduled"
+    third = db.val(cur, "select id from users where role = 'ae' and active and id not in (%s, %s) order by id limit 1", owner, other)
+    return plan, ids, owner, other, third
+
+
+def test_the_form_says_the_plan_stops_only_when_it_does(cur, who):
+    rv = _revops(cur)
+    plan, ids, owner, other, third = _scheduled(cur, who, "ae")
+    h = views.company(cur, ids[0], rv)["hand_owner"]
+    assert h["drops_scheduled_move"] and h["scheduled_still_to"] is None
+    territories.change_owner_by_hand(cur, ids[0], third, "Keeps the relationship", rv)
+    db.run(cur, "update territory_plans set effective_on = app_now()::date where id = %s", plan)
+    assert territories.apply_scheduled(cur) == 1
+    assert db.val(cur, "select owner from assignments where plan = %s and company = %s", plan, ids[0]) == third   # it did stop
+
+
+def test_the_form_says_the_start_date_still_gives_the_account_to_an_sdr(cur, who):
+    """Decision 57's open case: the scheduled plan puts an SDR where RevOps changes the AE. The plan's assignment keeps the SDR,
+    so the form must not say the plan stops; it names the SDR, and the start date does give the account to them."""
+    rv = _revops(cur)
+    plan, ids, owner, sdr, third = _scheduled(cur, who, "sdr")
+    h = views.company(cur, ids[0], rv)["hand_owner"]
+    assert not h["drops_scheduled_move"]
+    assert h["scheduled_still_to"] == db.val(cur, "select name from users where id = %s", sdr)
+    territories.change_owner_by_hand(cur, ids[0], third, "Keeps the relationship", rv)
+    db.run(cur, "update territory_plans set effective_on = app_now()::date where id = %s", plan)
+    assert territories.apply_scheduled(cur) == 1
+    assert db.val(cur, "select owner from assignments where plan = %s and company = %s", plan, ids[0]) == sdr
+
+
+def test_a_second_hand_change_is_the_one_the_start_date_keeps(cur, who):
+    rv = _revops(cur)
+    plan, ids, owner, other, third = _scheduled(cur, who, "ae")
+    fourth = db.val(cur, "select id from users where role = 'ae' and active and id not in (%s, %s, %s) order by id limit 1", owner, other, third)
+    assert territories.change_owner_by_hand(cur, ids[0], third, "First choice", rv)["dropped_from_schedule"]
+    h = views.company(cur, ids[0], rv)["hand_owner"]
+    assert not h["drops_scheduled_move"] and h["scheduled_still_to"] is None    # already dropped: the sheet says so above the form
+    territories.change_owner_by_hand(cur, ids[0], fourth, "Second choice", rv)
+    row = db.one(cur, "select * from plan_hand_changes where plan = %s and company = %s and role = 'owner'", plan, ids[0])
+    assert row["to_user"] == fourth and row["note"] == "Second choice"
+    db.run(cur, "update territory_plans set effective_on = app_now()::date where id = %s", plan)
+    assert territories.apply_scheduled(cur) == 1
+    assert db.val(cur, "select owner from assignments where plan = %s and company = %s", plan, ids[0]) == fourth
+
+
+def test_the_form_shows_both_scheduled_plan_lines():
+    src = (WEB / "sheets.tsx").read_text()
+    assert "h.drops_scheduled_move ?" in src and "h.scheduled_still_to ?" in src
+
+
+def test_a_failed_evidence_run_answers_in_plain_words(client, demo, monkeypatch):
+    from market import evidence
+    from market.api import app as app_mod
+    with db.tx() as cur:
+        rv = _revops(cur)
+        before = db.val(cur, "select max(id) from analysis_runs")
+
+    def boom(cur):
+        raise ValueError("There are no closed deals to read.")
+    monkeypatch.setattr(evidence, "run", boom)
+    monkeypatch.setattr(app_mod, "rate_limit", lambda *a, **k: None)
+    r = client.post("/api/evidence/run", headers={"X-Acting-As": str(rv["id"]), "Content-Type": "application/json"})
+    assert r.status_code == 422 and r.json()["detail"] == "There are no closed deals to read."
+    with db.tx() as cur:
+        assert db.val(cur, "select max(id) from analysis_runs") == before

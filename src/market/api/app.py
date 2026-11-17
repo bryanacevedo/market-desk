@@ -649,6 +649,8 @@ class Ids(BaseModel):
 def proposals_draft(body: Ids, u: dict = Depends(writer)) -> dict:
     try:
         with db.tx() as cur:
+            if u["role"] == "revops":
+                proposals.lock_drafts(cur)      # so the draft named here is the one make_draft starts from
             start = proposals.open_draft(cur)
             vid = proposals.make_draft(cur, body.ids, u, body.note)
     except Exception as exc:
@@ -922,10 +924,13 @@ def run_evidence(request: Request, u: dict = Depends(writer)) -> dict:
     rate_limit(request, limit=6, window=3600.0, key="evidence-run",
                message="The evidence has been run 6 times in the last hour. Try again later.")
     from .. import proposals, sizing
-    with db.tx() as cur:
-        rid = evidence.run(cur)
-        sizing.run(cur)
-        proposals.generate(cur)
+    try:
+        with db.tx() as cur:     # one transaction: a run that fails leaves the earlier run, sizing and proposals as they were
+            rid = evidence.run(cur)
+            sizing.run(cur)
+            proposals.generate(cur)
+    except Exception as exc:
+        raise _fail(exc) from exc
     return {"run": rid}
 
 
