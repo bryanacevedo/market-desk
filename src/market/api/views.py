@@ -3,7 +3,7 @@ roles that may not see company money (docs/SPEC.md 3)."""
 from __future__ import annotations
 
 from .. import catalog as C
-from .. import crm, db, fit, handoff, profiles, tests_seg
+from .. import crm, db, fit, handoff, profiles, proposals, tests_seg
 from .. import territories as terr
 from ..evidence import rule_label
 
@@ -253,12 +253,31 @@ def move_options(cur) -> dict:
             "today": db.val(cur, "select app_now()::date")}
 
 
+def _rule_state(rules: dict) -> dict:
+    return {(k, r["key"]): (rule_label(r), r.get("weight")) for k, r in profiles.all_rules(rules)}
+
+
+def _drafts_with_changes_this_lacks(cur, v: dict, published: dict | None) -> list[int]:
+    """Open drafts, other than this one, with a change from the published version that this draft does not carry. A draft
+    made from another open draft (decision 63) carries its rules, so that one is not listed; two drafts made apart are."""
+    base = _rule_state(published["rules"]) if published else {}
+    mine = _rule_state(v["rules"])
+    out = []
+    for d in db.all(cur, "select number, rules from icp_versions where status = 'draft' and id <> %s order by number", v["id"]):
+        theirs = _rule_state(d["rules"])
+        changed = {k: theirs.get(k) for k in set(base) | set(theirs) if base.get(k) != theirs.get(k)}
+        if any(mine.get(k) != val for k, val in changed.items()):
+            out.append(d["number"])
+    return out
+
+
 def version(cur, vid: int, u: dict) -> dict | None:
     v = db.one(cur, """select v.*, a.name as author_name, p.name as publisher from icp_versions v join users a on a.id = v.author
                        left join users p on p.id = v.published_by where v.id = %s""", vid)
     if not v:
         return None
-    # A draft is built on the published version (proposals.make_draft), so it is compared with that one. A published or retired
+    # A draft is compared with the published version (a draft made from an open draft carries that draft's rules, so its
+    # diff shows them as well). A published or retired
     # version is compared with the one it replaced when that is recorded, else with the number before.
     if v["status"] == "draft":
         prev = db.one(cur, "select number, rules from icp_versions where status = 'published'")
@@ -266,8 +285,7 @@ def version(cur, vid: int, u: dict) -> dict | None:
         prev = db.one(cur, "select number, rules from icp_versions where id = %s", v["replaced"])
     else:
         prev = db.one(cur, "select number, rules from icp_versions where number = %s", v["number"] - 1)
-    other_drafts = [d["number"] for d in db.all(cur, "select number from icp_versions where status = 'draft' and id <> %s order by number", vid)] \
-        if v["status"] == "draft" else []
+    other_drafts = _drafts_with_changes_this_lacks(cur, v, prev) if v["status"] == "draft" else []
     diff = []
     if prev:
         old = {(k, r["key"]): rule_label(r) for k, r in profiles.all_rules(prev["rules"])}
@@ -405,6 +423,11 @@ def company(cur, cid: int, u: dict, allowed: bool | None = None) -> dict | None:
     for f in breakdown.get("not_applied", []):
         f["label"] = labels.get(f.get("key"), f.get("reason"))
     from ..crm import world_id
+    owner_changes = [{"at": r["at"], "who": r["actor"], "to": r["to_name"], "was": r["from_name"], "note": (r["detail"] or {}).get("note")}
+                     for r in db.all(cur, """select l.at, l.actor, l.detail, t.name as to_name, f.name as from_name from audit_log l
+                                             left join users t on t.id = (l.detail->>'to')::int left join users f on f.id = (l.detail->>'from')::int
+                                             where l.action = 'owner_changed_by_hand' and l.object_kind = 'company' and l.object_id = %s
+                                             order by l.id desc limit 5""", str(cid))]
     return strip({"id": c["id"], "name": c["name"], "domain": c["primary_domain"], "world_id": world_id(c["primary_domain"]),
                   "lifecycle": c["lifecycle"],
                   "industry": c["industry"], "employees": c["employees"], "country": C.COUNTRY_NAME.get(c["country"], c["country"]),
@@ -416,7 +439,24 @@ def company(cur, cid: int, u: dict, allowed: bool | None = None) -> dict | None:
                                                         "breakdown": breakdown, "version": pub["number"]},
                   "history": history, "coming": _coming(cur, [cid]).get(cid, []), "owner": a and {"name": a["owner_name"], "id": a["owner"], "reason": a["reason_code"],
                                                       "note": a["note"], "moved_from": a["moved_from_name"]},
+                  "owner_changes": owner_changes, "hand_owner": _hand_owner(cur, cid, a, u),
                   "deals": deals, "results": results, "tests": tests}, allowed)
+
+
+def _hand_owner(cur, cid: int, a: dict | None, u: dict) -> dict | None:
+    """What the owner form on the account sheet shows RevOps, the only role the endpoint lets change an owner by hand
+    (decision 64): who holds the account now and the people who can take the same seat. None for anyone else."""
+    if u["role"] != "revops":
+        return None
+    if a is None:
+        return {"can": False, "why": "This account is not in the plan in effect."}
+    seat = db.val(cur, "select role from users where id = %s", a["owner"]) if a["owner"] else None
+    kind = "sdr" if seat == "sdr" else "ae"
+    people = db.all(cur, "select id, name from users where active and role = %s and id is distinct from %s order by name", kind, a["owner"])
+    from .. import territories
+    role = "sdr" if kind == "sdr" else "owner"
+    return {"can": True, "seat": kind.upper(), "now": {"id": a["owner"], "name": a["owner_name"]}, "choices": people,
+            "drops_scheduled_move": role in territories.scheduled_moves(cur).get(cid, {})}
 
 
 def raise_forbidden():
@@ -560,7 +600,8 @@ def changes(cur) -> dict:
                           order by case p.status when 'open' then 0 else 1 end, p.id""")
     return {"open": [_proposal_row(cur, p) for p in rows if p["status"] == "open"],
             "decided": [_proposal_row(cur, p) for p in rows if p["status"] != "open"],
-            "open_drafts": [r["number"] for r in db.all(cur, "select number from icp_versions where status = 'draft' order by number")]}
+            "open_drafts": [r["number"] for r in db.all(cur, "select number from icp_versions where status = 'draft' order by number")],
+            "new_draft_starts_from": (proposals.open_draft(cur) or {}).get("number")}
 
 
 def proposal(cur, pid: int) -> dict | None:

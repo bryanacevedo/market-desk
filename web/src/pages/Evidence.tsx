@@ -1,4 +1,5 @@
-import { Empty, Failed, Fig, Loading, Section, Seg, day, money, n0, navigate, useData, usePath, withParam, T } from "../lib";
+import { api } from "../api";
+import { Empty, Failed, Fig, Loading, Section, Seg, day, money, n0, navigate, useBusy, useData, usePath, withParam, T } from "../lib";
 import { RangeLine, VERDICT_WORD, Verdict, RateAxis } from "../parts";
 import { openSheet } from "../sheets";
 
@@ -12,6 +13,7 @@ export function Evidence() {
   const trait = params.get("trait") || "";
   const { data, error, reload } = useData<any>("/api/evidence");
   const me = useData<any>("/api/me").data;
+  const [busy, run] = useBusy();
   if (error) return <div className="page"><Failed error={error} retry={reload} /></div>;
   if (!data) return <div className="page"><div className="head"><h1>Evidence</h1></div><Loading /></div>;
   const rows = (data.rows as any[]).filter((r) =>
@@ -23,6 +25,9 @@ export function Evidence() {
       <div className="head">
         <h1>Evidence</h1>
         {data.run.ran_at ? <span className="small mute"><T>Last run</T> {day(data.run.ran_at)}</span> : null}
+        {me?.user?.role === "revops" ? <button className="btn line sm" disabled={busy}
+          onClick={() => run(() => api("/api/evidence/run", { method: "POST" }), "The evidence run finished.")}>{busy ? "Running" : "Run again"}</button> : null}
+        {busy ? <span className="small mute" role="status">Running. This page updates when it finishes.</span> : null}
       </div>
       <div className="figs">
         <Fig value={`${monthsBetween(data.run.window_start, data.run.window_end)}`} unit=" months" label="Window" />

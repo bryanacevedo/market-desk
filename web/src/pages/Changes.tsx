@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { CheckSquare, Lightbulb } from "@phosphor-icons/react";
 import { api } from "../api";
-import { Empty, Failed, Loading, Section, Status, navigate, useBusy, useData, T } from "../lib";
+import { Empty, Failed, Loading, Section, Status, navigate, toast, useBusy, useData, T } from "../lib";
 import { RangeLine, VERDICT_WORD, Verdict } from "../parts";
 
 const VERDICT_CODE: Record<string, string> = Object.fromEntries(Object.entries(VERDICT_WORD).map(([k, v]) => [v, k]));
@@ -58,7 +58,7 @@ export function Changes() {
       <div className="head">
         <h1>Changes</h1>
         {revops ? <button className="btn" disabled={busy || !picked.length}
-          onClick={() => run(async () => { const r = await api<any>("/api/proposals/draft", { method: "POST", body: { ids: picked } }); setPicked([]); navigate(`/profile?sheet=version:${r.version}`); }, "Draft made.")}>
+          onClick={() => run(async () => { const r = await api<any>("/api/proposals/draft", { method: "POST", body: { ids: picked } }); setPicked([]); toast(r.note || "Draft made."); navigate(`/profile?sheet=version:${r.version}`); })}>
           Make a draft{picked.length ? ` of ${picked.length}` : ""}</button> : null}
       </div>
       <div className="range-key" aria-label="How to read a change">
@@ -67,7 +67,7 @@ export function Changes() {
         <span><i className="key-hollow" />Hollow tick: every other deal, or the held-back accounts</span>
         {revops ? <span>A draft is a new ICP version: tick the changes to put in it, then Make a draft</span> : null}
       </div>
-      {revops && (data.open_drafts || []).length ? <div className="notice"><Status kind="hold">{`Draft v${data.open_drafts.join(" and v")} ${data.open_drafts.length > 1 ? "are" : "is"} already open.`}</Status>A new draft starts from the published version, not from an open draft, so it leaves out the open draft's changes.</div> : null}
+      {revops && (data.open_drafts || []).length ? <div className="notice"><Status kind="hold">{`Draft v${data.open_drafts.join(" and v")} ${data.open_drafts.length > 1 ? "are" : "is"} already open.`}</Status>{`A new draft starts from the open draft v${data.new_draft_starts_from} and carries its rules.`}</div> : null}
       <Section title="Open" count={data.open.length} icon={Lightbulb}>
         {data.open.length ? (
           <div className="props">

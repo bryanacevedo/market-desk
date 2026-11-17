@@ -12,7 +12,7 @@ A company with this score or more, below the A cutoff, is tier B.
 A draft is a new ICP version: tick the changes to put in it, then Make a draft
 A manager other than # publishes it. It shows in their Waiting on you.
 A manager other than the author publishes it
-A new draft starts from the published version, not from an open draft, so it leaves out the open draft's changes.
+A new draft starts from the open draft v# and carries its rules.
 A rule needs at least this many deals behind an unclear verdict before Changes proposes dropping it.
 A rule of the published ICP, tested like any trait: deals that match it against deals that do not.
 A segment's planning win rate is pulled toward the overall rate as if it had this many more deals at the overall rate.
@@ -113,6 +113,7 @@ Points this rule adds to or removes from the company's score.
 Read-only snapshot of the Market Desk demo, taken #. Lumen Ledger and everything in it are invented sample data. Nothing you change is saved.
 Reason, sent to the other managers and RevOps
 Rolled back. Every company is rescored.
+Running. This page updates when it finishes.
 Share held back in a test
 Share of a test's accounts kept unworked so the worked ones can be compared.
 Share of closed new-business deals that were won. Where a band is drawn, the true rate likely sits inside it and the black tick is the rate measured.
@@ -146,12 +147,14 @@ The part of TAM in our regions whose buyer a contact source can find. Same low a
 The plan starts #. Owners change on that date.
 The reason the account has this owner, or the reason given for a decision.
 The same comparison inside each company size band. If the gap disappears here, size explains it.
+The scheduled plan stops moving this account's owner.
 The segment's win rate pulled toward the overall rate, as if it had 20 more deals at the overall rate, so a few lucky deals do not carry the plan.
 The territory's average expected value per person.
 The test has run its course and its result is in.
 The test is still running and has too few meetings to read a difference.
 The test was clear, so a change to give this segment weight is open on Changes.
 This becomes # proposals of # accounts at most, decided one at a time.
+This moves the account now, outside any plan, and writes the reason to the audit log.
 Tick: the win rate measured
 Tier A accounts in the person's book.
 Tier A accounts someone owns in this plan, out of every tier A account, including regions no territory covers.

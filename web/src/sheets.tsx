@@ -1,5 +1,5 @@
 import { TIPS } from "./tips";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ArrowLeft, ArrowsLeftRight, ArrowCounterClockwise, BookOpen, CheckCircle, Swap, Buildings, ChartPieSlice, Database, Flask, Lightbulb, ListChecks, Scales, UserCircle, X,
 } from "@phosphor-icons/react";
@@ -253,6 +253,53 @@ function OtherDesk({ worldId }: { worldId: string }) {
   return <a className="btn line sm" href={`${links.crm_desk}/go/account/world:${worldId}`} target="_blank" rel="noreferrer">Open in CRM Desk</a>;
 }
 
+/** The hand owner change for one account (decision 64): RevOps only, the same seat only, a reason required. It shows who holds the
+    account now, says what pressing the button does, and the result is listed under it from the audit log. */
+function OwnerForm({ company: c }: { company: any }) {
+  const h = c.hand_owner;
+  const [busy, run] = useBusy();
+  const [open, setOpen] = useState(false);
+  const [to, setTo] = useState("");
+  const [reason, setReason] = useState("");
+  const ok = !!to && reason.trim().length >= 3;
+  return (
+    <>
+      {(c.owner_changes || []).length ? (
+        <div className="ledger" aria-label="Owner changes by hand">
+          {c.owner_changes.map((x: any, i: number) => (
+            <div key={i} className="row" style={{ gridTemplateColumns: "minmax(0,1fr)" }}>
+              <span className="cell-main"><span className="t">{x.was ? `${x.was} to ${x.to}` : `To ${x.to}`}</span><span className="s">{x.who}, {dayTime(x.at)}. {x.note}</span></span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {!h ? null : !h.can ? <div className="small mute">{h.why}</div> : !open ? (
+        <button className="btn line sm" onClick={() => setOpen(true)}>Change owner</button>
+      ) : (
+        <form onSubmit={(e) => { e.preventDefault(); if (!ok) return;
+          run(async () => { await api(`/api/companies/${c.id}/owner`, { method: "POST", body: { to: Number(to), note: reason.trim() } }); setOpen(false); setTo(""); setReason(""); }, "Owner changed. It is in the audit log."); }}>
+          <div className="small">Now: {h.now?.name || "Unassigned"} ({h.seat})</div>
+          <label className="form-field"><span className="small mute">{`New ${h.seat}`}</span>
+            <select className="select" value={to} onChange={(e) => setTo(e.target.value)}>
+              <option value="">Choose a person</option>
+              {h.choices.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </label>
+          <label className="form-field"><span className="small mute">Reason</span>
+            <textarea className="input" rows={2} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} />
+          </label>
+          <div className="small mute">This moves the account now, outside any plan, and writes the reason to the audit log.</div>
+          {h.drops_scheduled_move ? <div className="small mute">The scheduled plan stops moving this account's owner.</div> : null}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" className="btn quiet sm" onClick={() => setOpen(false)}>Cancel</button>
+            <button type="submit" className="btn sm" disabled={busy || !ok}>Change owner</button>
+          </div>
+        </form>
+      )}
+    </>
+  );
+}
+
 function CompanySheet({ id }: { id: string }) {
   const me = useData<any>("/api/me").data;
   return (
@@ -297,6 +344,7 @@ function CompanySheet({ id }: { id: string }) {
                 {(c.coming || []).map((m: any) => m.by_hand
                   ? <span key={m.role + "h"} style={{ display: "contents" }}><dt><T>{`${m.role === "SDR" ? "SDR" : "Owner"} plan change dropped`}</T></dt><dd>{`Changed by hand${m.kept ? ` to ${m.kept}` : ""}`}</dd></span>
                   : <span key={m.role} style={{ display: "contents" }}><dt><T>{`${m.role === "SDR" ? "SDR" : "Owner"} from ${day(m.from)}`}</T></dt><dd>{m.name}</dd></span>)}</dl>
+              <OwnerForm company={c} />
             </Section>
           ) : null}
           <Section title="Fields">

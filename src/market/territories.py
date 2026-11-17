@@ -486,11 +486,13 @@ def change_owner_by_hand(cur, company: int, to_user: int, note: str, by: dict) -
     role = "sdr" if person["role"] == "sdr" else "owner"
     if (db.val(cur, "select role from users where id = %s", row["owner"]) == "sdr") != (role == "sdr"):
         raise ValueError("That account's seat is held by the other kind of person; change it in a plan.")
+    if row["owner"] == to_user:
+        raise ValueError("That person already holds this account.")
     moves = scheduled_moves(cur).get(company, {})          # worked out before the change, against the old owners
     db.run(cur, """update assignments set owner = %s, reason_code = 'manual', note = %s, moved_from = %s, created_by = %s
                    where plan = %s and company = %s""", to_user, note.strip(), row["owner"], by["id"], active, company)
-    audit.log(cur, by["name"], "owner_changed_by_hand", "company", company, {"plan": active, "to": to_user, "role": role,
-              "note": note.strip()}, actor_id=by["id"])
+    audit.log(cur, by["name"], "owner_changed_by_hand", "company", company, {"plan": active, "to": to_user, "from": row["owner"],
+              "role": role, "note": note.strip()}, actor_id=by["id"])
     snapshot(cur, active)
     dropped = False
     sched = scheduled_plan(cur)

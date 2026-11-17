@@ -190,21 +190,35 @@ def generate(cur) -> list[int]:
     return made
 
 
+def open_draft(cur) -> dict | None:
+    """The newest open draft, the one a new draft starts from (decision 63); None when no draft is open."""
+    return db.one(cur, "select * from icp_versions where status = 'draft' order by number desc limit 1")
+
+
 def make_draft(cur, proposal_ids: list[int], by: dict, note: str | None = None) -> int:
+    """A new draft starts from the newest open draft when one exists, else from the published version, so a second
+    draft never silently leaves out the first one's rules. The draft's note says which (decision 63)."""
     if by["role"] != "revops":
         raise PermissionError("RevOps turns proposals into a draft.")
     rows = db.all(cur, "select * from change_proposals where id = any(%s) and status = 'open' for update", proposal_ids)
     if not rows:
         raise ValueError("No open proposals were chosen.")
-    pub = profiles.published(cur)
-    rules = pub["rules"]
+    base = open_draft(cur) or profiles.published(cur)
+    rules = base["rules"]
     for r in rows:
         rules = apply_diff(rules, r["proposed_rules_diff"])
-    vid = profiles.create_draft(cur, author=by["id"], rules=rules, note=note or "From proposals")
+    text = note or "From proposals"
+    if base["status"] == "draft":
+        text = f"{text.rstrip('. ')}. {started_from_note(base['number'])}"
+    vid = profiles.create_draft(cur, author=by["id"], rules=rules, note=text[:500])
     db.run(cur, "update change_proposals set status = 'drafted', decided_by = %s, draft_version = %s where id = any(%s)",
            by["id"], vid, [r["id"] for r in rows])
     audit.log(cur, by["name"], "proposals_drafted", "icp_version", vid, {"proposals": [r["id"] for r in rows]}, actor_id=by["id"])
     return vid
+
+
+def started_from_note(number: int) -> str:
+    return f"This draft starts from the open draft v{number}, so it carries that draft's rules."
 
 
 def dismiss(cur, proposal_id: int, by: dict, reason: str) -> None:

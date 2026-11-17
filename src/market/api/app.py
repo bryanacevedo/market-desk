@@ -122,7 +122,7 @@ def client_key(request: Request) -> str:
     return request.client.host if request.client else "?"
 
 
-def rate_limit(request: Request, limit: int = 120, window: float = 60.0, key: str | None = None) -> None:
+def rate_limit(request: Request, limit: int = 120, window: float = 60.0, key: str | None = None, message: str | None = None) -> None:
     key = key or client_key(request)
     now = time.monotonic()
     with _hits_lock:
@@ -133,7 +133,7 @@ def rate_limit(request: Request, limit: int = 120, window: float = 60.0, key: st
         while q and now - q[0] > window:
             q.popleft()
         if len(q) >= limit:
-            raise HTTPException(429, "Too many changes in a minute. Try again shortly.")
+            raise HTTPException(429, message or "Too many changes in a minute. Try again shortly.")
         q.append(now)
 
 
@@ -649,10 +649,12 @@ class Ids(BaseModel):
 def proposals_draft(body: Ids, u: dict = Depends(writer)) -> dict:
     try:
         with db.tx() as cur:
+            start = proposals.open_draft(cur)
             vid = proposals.make_draft(cur, body.ids, u, body.note)
     except Exception as exc:
         raise _fail(exc) from exc
-    return {"version": vid}
+    return {"version": vid, "started_from": start["number"] if start else None,
+            "note": proposals.started_from_note(start["number"]) if start else None}
 
 
 class Reason(BaseModel):
@@ -917,7 +919,8 @@ def erase_notes(cid: int, u: dict = Depends(writer)) -> dict:
 def run_evidence(request: Request, u: dict = Depends(writer)) -> dict:
     need(u, "revops")
     # A full run is heavy: six an hour for the whole site, whoever asks.
-    rate_limit(request, limit=6, window=3600.0, key="evidence-run")
+    rate_limit(request, limit=6, window=3600.0, key="evidence-run",
+               message="The evidence has been run 6 times in the last hour. Try again later.")
     from .. import proposals, sizing
     with db.tx() as cur:
         rid = evidence.run(cur)
