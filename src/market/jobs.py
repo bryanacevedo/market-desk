@@ -30,17 +30,17 @@ def handler(kind: str) -> Callable[[Handler], Handler]:
 
 
 def enqueue(cur, kind: str, payload: dict | None = None, *, delay: timedelta | None = None,
-            run_at=None, dedupe_key: str | None = None, max_attempts: int = 5) -> int | None:
+            run_at=None, dedupe_key: str | None = None, max_attempts: int = 5, keep_trace: bool = True) -> int | None:
     """Queue a job. With a dedupe_key, a second enqueue while the first is queued or running is a no-op.
 
     The job keeps the W3C traceparent of the span that queued it (NULL with tracing off), so its run joins that trace.
-    A dedupe no-op inserts nothing, so the first job keeps its own value."""
+    A dedupe no-op inserts nothing, so the first job keeps its own value. `keep_trace=False` stores none."""
     row = db.one(cur, """
         insert into jobs (kind, payload, run_at, dedupe_key, max_attempts, trace_parent)
         values (%s, %s, coalesce(%s, app_now() + coalesce(%s, interval '0')), %s, %s, %s)
         on conflict (dedupe_key) where dedupe_key is not null and status in ('queued', 'running') do nothing
         returning id""", kind, J(payload or {}), run_at, delay, dedupe_key, max_attempts,
-                telemetry.current_traceparent())
+                telemetry.current_traceparent() if keep_trace else None)
     return row["id"] if row else None
 
 
@@ -48,9 +48,10 @@ def requeue(cur, kind: str, delay: timedelta) -> int | None:
     """A recurring job's handler queues its next run, deduped under the kind's own key. The handler runs while its row
     is still 'running', and the dedupe key covers 'running' rows, so a plain enqueue would be a silent no-op and the
     schedule would end after one run. The running row gives up the key first; this is inside the job's transaction,
-    so a failed run rolls it back and the retry keeps the key."""
+    so a failed run rolls it back and the retry keeps the key.
+    The next run starts its own trace: a schedule is not caused by the run before it."""
     db.run(cur, "update jobs set dedupe_key = null where dedupe_key = %s and status = 'running'", kind)
-    return enqueue(cur, kind, {}, delay=delay, dedupe_key=kind)
+    return enqueue(cur, kind, {}, delay=delay, dedupe_key=kind, keep_trace=False)
 
 
 def _backoff(attempts: int) -> timedelta:

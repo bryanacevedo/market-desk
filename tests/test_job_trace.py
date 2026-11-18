@@ -97,3 +97,33 @@ def test_a_job_runs_in_the_trace_of_the_request_that_queued_it(database, tracing
     assert job.parent.span_id == spans["POST /api/thing"].context.span_id
     assert job.kind == trace.SpanKind.CONSUMER
     assert len(headers) == 1 and headers[0].split("-")[1] == trace_id
+    assert trace.get_current_span().get_span_context().trace_id == 0  # nothing left attached after the job
+
+
+def test_a_requeue_starts_its_own_trace_and_the_next_job_does_not_inherit_the_last(database, tracing, monkeypatch):
+    from datetime import timedelta
+
+    provider, exporter = tracing
+    queued: list[int] = []
+
+    def handler(cur, payload):
+        queued.append(jobs.requeue(cur, KIND, timedelta(0)))
+    monkeypatch.setitem(jobs.HANDLERS, KIND, handler)
+    with provider.get_tracer("test").start_as_current_span("POST /api/thing"):
+        first = _enqueue_committed(dedupe_key=KIND)
+    ids = [first]
+    try:
+        assert _stored(first)["trace_parent"] is not None
+        assert jobs.run_ready(limit=1) == 1
+        ids.append(queued[0])
+        assert queued[0] is not None and _stored(queued[0])["trace_parent"] is None  # a schedule starts a trace each run
+        with db.pool().connection() as conn:  # run the requeued job: no stored parent, so a root span, not a child of the last
+            with conn.cursor() as c:
+                db.run(c, "update jobs set run_at = %s where id = %s", LONG_AGO, queued[0])
+        monkeypatch.setitem(jobs.HANDLERS, KIND, lambda c, p: None)
+        assert jobs.run_ready(limit=1) == 1
+    finally:
+        for i in ids:
+            _forget(i)
+    spans = [s for s in exporter.get_finished_spans() if s.name == f"job {KIND}"]
+    assert len(spans) == 2 and spans[0].context.trace_id != spans[1].context.trace_id and spans[1].parent is None
