@@ -393,9 +393,21 @@ def test_each_delivery_is_a_span_linked_to_the_request_that_queued_its_row(cur, 
     spans = [s for s in exporter.get_finished_spans() if s.name == "crm deliver"]
     assert len(spans) == 2
     for span, ctx, request_span in zip(spans, ctxs, ("POST /api/a", "POST /api/b")):
-        assert span.parent is None and span.kind == trace.SpanKind.CLIENT          # linked, not parented
+        # One cause: the request is the parent (one trace from the action to the CRM call) and stays a link too.
+        assert span.kind == trace.SpanKind.CLIENT and span.parent is not None, request_span
+        assert (span.parent.trace_id, span.parent.span_id) == (ctx.trace_id, ctx.span_id), request_span
+        assert span.context.trace_id == ctx.trace_id, request_span
         assert [(lk.context.trace_id, lk.context.span_id) for lk in span.links] == [(ctx.trace_id, ctx.span_id)], request_span
-    assert spans[0].context.trace_id != spans[1].context.trace_id and spans[0].context.trace_id != ctxs[0].trace_id
+    assert spans[0].context.trace_id != spans[1].context.trace_id
+
+
+def test_a_delivery_with_several_causes_is_linked_to_each_and_parented_to_none(cur, tracing):
+    _, exporter = tracing
+    a, b = "00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01", "00-1af7651916cd43dd8448eb211c80319c-c7ad6b7169203331-01"
+    with telemetry.delivery_span("crm deliver", [a, b]):
+        pass
+    span = [s for s in exporter.get_finished_spans() if s.name == "crm deliver"][-1]
+    assert span.parent is None and len(span.links) == 2
 
 
 def test_the_delivery_job_does_not_join_the_trace_of_the_first_request(cur, tracing):
