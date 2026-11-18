@@ -362,8 +362,12 @@ def test_source_names_go_through_say_and_the_legend_does_not_widen_a_phone():
 def test_a_draft_plan_line_shows_its_start_date():
     src = _src("pages/Territories.tsx")
     assert "Starts ${day(plan.effective_on)} once a manager activates it" in src
+    # a start date today or earlier starts the day it is activated, by the desk clock the page already uses
+    assert 'String(plan.effective_on).slice(0, 10) > todayIso()' in src and "{startsLine}" in src and '"Starts the day a manager activates it"' in src
+    assert "canActivate ? `Starts ${day(plan.effective_on)} once a manager activates it` : `Starts ${day(plan.effective_on)}`" in src  # not 'a manager activates' twice
+    assert "export function todayIso()" in _src("lib.tsx") and "new Date(NOW)" in _src("lib.tsx")
     # the date sits beside both the Activate button and the waiting line, not only one of them
-    draft = src[src.index('plan.status === "draft" ? ('):src.index("Starts ${day(plan.effective_on)} once")]
+    draft = src[src.index('plan.status === "draft" ? ('):src.index("{startsLine}</span>")]
     assert "activateButton" in draft and "Waiting for a manager to activate" in draft
 
 

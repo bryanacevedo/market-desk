@@ -19,6 +19,7 @@ A company with this score or more, below the A cutoff, is tier B.
 A draft is a changed copy of the profile that a second person publishes. Make one from Changes.
 A draft is a new ICP version: tick the changes to put in it, then Make a draft
 A manager other than # publishes it. It shows in their Waiting on you.
+A manager other than the author activates it
 A manager other than the author publishes it
 A new draft starts from the open draft v# and carries its rules.
 A new draft starts from the published version: the open drafts were made before it was published.
@@ -165,6 +166,7 @@ Share the draft rates A. Compare with A now.
 Someone's book needs more hours than they hold.
 Someone's expected value is more than 15% from the territory average.
 Start here: the clearest gap in the deals
+Starts the day a manager activates it
 TAM is the whole market, SAM the part you can reach, SOM what the plan can win in 12 months
 Territories: who works which accounts, and whether they have the hours.
 Tests: working some accounts and holding others back to see whether a segment books more meetings.

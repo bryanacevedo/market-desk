@@ -149,6 +149,8 @@ export function late(iso: string | null | undefined): string {
   return say(Math.round(s / 86400), "day");
 }
 export function useNowIso(): number { return NOW; }
+/** The desk clock's date as YYYY-MM-DD (the sample day in the demo), for comparing with a plain date. */
+export function todayIso(): string { const d = new Date(NOW); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; }
 
 export function day(iso: string | null | undefined): string {
   if (!iso) return "";

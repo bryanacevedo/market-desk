@@ -1,5 +1,5 @@
 import { ClockCounterClockwise, MapTrifold, Swap, UsersThree } from "@phosphor-icons/react";
-import { Empty, Failed, Fig, Loading, Section, Seg, Status, day, deskName, money, n0, navigate, useData, usePath, withParam, writeHint, T, Tip } from "../lib";
+import { Empty, Failed, Fig, Loading, Section, Seg, Status, day, deskName, todayIso, money, n0, navigate, useData, usePath, withParam, writeHint, T, Tip } from "../lib";
 import { TIPS } from "../tips";
 import { CapacityRange, PlanShift } from "../parts";
 import { openSheet } from "../sheets";
@@ -18,6 +18,8 @@ export function Territories() {
   const plan = data.plan;
   if (!plan) return <div className="page"><div className="head"><h1>Territories</h1></div><Empty title="No plan yet" example="Active since 2 Jun: 6 people and 1,300 accounts, each with an owner.">A plan gives accounts to people by region and segment.</Empty></div>;
   const canActivate = plan.status === "draft" && me?.user.role === "manager" && me?.user.id !== plan.author_id;
+  const later = String(plan.effective_on).slice(0, 10) > todayIso();
+  const startsLine = later ? (canActivate ? `Starts ${day(plan.effective_on)} once a manager activates it` : `Starts ${day(plan.effective_on)}`) : "Starts the day a manager activates it";
   const activateButton = <div className="actions">
             <button className="btn" disabled={!canActivate}
               title={canActivate ? writeHint() : "A manager other than the author activates it"}
@@ -35,7 +37,7 @@ export function Territories() {
         {plan.status === "draft" ? (
           <span className="actions">
             {canActivate ? activateButton : <span className="small mute">Waiting for a manager to activate; it is in their Waiting on you</span>}
-            <span className="small mute">{`Starts ${day(plan.effective_on)} once a manager activates it`}</span>
+            <span className="small mute">{startsLine}</span>
           </span>
         ) : <span className="actions"><span className="mute small">{plan.status === "active" ? `Active since ${day(plan.restored_at || plan.activated_at)}, by ${plan.activated_by}` : plan.status === "scheduled" ? `Starts ${day(plan.effective_on)}, scheduled by ${plan.activated_by}` : plan.status === "retired" ? "Retired" : ""}</span>
           {plan.status === "scheduled" && me?.user.role === "manager" ? <button className="btn line sm" title={writeHint()} onClick={() => openSheet("cancelschedule", plan.id)}>Cancel schedule</button> : null}
