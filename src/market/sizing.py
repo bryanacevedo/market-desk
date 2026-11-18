@@ -29,7 +29,7 @@ def run(cur) -> int:
         select c.id, c.country, c.region, c.region_group, c.employees, c.industry, f.tier, f.judged, f.segment,
                coalesce(c.sole_trader, false) as sole_trader
         from companies c join account_fit f on f.company = c.id and f.icp_version = %s
-        where c.lifecycle <> 'competitor'""", vid)
+        where c.lifecycle <> 'competitor' and not coalesce(c.sole_trader, false)""", vid)
     reach = defaultdict(dict)
     for r in db.all(cur, "select company, persona, has_named_contact_source from reachability"):
         reach[r["company"]][r["persona"]] = r["has_named_contact_source"]

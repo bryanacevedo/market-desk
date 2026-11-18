@@ -137,6 +137,9 @@ FIELD_LABEL = {"industry": "Industry", "employees": "Employees", "region": "Regi
 AD_FIELDS = {"industry", "employees", "region", "revenue_band", "tech"}
 AD_COLUMNS = ["name", "domain", "industry", "employees", "country", "revenue_band", "tech", "lifecycle", "owner_email",
               "crm_id", "parent_domain"]
+# Columns the file carries after those (decision 75): who works the account as SDR and as AE, its tier and the profile version
+# the tier comes from. Account Desk's import reads columns by name and ignores the ones it does not know.
+BOOK_EXTRA_COLUMNS = ["sdr_email", "ae_email", "tier", "profile_version"]
 
 
 def size_band(employees: int | None) -> str | None:

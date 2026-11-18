@@ -21,11 +21,24 @@ import os
 from datetime import date
 from pathlib import Path
 
-from . import db, jobs
+from . import db, jobs, telemetry
 from .db import J
 
 log = logging.getLogger("market.crm")
 CHUNK = 100  # accounts per request: each sent and committed on its own, well inside CRM Desk's feed settle
+
+
+def queue_row(cur, kind: str, payload: dict, *, plan: int | None = None, icp_version: int | None = None, ref: str | None = None) -> int:
+    """Puts one request in the outbox. It keeps the traceparent of the span that queues it (NULL with tracing off) so the span
+    that sends it can link back to the request, and `ref` ("plan:4", "move:7") so a screen can say when it reached CRM Desk."""
+    return db.val(cur, """insert into crm_outbox (plan, kind, payload, icp_version, ref, trace_parent) values (%s,%s,%s,%s,%s,%s) returning id""",
+                  plan, kind, J(payload), icp_version, ref, telemetry.current_traceparent())
+
+
+def wake(cur, delay=None, *, dedupe: bool = True) -> None:
+    """Starts the delivery job. It begins a trace of its own: it sends rows queued by many requests, so each row is linked to
+    its request (`telemetry.delivery_span`) and the job is parented to none of them."""
+    jobs.enqueue(cur, "crm_deliver", {}, delay=delay, dedupe_key="crm_deliver" if dedupe else None, keep_trace=False)
 
 
 def enabled() -> bool:
@@ -36,7 +49,7 @@ def world_id(domain: str) -> str:
     return "co_" + hashlib.sha256(domain.encode()).hexdigest()[:12]
 
 
-def plan_items(cur, plan_id: int, scheduled_for: date | None = None) -> list[dict]:
+def plan_items(cur, plan_id: int, scheduled_for: date | None = None, only: list[int] | None = None) -> list[dict]:
     """Every account the plan assigns, with its tier and segment under the published profile, the AE who owns it and
     the SDR who works it (decision 39: sellers see their books where they work). A role a person changed by hand while the
     plan was scheduled is left out (decision 57); `scheduled_for` names the start date so the CRM can enforce the same."""
@@ -50,8 +63,8 @@ def plan_items(cur, plan_id: int, scheduled_for: date | None = None) -> list[dic
         left join users ae on ae.id = t.paired_ae
         left join icp_versions v on v.status = 'published'
         left join account_fit f on f.company = c.id and f.icp_version = v.id
-        where a.plan = %s and not c.sole_trader
-        order by c.primary_domain""", plan_id)
+        where a.plan = %s and not c.sole_trader and (%s::int[] is null or c.id = any(%s::int[]))
+        order by c.primary_domain""", plan_id, only, only)
     items = []
     for r in rows:
         # Market Desk creates the accounts it plans (DESIGN.md section 5): the name and what the company-data vendor
@@ -84,8 +97,8 @@ def queue_plan(cur, plan_id: int, scheduled_for: date | None = None) -> int:
     feats = features() if scheduled_for else []
     items = plan_items(cur, plan_id, scheduled_for if scheduled_for and (not feats or "scheduled_owner_by_hand" in feats) else None)
     for i in range(0, len(items), CHUNK):
-        db.run(cur, "insert into crm_outbox (plan, kind, payload) values (%s, 'books', %s)", plan_id, J({"items": items[i:i + CHUNK]}))
-    jobs.enqueue(cur, "crm_deliver", {}, dedupe_key="crm_deliver")
+        queue_row(cur, "books", {"items": items[i:i + CHUNK]}, plan=plan_id, ref=f"plan:{plan_id}")
+    wake(cur)
     return len(items)
 
 
@@ -156,9 +169,9 @@ def queue_schedule(cur, plan_id: int) -> int:
             item["sdr_owner_id"] = people[moves[c]["sdr"]]
         items.append(item)
     for i in range(0, len(items), CHUNK):
-        db.run(cur, "insert into crm_outbox (plan, kind, payload) values (%s, 'books', %s)", plan_id, J({"items": items[i:i + CHUNK]}))
+        queue_row(cur, "books", {"items": items[i:i + CHUNK]}, plan=plan_id, ref=f"plan:{plan_id}")
     if items:
-        jobs.enqueue(cur, "crm_deliver", {}, dedupe_key="crm_deliver")
+        wake(cur)
     return len(items)
 
 
@@ -174,9 +187,54 @@ def queue_hand_change(cur, plan_id: int, company: int, role: str, to_user: int, 
             "sdr_owner_id" if role == "sdr" else "owner_id": db.val(cur, "select email from users where id = %s", to_user)}
     if withdraw and supports_schedule():
         item["cancel_scheduled_owner"] = "sdr" if role == "sdr" else "account"
-    db.run(cur, "insert into crm_outbox (plan, kind, payload) values (%s, 'books', %s)", plan_id, J({"items": [item]}))
-    jobs.enqueue(cur, "crm_deliver", {}, dedupe_key="crm_deliver")
+    queue_row(cur, "books", {"items": [item]}, plan=plan_id, ref=f"hand:{company}")
+    wake(cur)
     return 1
+
+
+def queue_moves(cur, plan_id: int, companies: list[int], proposal_id: int) -> int:
+    """An approved move has applied to the plan in effect: the books for just those accounts go to the CRM, tagged with the
+    proposal so a screen can say when they arrived. Nothing without a CRM."""
+    if not enabled() or not companies:
+        return 0
+    items = plan_items(cur, plan_id, only=companies)
+    for i in range(0, len(items), CHUNK):
+        queue_row(cur, "books", {"items": items[i:i + CHUNK]}, plan=plan_id, ref=f"move:{proposal_id}")
+    wake(cur)
+    return len(items)
+
+
+def queue_move_schedule(cur, proposal_id: int, moves: list[dict], effective_on: date) -> int:
+    """Tells a CRM that can hold a date which owners an approved move will change, and from when (the plan's own scheduling
+    item, `owner_effective_on`). A CRM that cannot hold a date, or does not answer, is sent nothing now: the books go on the date."""
+    if not enabled() or not moves or not supports_schedule():
+        return 0
+    people = {u["id"]: u for u in db.all(cur, "select id, email, role from users")}
+    doms = {r["id"]: r["primary_domain"] for r in db.all(cur, "select id, primary_domain from companies where id = any(%s) and not sole_trader",
+                                                         [m["company"] for m in moves])}
+    items = []
+    for m in sorted(moves, key=lambda k: doms.get(k["company"], "")):
+        if m["company"] not in doms:
+            continue
+        who = people[m["to_owner"]]
+        items.append({"world_id": world_id(doms[m["company"]]), "domain": doms[m["company"]], "owner_effective_on": str(effective_on),
+                      "sdr_owner_id" if who["role"] == "sdr" else "owner_id": who["email"]})
+    plan = db.val(cur, "select id from territory_plans where status = 'active'")
+    for i in range(0, len(items), CHUNK):
+        queue_row(cur, "books", {"items": items[i:i + CHUNK]}, plan=plan, ref=f"move:{proposal_id}")
+    if items:
+        wake(cur)
+    return len(items)
+
+
+def delivery_state(cur, ref: str) -> dict:
+    """Where the requests tagged `ref` stand: how many reached CRM Desk (and when the last did), how many wait, how many it
+    refused outright. A screen says "Sent to CRM Desk <time>" or "Waiting to send" from this."""
+    rows = db.all(cur, "select status, count(*) as n, max(sent_at) as at, max(last_error) as err from crm_outbox where ref = %s group by status", ref)
+    by = {r["status"]: r for r in rows}
+    n = lambda k: int(by[k]["n"]) if k in by else 0  # noqa: E731
+    return {"sent": n("sent"), "waiting": n("queued"), "failed": n("failed"), "sent_at": by["sent"]["at"] if "sent" in by else None,
+            "error": by["failed"]["err"] if "failed" in by else None, "any": bool(rows)}
 
 
 def queue_cancel(cur, plan_id: int) -> int:
@@ -187,9 +245,9 @@ def queue_cancel(cur, plan_id: int) -> int:
     items = [{"world_id": i["world_id"], "domain": i["domain"], "cancel_scheduled_owner": True}
              for r in sent for i in r["payload"]["items"] if i.get("owner_effective_on")]
     for i in range(0, len(items), CHUNK):
-        db.run(cur, "insert into crm_outbox (plan, kind, payload) values (%s, 'books', %s)", plan_id, J({"items": items[i:i + CHUNK]}))
+        queue_row(cur, "books", {"items": items[i:i + CHUNK]}, plan=plan_id, ref=f"plan:{plan_id}")
     if items:
-        jobs.enqueue(cur, "crm_deliver", {}, dedupe_key="crm_deliver")
+        wake(cur)
     return len(items)
 
 
@@ -219,10 +277,9 @@ def queue_scores(cur, version_id: int) -> int:
                    where kind = 'scores' and status = 'queued' and icp_version is distinct from %s""", version_id)
     items = score_items(cur, plan, version_id)
     for i in range(0, len(items), CHUNK):
-        db.run(cur, "insert into crm_outbox (plan, kind, payload, icp_version) values (%s, 'scores', %s, %s)",
-               plan, J({"items": items[i:i + CHUNK]}), version_id)
+        queue_row(cur, "scores", {"items": items[i:i + CHUNK]}, plan=plan, icp_version=version_id, ref=f"scores:{version_id}")
     if items:
-        jobs.enqueue(cur, "crm_deliver", {}, dedupe_key="crm_deliver")
+        wake(cur)
     return len(items)
 
 
@@ -322,18 +379,23 @@ def deliver(cur, row: dict) -> dict:
 def _deliver_one(cur, payload: dict) -> None:
     """One row per job, so each batch commits on its own; the next row is queued as its own job. A CRM that does not
     answer leaves the row queued and the job retries with backoff, or after the wait a 429 asked for."""
-    row = db.one(cur, "select * from crm_outbox where status = 'queued' order by id limit 1 for update skip locked")
+    # Owners before tiers: a slow batch of tier scores must not hold up an owner change a person just made. Only the kind is
+    # reordered (books, then MQA marks, then scores); rows of one kind keep their order, so an older plan send never lands
+    # after a newer owner change. Scores carry no owners, so they can wait.
+    row = db.one(cur, """select * from crm_outbox where status = 'queued'
+                         order by case kind when 'books' then 0 when 'mqa' then 1 else 2 end, id limit 1 for update skip locked""")
     if row is None:
         return
     try:
-        deliver(cur, row)
+        with telemetry.delivery_span("crm deliver", [row["trace_parent"]]):
+            deliver(cur, row)
     except CrmDown as exc:
         if exc.retry_after:
             from datetime import timedelta
-            jobs.enqueue(cur, "crm_deliver", {}, delay=timedelta(seconds=exc.retry_after))
+            wake(cur, timedelta(seconds=exc.retry_after), dedupe=False)
             return
         raise  # the job retries with backoff; nothing is marked sent on a guess
-    jobs.enqueue(cur, "crm_deliver", {})
+    wake(cur, dedupe=False)
 
 
 def _latest(cur) -> dict[tuple[str, str], dict]:
@@ -466,7 +528,8 @@ class CrmDeskReader:
         j = self._get("/changes/accounts", since, limit)
         out = [CrmAccount(id=str(r["id"]), domain=r["domain"], name=r["name"], country=r.get("country"),
                           owner_email=(r.get("owner") or {}).get("email"), sdr_owner_email=(r.get("sdr_owner") or {}).get("email"),
-                          updated_at=self._when(r.get("updated_at")))
+                          updated_at=self._when(r.get("updated_at")), owner_set_by=(r.get("owner") or {}).get("set_by"),
+                          sdr_owner_set_by=(r.get("sdr_owner") or {}).get("set_by"))
                for r in j["data"] if not (r.get("deleted") or r.get("merged_into")) and r.get("domain")]
         return Page(out, j.get("next"), bool(j.get("has_more")))
 
@@ -514,6 +577,16 @@ class CrmDeskReader:
                 out[r["domain"].lower()] = {"mqa_at": r["mqa_at"], "mqa_points": r.get("mqa_points"), "mqa_people": r.get("mqa_people")}
             cursor, more = j.get("next") or cursor, bool(j.get("has_more"))
         return out
+
+
+def run_pull_now(cur) -> bool:
+    """Brings the next CRM read forward to now, for the person who sees the CRM source has missed its run. False when this desk
+    does not read the CRM (nothing to run)."""
+    if not pull_enabled():
+        return False
+    if not db.run(cur, "update jobs set run_at = app_now() where kind = 'crm_pull' and status = 'queued'"):
+        jobs.enqueue(cur, "crm_pull", {}, dedupe_key="crm_pull", keep_trace=False)
+    return True
 
 
 def pull_enabled() -> bool:

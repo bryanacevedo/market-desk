@@ -82,3 +82,30 @@ def job_span(kind: str, trace_parent: str | None):
         return
     with cm:
         yield
+
+
+@contextmanager
+def delivery_span(name: str, trace_parents: list[str | None]):
+    """Run one delivery to another desk inside a span `name` (CLIENT) that is LINKED, not parented, to the request each row
+    came from: one delivery can carry rows queued by several requests, so a parent would pick one and hide the rest. Each stored
+    `traceparent` becomes a span link; a missing or malformed one is skipped. A no-op while tracing is off."""
+    if not _on:
+        yield
+        return
+    try:
+        from opentelemetry import trace
+        from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
+        links, seen = [], set()
+        for tp in trace_parents:
+            if not tp or tp in seen:
+                continue
+            seen.add(tp)
+            ctx = trace.get_current_span(TraceContextTextMapPropagator().extract({"traceparent": tp})).get_span_context()
+            if ctx.is_valid:
+                links.append(trace.Link(ctx))
+        cm = trace.get_tracer("jobs").start_as_current_span(name, links=links, kind=trace.SpanKind.CLIENT)
+    except Exception:
+        yield
+        return
+    with cm:
+        yield

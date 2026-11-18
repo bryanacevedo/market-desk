@@ -1,11 +1,16 @@
 """Territory move proposals. A manager or RevOps person proposes moving accounts to another owner (and, if wanted, another
-territory) with a reason and an effective date. Someone else decides. An approval drafts a plan that is the active plan
-with only those accounts moved; a manager activates it as any plan, and the activation sends the books to the CRM."""
+territory) with a reason and an effective date. Someone else decides.
+
+An approval with no plan scheduled drafts a plan that is the active plan with only those accounts moved; a manager activates it
+as any plan, and the activation sends the books to the CRM. An approval while a plan is scheduled cannot draft one (a second plan
+cannot be activated until the scheduled one starts), so the moves are kept as scheduled moves (decision 73): they apply to the
+plan in effect on the proposal's date, and are carried into the scheduled plan when it starts on or after that date, so the
+accounts move on the date the proposal named."""
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 
-from . import audit, db, territories
+from . import audit, db, jobs, territories
 from . import catalog as C
 
 MAX_ACCOUNTS = 200
@@ -51,6 +56,10 @@ def propose(cur, by: dict, *, companies: list[int], to_owner: int, reason: str, 
                           join companies c on c.id = x.company where x.company = any(%s) limit 1""", companies)
     if busy:
         raise ValueError(f"{busy['name']} is already in an open proposal.")
+    waiting = db.one(cur, """select c.name from scheduled_moves m join companies c on c.id = m.company
+                             where m.company = any(%s) and m.status = 'pending' limit 1""", companies)
+    if waiting:
+        raise ValueError(f"{waiting['name']} has an approved move waiting for its date.")
     pid = db.val(cur, """insert into move_proposals (to_owner, to_territory, reason, effective_on, proposed_by, by_territory)
                          values (%s,%s,%s,%s,%s,%s) returning id""", to_owner, to_territory or None, reason, effective_on, by["id"],
                          by_territory)
@@ -72,15 +81,16 @@ def rule_matches(cur, territory: str, to_owner: int | None = None) -> dict:
     if not t:
         raise ValueError("That territory is not in the active plan.")
     rows = db.all(cur, """select c.id, a.owner,
-                          exists (select 1 from move_proposal_accounts x join move_proposals p on p.id = x.proposal and p.status = 'open'
-                                  where x.company = c.id) as busy
+                          (exists (select 1 from move_proposal_accounts x join move_proposals p on p.id = x.proposal and p.status = 'open'
+                                   where x.company = c.id)
+                           or exists (select 1 from scheduled_moves m where m.company = c.id and m.status = 'pending')) as busy
                           from assignments a join companies c on c.id = a.company
                           where a.plan = %s and a.territory = %s and not c.sole_trader order by c.id""", plan["id"], t["id"])
     already = [r for r in rows if to_owner and r["owner"] == to_owner]
     busy = [r for r in rows if r not in already and r["busy"]]
     ids = [r["id"] for r in rows if r not in already and r not in busy]
     return {"territory": t["label"], "regions": t["rule"].get("region_groups", []), "segments": [C.SEGMENT_LABEL.get(k, k) for k in t["rule"].get("segments", [])],
-            "matched": len(rows), "already_there": len(already), "in_open_proposal": len(busy), "eligible": len(ids),
+            "capacity": capacity_after(cur, to_owner, ids) if to_owner and ids else None, "matched": len(rows), "already_there": len(already), "in_open_proposal": len(busy), "eligible": len(ids),
             "proposals": -(-len(ids) // MAX_ACCOUNTS), "cap": MAX_ACCOUNTS, "ids": ids}
 
 
@@ -122,10 +132,14 @@ def _open(cur, pid: int, by: dict) -> dict:
     return p
 
 
-def approve(cur, pid: int, by: dict) -> int:
-    """Approve: draft the plan. Returns the new plan's id."""
+def approve(cur, pid: int, by: dict) -> int | None:
+    """Approve. With no plan scheduled, draft the plan and return its id. While a plan is scheduled, keep the moves as scheduled
+    moves (decision 73) and return None: nothing is left for a manager to activate."""
     p = _open(cur, pid, by)
     accounts = db.all(cur, "select company from move_proposal_accounts where proposal = %s order by company", pid)
+    sched = territories.scheduled_plan(cur)
+    if sched:
+        return _approve_scheduled(cur, p, accounts, by, sched)
     owner = _user(cur, p["to_owner"])
     # The plan's author is the RevOps person of the pair, so a manager other than the author can activate it.
     author = p["proposed_by"] if p["proposer_role"] == "revops" else (by["id"] if by["role"] == "revops" else p["proposed_by"])
@@ -141,6 +155,119 @@ def approve(cur, pid: int, by: dict) -> int:
     return plan
 
 
+def _approve_scheduled(cur, p: dict, accounts: list[dict], by: dict, sched: dict) -> None:
+    """Approval while a plan is scheduled. The moves wait for the proposal's date and then apply to the plan in effect; when the
+    scheduled plan starts on or after that date it carries them too, so they survive its start. An account a person already moved
+    by hand while the plan was scheduled keeps that person's choice in the scheduled plan (decision 57)."""
+    pid, on = p["id"], p["effective_on"]
+    moves = [{"company": a["company"], "to_owner": p["to_owner"], "to_territory": p["to_territory"]} for a in accounts]
+    db.run(cur, "update move_proposals set status = 'approved', decided_by = %s, decided_at = app_now() where id = %s", by["id"], pid)
+    for m in moves:
+        db.run(cur, """insert into scheduled_moves (proposal, company, to_owner, to_territory, effective_on) values (%s,%s,%s,%s,%s)""",
+               pid, m["company"], m["to_owner"], m["to_territory"], on)
+    carried = 0
+    if on <= sched["effective_on"]:
+        role = "sdr" if db.val(cur, "select role from users where id = %s", p["to_owner"]) == "sdr" else "owner"
+        held = {h["company"] for h in territories.hand_changes(cur, sched["id"]) if h["role"] == role}
+        carried = len(territories.place_moves(cur, sched["id"], [m for m in moves if m["company"] not in held],
+                                              note=p["reason"], by=p["proposed_by"]))
+    audit.log(cur, by["name"], "move_approved", "move_proposal", pid,
+              {"plan": None, "accounts": len(accounts), "effective_on": str(on), "carried_into": sched["id"] if on <= sched["effective_on"] else None,
+               "carried": carried}, actor_id=by["id"])
+    from . import crm
+    today = db.val(cur, "select app_now()::date")
+    if on <= today:
+        apply_due(cur)
+    else:
+        crm.queue_move_schedule(cur, pid, moves, on)
+        jobs.enqueue(cur, "apply_scheduled_moves", {}, dedupe_key="apply_scheduled_moves")
+    return None
+
+
+def apply_due(cur) -> int:
+    """Applies every scheduled move whose date has come to the plan in effect, one proposal at a time: the owner changes, the
+    audit log says so, the hours are counted again and the CRM is sent the books for those accounts. An account whose owner a
+    person changed by hand since the approval is left as that person set it. Returns how many accounts moved."""
+    active = db.val(cur, "select id from territory_plans where status = 'active'")
+    if active is None:
+        return 0
+    n = 0
+    for p in db.all(cur, """select p.id, p.reason, p.decided_by, p.to_owner from move_proposals p
+                            where exists (select 1 from scheduled_moves m where m.proposal = p.id and m.status = 'pending'
+                                          and m.effective_on <= app_now()::date) order by p.id"""):
+        rows = db.all(cur, """select id, company, to_owner, to_territory from scheduled_moves
+                              where proposal = %s and status = 'pending' and effective_on <= app_now()::date for update""", p["id"])
+        done = territories.place_moves(cur, active, [{"company": r["company"], "to_owner": r["to_owner"], "to_territory": r["to_territory"]} for r in rows],
+                                       note=p["reason"], by=p["decided_by"])
+        by = _user(cur, p["decided_by"])
+        for d in done:
+            audit.log(cur, by["name"], "owner_moved", "company", d["company"], {"plan": active, "from": d["from_owner"], "to": d["to_owner"],
+                                                                               "proposal": p["id"]}, actor_id=by["id"])
+        db.run(cur, "update scheduled_moves set status = 'applied', applied_at = app_now() where id = any(%s)", [r["id"] for r in rows])
+        if done:
+            from . import crm
+            crm.queue_moves(cur, active, [d["company"] for d in done], p["id"])
+        n += len(done)
+    return n
+
+
+@jobs.handler("apply_scheduled_moves")
+def _apply_scheduled_moves(cur, payload: dict) -> None:
+    """Hourly while any approved move waits for its date; started again by the next approval."""
+    apply_due(cur)
+    # No dedupe key: this job is still "running" now, and a key would make the next one a silent no-op.
+    if db.val(cur, "select 1 from scheduled_moves where status = 'pending' limit 1") and \
+            not db.val(cur, "select 1 from jobs where kind = 'apply_scheduled_moves' and status = 'queued'"):
+        jobs.enqueue(cur, "apply_scheduled_moves", {}, delay=timedelta(hours=1))
+
+
+def drop_for_hand_change(cur, company: int, role: str) -> int:
+    """A person moved this account's owner by hand after a move was approved for it: the waiting move is dropped, so the hand
+    change is not undone on the date. Only a move for the same seat (AE or SDR) is dropped."""
+    return db.run(cur, """update scheduled_moves m set status = 'dropped', applied_at = app_now(),
+                          dropped_why = 'Changed by hand before its date'
+                          where m.company = %s and m.status = 'pending'
+                            and (select (u.role = 'sdr') from users u where u.id = m.to_owner) = (%s = 'sdr')""", company, role)
+
+
+def delivery(cur, pid: int) -> dict | None:
+    """When an approved proposal's owners reached CRM Desk, from the outbox: None with no CRM set (nothing is sent)."""
+    from . import crm
+    return crm.delivery_state(cur, f"move:{pid}") if crm.enabled() else None
+
+
+def capacity_after(cur, to_owner: int, companies: list[int]) -> dict | None:
+    """The hours a person would hold after taking these accounts, against the hours they have (decision 74): their book in the
+    plan in effect plus the tier hours of each account that is not already theirs. It informs; nothing refuses a move for it."""
+    plan = db.one(cur, "select id, based_on, effective_on from territory_plans where status = 'active'")
+    user = db.one(cur, "select id, name, selling_hours_month, started_on, ramp_months from users where id = %s", to_owner)
+    if not plan or not user:
+        return None
+    hours = territories.settings(cur)["hours_per_tier"]
+    now = db.one(cur, "select hours_required, hours_available from capacity_snapshots where plan = %s and user_id = %s", plan["id"], to_owner)
+    have = float(now["hours_required"]) if now else 0.0
+    avail = float(now["hours_available"]) if now else round(float(user["selling_hours_month"]) * territories.effective_fte(user, plan["effective_on"]), 1)
+    rows = db.all(cur, """select f.tier, a.owner from companies c join account_fit f on f.company = c.id and f.icp_version = %s
+                          left join assignments a on a.company = c.id and a.plan = %s where c.id = any(%s)""", plan["based_on"], plan["id"], companies)
+    add = sum(float(hours.get(r["tier"], 0)) for r in rows if r["owner"] != to_owner)
+    after = round(have + add, 1)
+    return {"person": user["name"], "hours_now": round(have, 1), "hours_after": after, "hours_available": round(avail, 1),
+            "over": after > avail + 0.05}
+
+
+def pending_count(cur) -> int:
+    return db.val(cur, "select count(*) from scheduled_moves where status = 'pending'")
+
+
+def move_state(cur, pid: int) -> dict:
+    """What became of an approved proposal's accounts: moved, still waiting for the date, or kept as a person set them."""
+    rows = db.all(cur, "select status, count(*) as n, min(effective_on) as due from scheduled_moves where proposal = %s group by status", pid)
+    by = {r["status"]: r for r in rows}
+    return {"moved": by["applied"]["n"] if "applied" in by else 0, "waiting": by["pending"]["n"] if "pending" in by else 0,
+            "kept": by["dropped"]["n"] if "dropped" in by else 0, "on": by["pending"]["due"] if "pending" in by else None,
+            "tracked": bool(rows)}
+
+
 def reject(cur, pid: int, by: dict, note: str) -> None:
     _open(cur, pid, by)
     note = (note or "").strip()
@@ -151,9 +278,15 @@ def reject(cur, pid: int, by: dict, note: str) -> None:
     audit.log(cur, by["name"], "move_rejected", "move_proposal", pid, {"note": note}, actor_id=by["id"])
 
 
-def force_note(cur, plan_status: str | None, plan_name: str | None) -> str | None:
-    """What an approved proposal's plan is doing, in words, from the server's real state; None when it is in force (or nothing to say).
-    Approving only drafts the plan. A draft cannot be activated while another plan is scheduled, so the note says which of the two holds."""
+def force_note(cur, plan_status: str | None, plan_name: str | None, pid: int | None = None) -> str | None:
+    """What an approved proposal is doing, in words, from the server's real state; None when it is in force (or nothing to say).
+    With a plan scheduled at approval the accounts wait for the proposal's date (decision 73). Otherwise approving only drafts
+    the plan, and a draft cannot be activated while another plan is scheduled, so the note says which of the two holds."""
+    if pid is not None and plan_status is None:
+        st = move_state(cur, pid)
+        if st["waiting"]:
+            return f"Approved, not in force: the accounts move on {st['on']:%-d %b %Y}."
+        return None
     if plan_status == "scheduled":
         return f"Approved, not in force: {plan_name} starts on its start date."
     if plan_status != "draft":
@@ -173,7 +306,9 @@ def listing(cur) -> list[dict]:
                           left join users d on d.id = p.decided_by left join territory_plans pl on pl.id = p.plan
                           order by case p.status when 'open' then 0 else 1 end, p.id desc""")
     for r in rows:
-        r["force_note"] = force_note(cur, r["plan_status"], r["plan_name"]) if r["status"] == "approved" else None
+        r["force_note"] = force_note(cur, r["plan_status"], r["plan_name"], r["id"]) if r["status"] == "approved" else None
+        r["moves"] = move_state(cur, r["id"]) if r["status"] == "approved" and r["plan"] is None else None
+        r["delivery"] = delivery(cur, r["id"]) if r["status"] == "approved" else None
     return rows
 
 
@@ -194,7 +329,9 @@ def detail(cur, pid: int, by: dict) -> dict | None:
     return {"id": p["id"], "status": p["status"], "reason": p["reason"], "effective_on": p["effective_on"], "to_owner": p["to_owner_name"],
             "to_territory": t, "by_territory": p["by_territory"], "proposed_by": p["proposer"], "proposed_at": p["proposed_at"], "decided_by": p["decider"],
             "decided_at": p["decided_at"], "decision_note": p["decision_note"], "plan": p["plan"], "plan_name": p["plan_name"],
-            "plan_status": p["plan_status"], "force_note": force_note(cur, p["plan_status"], p["plan_name"]) if p["status"] == "approved" else None,
+            "plan_status": p["plan_status"], "force_note": force_note(cur, p["plan_status"], p["plan_name"], pid) if p["status"] == "approved" else None,
+            "moves": move_state(cur, pid) if p["status"] == "approved" and p["plan"] is None else None,
+            "delivery": delivery(cur, pid) if p["status"] == "approved" else None,
             "accounts": rows[:200], "count": len(rows),
             "can_decide": can_decide({**p, "proposer_role": p["proposer_role"]}, by)}
 

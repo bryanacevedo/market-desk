@@ -55,15 +55,16 @@ def book_rows(cur, plan_id: int, version_id: int) -> list[dict]:
             select m.company from segment_test_members m join segment_tests t on t.id = m.test
             where m.grp = 'held_back' and t.status = 'running'),
         chosen as (
-            select a.company, a.owner from assignments a where a.plan = %s
-            union select r.company, null from running r
+            select a.company, a.owner, a.territory from assignments a where a.plan = %s
+            union select r.company, null, null from running r
             where not exists (select 1 from assignments a where a.plan = %s and a.company = r.company))
         select c.id, c.name, c.primary_domain, c.country, c.lifecycle, c.crm_id, p.primary_domain as parent_domain,
-               f.tier, f.segment, u.email as owner_email, ch.owner,
+               f.tier, f.segment, u.email as owner_email, u.role as owner_role, ae.email as paired_ae_email, ch.owner,
                c.id in (select company from running) as test_member
         from chosen ch join companies c on c.id = ch.company
         join account_fit f on f.company = c.id and f.icp_version = %s
         left join companies p on p.id = c.parent_id left join users u on u.id = ch.owner
+        left join territories t on t.id = ch.territory left join users ae on ae.id = t.paired_ae
         where f.tier in ('A','B') and c.lifecycle = 'prospect' and not c.sole_trader
           and c.id not in (select company from held)
           -- on the book's own date: no deal open then, and not a customer then
@@ -92,18 +93,21 @@ def _cell(v) -> str:
     return "'" + t if t[:1] in ("=", "+", "-", "@") else t
 
 
-def accounts_csv(cur, rows: list[dict]) -> tuple[bytes, int]:
+def accounts_csv(cur, rows: list[dict], profile_version: int | None = None) -> tuple[bytes, int]:
     vals = exportable_values(cur, [r["id"] for r in rows])
     buf = io.StringIO()
     w = csv.writer(buf, lineterminator="\n")
-    w.writerow(C.AD_COLUMNS)
+    w.writerow(C.AD_COLUMNS + C.BOOK_EXTRA_COLUMNS)
     blanks = 0
     for r in rows:
         v = vals[r["id"]]
         blanks += sum(1 for k in ("industry", "employees", "revenue_band") if k not in v)
         w.writerow([_cell(x) for x in (r["name"], r["primary_domain"], v.get("industry", ""), v.get("employees", ""), r["country"],
                     v.get("revenue_band", ""), ";".join(v.get("tech") or []), r["lifecycle"], r["owner_email"] or "",
-                    r["crm_id"] or "", r["parent_domain"] or "")])
+                    r["crm_id"] or "", r["parent_domain"] or "",
+                    # Who works it, by seat: an SDR on the account sits beside the territory's AE; anyone else placed is the AE.
+                    r["owner_email"] or "" if r["owner_role"] == "sdr" else "",
+                    (r["paired_ae_email"] if r["owner_role"] == "sdr" else r["owner_email"]) or "", r["tier"], f"v{profile_version}" if profile_version else "")])
     return buf.getvalue().encode(), blanks
 
 
@@ -216,7 +220,7 @@ def build_book(cur, destination: str, by: dict, *, at=None) -> int:
     dropped: list[dict] = []
     if destination == "account_desk":
         icp, dropped = compile_for_account_desk(version["rules"])
-        files["accounts.csv"], _blanks = accounts_csv(cur, rows)
+        files["accounts.csv"], _blanks = accounts_csv(cur, rows, version["number"])
         files["icp.json"] = (json.dumps(icp, indent=2) + "\n").encode()
     else:
         files["icp.md"] = events_desk_md(cur, version)

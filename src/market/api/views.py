@@ -340,17 +340,28 @@ PAGE = 50
 
 
 def _coming(cur, company_ids: list[int]) -> dict[int, list[dict]]:
-    """company -> the owners a scheduled plan will give it, who and from when ("Moves to Ana from 1 Jan 2027")."""
+    """company -> the owners a scheduled plan, or an approved move waiting for its date, will give it: who and from when
+    ("Moves to Ana from 1 Jan 2027")."""
     from .. import territories
-    s = territories.scheduled_plan(cur)
-    if not s:
-        return {}
-    moves = territories.scheduled_moves(cur)
     names = {x["id"]: x["name"] for x in db.all(cur, "select id, name from users")}
     out: dict[int, list[dict]] = {}
+    waiting: dict[tuple, object] = {}
+    # An approved move proposal waits for its date while a plan is scheduled (decision 73).
+    for m in db.all(cur, """select m.company, m.to_owner, m.effective_on, u.role from scheduled_moves m join users u on u.id = m.to_owner
+                            where m.status = 'pending' and m.company = any(%s) order by m.effective_on, m.id""", company_ids):
+        role = "SDR" if m["role"] == "sdr" else "owner"
+        out.setdefault(m["company"], []).append({"role": role, "name": names[m["to_owner"]], "from": m["effective_on"]})
+        waiting[(m["company"], role, m["to_owner"])] = m["effective_on"]
+    s = territories.scheduled_plan(cur)
+    if not s:
+        return out
+    moves = territories.scheduled_moves(cur)
     for c in company_ids:
         for role, uid in (moves.get(c) or {}).items():
-            out.setdefault(c, []).append({"role": "owner" if role == "owner" else "SDR", "name": names[uid], "from": s["effective_on"]})
+            word = "owner" if role == "owner" else "SDR"
+            if (c, word, uid) in waiting and waiting[(c, word, uid)] <= s["effective_on"]:
+                continue   # a waiting move already says this person takes it, earlier: the plan carries the same move
+            out.setdefault(c, []).append({"role": word, "name": names[uid], "from": s["effective_on"]})
     # A person moved it by hand after the plan was scheduled: the plan no longer moves it (decision 57).
     wanted = set(company_ids)
     for h in territories.hand_changes(cur, s["id"]):
@@ -360,11 +371,49 @@ def _coming(cur, company_ids: list[int]) -> dict[int, list[dict]]:
     return out
 
 
-def accounts(cur, u: dict, *, q: str, tier: str, segment: str, owner: str, page: int, region: str = "") -> dict:
+def _crm_differs(cur, cid: int, a: dict | None) -> list[dict]:
+    """The seats where CRM Desk holds a different person than the plan in effect, and who set each there (J28, decision 77). Read
+    only: this desk shows it and changes nothing. Empty when CRM Desk was never read for the account or holds the same people."""
+    r = db.one(cur, "select * from crm_owner_reads where company = %s", cid)
+    if r is None:
+        return []
+    mine = {"AE": None, "SDR": None}
+    if a and a["owner"]:
+        who = db.one(cur, "select email, role from users where id = %s", a["owner"])
+        if who and who["role"] == "sdr":
+            mine["SDR"] = who["email"]
+            ae = db.val(cur, "select u.email from territories t join users u on u.id = t.paired_ae where t.id = %s", a["territory"]) if a["territory"] else None
+            mine["AE"] = ae
+        elif who:
+            mine["AE"] = who["email"]
+    out = []
+    for seat, email, by in (("AE", r["ae_email"], r["ae_set_by"]), ("SDR", r["sdr_email"], r["sdr_set_by"])):
+        if email and email.lower() != (mine[seat] or "").lower():
+            out.append({"seat": seat, "crm": db.val(cur, "select name from users where lower(email) = %s", email.lower()) or email,
+                        "here": db.val(cur, "select name from users where lower(email) = %s", mine[seat].lower()) if mine[seat] else None,
+                        "set_by": names.say(by) if by else None, "read_at": r["read_at"]})
+    return out
+
+
+def _before(cur, pub: dict, plan: int | None) -> tuple[dict | None, int | None]:
+    """The profile version the published one replaced, and the plan the one in effect replaced: what "changed since" compares with."""
+    prev_v = db.one(cur, "select id, number from icp_versions where id = %s", pub["replaced"]) if pub.get("replaced") else None
+    prev_p = db.val(cur, "select replaced from territory_plans where id = %s", plan) if plan else None
+    return prev_v, prev_p
+
+
+def accounts(cur, u: dict, *, q: str, tier: str, segment: str, owner: str, page: int, region: str = "", changed: str = "") -> dict:
     pub = _published(cur)
     plan = _active_plan(cur)
+    prev_v, prev_p = _before(cur, pub, plan)
     where = ["c.lifecycle <> 'competitor'", "not c.sole_trader"]
     args: list = []
+    if changed == "tier" and prev_v:
+        where.append("pf.judged and f.judged and pf.tier is distinct from f.tier")
+    elif changed == "owner" and prev_p:
+        where.append("a.owner is distinct from pa.owner")
+    elif changed:
+        where.append("false")
     if owner == "unassigned":
         where.append("a.owner is null")
     elif owner.isdigit():
@@ -384,19 +433,24 @@ def accounts(cur, u: dict, *, q: str, tier: str, segment: str, owner: str, page:
     if region in C.REGION_GROUPS:
         where.append("c.region_group = %s")
         args.append(region)
+    # The version and the plan before, for "changed since"; with none before, these joins match nothing.
     sql = f"""
         from companies c join account_fit f on f.company = c.id and f.icp_version = %s
         left join assignments a on a.company = c.id and a.plan = %s left join users u on u.id = a.owner
+        left join account_fit pf on pf.company = c.id and pf.icp_version = %s
+        left join assignments pa on pa.company = c.id and pa.plan = %s left join users pu on pu.id = pa.owner
         where {' and '.join(where)}"""
-    total = db.val(cur, "select count(*) " + sql, pub["id"], plan, *args)
+    base = (pub["id"], plan, prev_v and prev_v["id"], prev_p)
+    total = db.val(cur, "select count(*) " + sql, *base, *args)
     rows = db.all(cur, """select c.id, c.name, c.primary_domain, c.lifecycle, c.employees, c.region_group, c.region,
                           coalesce(c.industry, (select v.value #>> '{}' from field_values v where v.company = c.id
                                                 and v.field = 'industry' and v.source = 'model' limit 1)) as industry,
                           f.tier, f.judged, f.score, f.scored_out_of, f.segment, u.name as owner, u.role as owner_role, a.reason_code,
+                          case when pf.judged and f.judged then pf.tier end as was_tier, pu.name as was_owner, (pa.company is not null) as had_plan_before,
                           (select r.meetings from desk_results r where r.company = c.id order by r.period_end desc limit 1) as last_meetings,
                           (select r.destination from desk_results r where r.company = c.id order by r.period_end desc limit 1) as last_dest
                           """ + sql + " order by f.judged desc, f.score desc nulls last, c.name limit %s offset %s",
-                   pub["id"], plan, *args, PAGE, (page - 1) * PAGE)
+                   *base, *args, PAGE, (page - 1) * PAGE)
     for r in rows:
         r["segment_label"] = C.SEGMENT_LABEL.get(r["segment"], r["segment"])
         r["owner_seat"] = _seat(r["owner_role"]) if r["owner"] else None
@@ -408,7 +462,17 @@ def accounts(cur, u: dict, *, q: str, tier: str, segment: str, owner: str, page:
     for r in rows:
         r["coming"] = coming.get(r["id"], [])
     owners = db.all(cur, "select id, name from users where role in ('sdr','ae') and active order by name")
-    return {"rows": rows, "total": total, "page": page, "pages": max(1, -(-total // PAGE)), "owners": owners,
+    since = {"version": prev_v and prev_v["number"], "plan": bool(prev_p)}
+    if prev_v:
+        since["tier"] = db.val(cur, """select count(*) from companies c join account_fit f on f.company = c.id and f.icp_version = %s
+                                       join account_fit pf on pf.company = c.id and pf.icp_version = %s
+                                       where c.lifecycle <> 'competitor' and not c.sole_trader and f.judged and pf.judged and pf.tier <> f.tier""",
+                               pub["id"], prev_v["id"])
+    if prev_p:
+        since["owner"] = db.val(cur, """select count(*) from companies c left join assignments a on a.company = c.id and a.plan = %s
+                                        left join assignments pa on pa.company = c.id and pa.plan = %s
+                                        where c.lifecycle <> 'competitor' and not c.sole_trader and a.owner is distinct from pa.owner""", plan, prev_p)
+    return {"rows": rows, "total": total, "page": page, "pages": max(1, -(-total // PAGE)), "owners": owners, "since": since,
             "segments": [{"key": s["key"], "label": s["label"]} for s in C.SEGMENTS] + [C.OUTSIDE]}
 
 
@@ -466,7 +530,7 @@ def company(cur, cid: int, u: dict, allowed: bool | None = None) -> dict | None:
                                                       "note": a["note"], "moved_from": a["moved_from_name"],
                                                       "seat": _seat(a["owner_role"]) if a["owner"] else None,
                                                       "source": owner_source(a["reason_code"])},
-                  "draft_owner": _draft_owner(cur, cid, a),
+                  "draft_owner": _draft_owner(cur, cid, a), "crm_differs": _crm_differs(cur, cid, a),
                   "owner_changes": owner_changes, "hand_owner": _hand_owner(cur, cid, a, u),
                   "deals": deals, "results": results, "tests": tests}, allowed)
 
@@ -563,9 +627,32 @@ def territories(cur, plan_id: int | None, allowed: bool) -> dict:
               "newly_unassigned": ch["newly_unassigned"], "crossing": len(ch["crossing"]),
               "people": [{"name": names[k], "gains": ch["gains"].get(k, 0), "losses": ch["losses"].get(k, 0)} for k in people_ids]}
     hist = history(cur, ("plan_activated", "plan_rolled_back"))
+    plan = {**plan, "delivery": crm.delivery_state(cur, f"plan:{plan['id']}") if crm.enabled() else None}
+    owner_changes = plan_owner_changes(cur, plan)
     return strip({"plans": plans, "plan": plan, "history": hist, "people": people, "territories": terrs, "gap": gap, "changes": ch,
-                  "manual": manual, "hours_per_tier": s["hours_per_tier"]["value"], "hours_note": _say(s["hours_per_tier"]["note"]),
+                  "manual": manual, "owner_changes": owner_changes, "hours_per_tier": s["hours_per_tier"]["value"], "hours_note": _say(s["hours_per_tier"]["note"]),
                   "a_capacity": {"held": a_cap["held"] or 0, "tier_a": a_total}}, allowed)
+
+
+def plan_owner_changes(cur, plan: dict, limit: int = 100) -> dict | None:
+    """The accounts this plan gives to someone other than the plan it is compared with: the plan in effect for a draft or a scheduled
+    plan, the plan it replaced for the one in effect (J1). None when there is nothing to compare with."""
+    if plan["status"] in ("draft", "scheduled"):
+        base = db.one(cur, "select id, name from territory_plans where status = 'active'")
+    elif plan["status"] == "active" and plan["replaced"]:
+        base = db.one(cur, "select id, name from territory_plans where id = %s", plan["replaced"])
+    else:
+        base = None
+    if base is None or base["id"] == plan["id"]:
+        return None
+    sql = """from assignments a join companies c on c.id = a.company and not c.sole_trader
+             left join assignments b on b.plan = %s and b.company = a.company
+             left join users u on u.id = a.owner left join users o on o.id = b.owner
+             where a.plan = %s and a.owner is distinct from b.owner"""
+    total = db.val(cur, "select count(*) " + sql, base["id"], plan["id"])
+    rows = db.all(cur, "select c.id, c.name, c.primary_domain, u.name as to_owner, o.name as from_owner " + sql + " order by c.name limit %s",
+                  base["id"], plan["id"], limit)
+    return {"against": base["name"], "total": total, "rows": rows}
 
 
 def person(cur, uid: int, allowed: bool) -> dict | None:
@@ -741,7 +828,32 @@ def crm_desk(cur) -> dict | None:
         e["company"], e["name"] = (c["id"], c["name"]) if c else (None, e["domain"])
     from .. import mqa
     s["mqa"] = mqa.state(cur)
+    s["deliveries"] = deliveries(cur)
     return s
+
+
+def deliveries(cur, limit: int = 8) -> list[dict]:
+    """The latest things sent to CRM Desk, each with where it stands (decision 78): "Sent <time>", "Waiting to send", or what
+    CRM Desk did not take. Grouped by what the request was for, newest first."""
+    rows = db.all(cur, """select ref, count(*) filter (where status = 'sent') as sent, count(*) filter (where status = 'queued') as waiting,
+                          count(*) filter (where status = 'failed') as failed, max(sent_at) as sent_at, max(id) as last,
+                          max(last_error) filter (where status = 'failed') as error
+                          from crm_outbox where ref is not null and status <> 'cancelled' group by ref order by max(id) desc limit %s""", limit)
+    for r in rows:
+        kind, _, key = r["ref"].partition(":")
+        if kind == "plan":
+            r["what"] = db.val(cur, "select name from territory_plans where id = %s", int(key)) or "A plan"
+        elif kind == "move":
+            r["what"] = db.val(cur, """select 'Move of ' || (select count(*) from move_proposal_accounts x where x.proposal = p.id) || ' to ' || u.name
+                                       from move_proposals p join users u on u.id = p.to_owner where p.id = %s""", int(key)) or "A move"
+        elif kind == "scores":
+            r["what"] = f"Tiers of profile version {db.val(cur, 'select number from icp_versions where id = %s', int(key))}"
+        elif kind == "hand":
+            r["what"] = f"Owner change, {db.val(cur, 'select name from companies where id = %s', int(key))}"
+        else:
+            r["what"] = "Marketing qualified marks"
+        r["error"] = names.say(r["error"]) if r["error"] else None
+    return rows
 
 
 def book(cur, bid: int, allowed: bool) -> dict | None:
@@ -778,7 +890,21 @@ def sources(cur, allowed: bool) -> dict:
         r["fill"] = [{**f, "share": f["n"] / total} for f in fill.get(r["key"], [])]
         r["spend_cents"] = round(float(r["price_cents_per_unit"] or 0) * (r["rows_read"] or 0)) if r["paid"] else 0
     alerts = db.all(cur, "select * from alerts where resolved_at is null order by at desc")
+    owner = _source_owner(cur)
+    for r in rows:
+        r["owner"], r["can_run"] = owner, _can_run(r["key"])
     return strip({"rows": rows, "alerts": alerts, "companies": total}, allowed)
+
+
+def _source_owner(cur) -> str | None:
+    """Who looks after the sources: RevOps is the only role that opens this page, so its people are the owner."""
+    n = [r["name"] for r in db.all(cur, "select name from users where active and role = 'revops' order by name")]
+    return ", ".join(n) or None
+
+
+def _can_run(key: str) -> bool:
+    """Only the CRM read has a run this desk can start (the next read is brought forward). The sample sources have none."""
+    return key == "crm" and crm.pull_enabled()
 
 
 def source(cur, key: str, allowed: bool) -> dict | None:
@@ -793,7 +919,7 @@ def source(cur, key: str, allowed: bool) -> dict | None:
     uses = [rule_label(r) for _k, r in profiles.all_rules(pub["rules"]) if r.get("field") in fields]
     depends = {"fields": [{"field": C.FIELD_LABEL.get(f["field"], f["field"]), "n": f["n"]} for f in fills], "rules": uses,
                "tiers": bool(uses), "version": pub["number"]}
-    return strip({**s, "runs": runs, "depends": depends}, allowed)
+    return strip({**s, "runs": runs, "depends": depends, "owner": _source_owner(cur), "can_run": _can_run(key)}, allowed)
 
 
 

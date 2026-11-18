@@ -82,7 +82,7 @@ def test_account_desk_book_shape_and_equivalence(cur):
     book = db.val(cur, "select max(id) from target_books where destination = 'account_desk'")
     files = _files(cur, book)
     rows = list(csv.DictReader(io.StringIO(files["accounts.csv"].decode())))
-    assert list(rows[0].keys()) == C.AD_COLUMNS
+    assert list(rows[0].keys()) == C.AD_COLUMNS + C.BOOK_EXTRA_COLUMNS
     icp = json.loads(files["icp.json"])
     assert set(icp) == {"factors", "penalties", "excludes", "tiers"}
     dropped = db.val(cur, "select dropped_rules from target_books where id = %s", book)

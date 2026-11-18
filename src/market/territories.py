@@ -505,7 +505,9 @@ def change_owner_by_hand(cur, company: int, to_user: int, note: str, by: dict) -
         db.run(cur, """update plan_hand_changes set source = 'market_desk', to_user = %s, by_name = %s, note = %s, at = app_now()
                        where plan = %s and company = %s and role = %s""", to_user, by["name"], note.strip(), sched["id"], company, role)
     from . import crm
-    crm.queue_hand_change(cur, active, company, role, to_user, dropped)
+    from . import moves as moves_
+    waiting = moves_.drop_for_hand_change(cur, company, role)   # an approved move still waiting for its date no longer undoes this
+    crm.queue_hand_change(cur, active, company, role, to_user, dropped or bool(waiting))
     return {"role": role, "dropped_from_schedule": dropped}
 
 
@@ -677,6 +679,32 @@ def copy_with_moves(cur, *, name: str, author: int, on: date, moves: list[dict],
     snapshot(cur, pid)
     audit.log(cur, "user", "plan_drafted", "plan", pid, {"name": name, "from_plan": active["id"], "moves": len(moves)}, actor_id=author)
     return pid
+
+
+def place_moves(cur, plan_id: int, moves: list[dict], *, note: str, by: int) -> list[dict]:
+    """Gives each account in `moves` ({company, to_owner, to_territory}) to its new owner in this plan's own assignments, the way a
+    hand move does, and returns what changed ({company, from_owner, to_owner}); an account that already has that owner is left as
+    it is. The plan's hours are counted again. Used for the plan in effect when a due move applies (decision 73) and for the plan
+    that is scheduled when a move is carried into it."""
+    out = []
+    for m in moves:
+        cur_row = db.one(cur, "select * from assignments where plan = %s and company = %s", plan_id, m["company"])
+        if cur_row and cur_row["owner"] == m["to_owner"] and not m.get("to_territory"):
+            continue
+        terr = cur_row["territory"] if cur_row else None
+        if m.get("to_territory"):
+            terr = db.val(cur, "select id from territories where plan = %s and key = %s", plan_id, m["to_territory"]) or terr
+        if cur_row and cur_row["owner"] == m["to_owner"] and terr == cur_row["territory"]:
+            continue
+        db.run(cur, """insert into assignments (plan, company, territory, owner, reason_code, note, moved_from, created_by)
+                       values (%s,%s,%s,%s,'manual',%s,%s,%s)
+                       on conflict (plan, company) do update set owner = excluded.owner, territory = excluded.territory,
+                       reason_code = 'manual', note = excluded.note, moved_from = excluded.moved_from, created_by = excluded.created_by""",
+               plan_id, m["company"], terr, m["to_owner"], note, cur_row["owner"] if cur_row else None, by)
+        out.append({"company": m["company"], "from_owner": cur_row["owner"] if cur_row else None, "to_owner": m["to_owner"]})
+    if out:
+        snapshot(cur, plan_id)
+    return out
 
 
 def hiring_gap(cur, plan_id: int) -> dict:

@@ -442,6 +442,8 @@ class CrmAccount:
     owner_email: str | None = None
     sdr_owner_email: str | None = None
     updated_at: datetime | None = None
+    owner_set_by: str | None = None       # who set each holder in the CRM: a desk's label or a person's name
+    sdr_owner_set_by: str | None = None
 
 
 class CrmReader(Protocol):
@@ -555,6 +557,13 @@ def pull(reader: CrmReader, *, system: str = "crmdesk", limit: int = 200, max_pa
                     region, group = _region(a.country.upper())
                     db.run(c, "insert into companies (name, primary_domain, country, region, region_group, origin) values (%s,%s,%s,%s,%s,'crm')",
                            a.name, a.domain, a.country.upper(), region, group)
+            for a in page.rows:   # who the CRM holds as AE and SDR, and who set each, so the account sheet can say when it differs
+                db.run(c, """insert into crm_owner_reads (company, ae_email, ae_set_by, sdr_email, sdr_set_by)
+                             select id, %s, %s, %s, %s from companies where primary_domain = %s
+                             on conflict (company) do update set ae_email = excluded.ae_email, ae_set_by = excluded.ae_set_by,
+                             sdr_email = excluded.sdr_email, sdr_set_by = excluded.sdr_set_by, read_at = app_now()""",
+                       (a.owner_email or "").lower() or None, a.owner_set_by, (a.sdr_owner_email or "").lower() or None,
+                       a.sdr_owner_set_by, a.domain.lower())
             out["accounts"] += len(page.rows)
             _journal("GET", "/changes/accounts", since, page, db.val(c, "select app_now()"), limit)
             _save_cursor(c, "accounts", page.next or since)

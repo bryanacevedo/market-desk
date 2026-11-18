@@ -246,15 +246,16 @@ def _already_refused(cur, items: list[dict]) -> bool:
 def queue(cur, items: list[dict], version_number: int) -> int:
     """Queues the items (100 to a request). A request still waiting is cancelled first: the new items are worked out
     against what CRM Desk holds now and replace the old ones."""
+    from . import crm
     from .crm import CHUNK
     db.run(cur, "update crm_outbox set status = 'cancelled', last_error = 'Superseded by a newer MQA run' "
                 "where kind = 'mqa' and status = 'queued'")
     if _already_refused(cur, items):
         return 0
     for i in range(0, len(items), CHUNK):
-        db.run(cur, "insert into crm_outbox (kind, payload) values ('mqa', %s)", J({"items": items[i:i + CHUNK], "definition_version": version_number}))
+        crm.queue_row(cur, "mqa", {"items": items[i:i + CHUNK], "definition_version": version_number}, ref="mqa")
     if items:
-        jobs.enqueue(cur, "crm_deliver", {}, dedupe_key="crm_deliver")
+        crm.wake(cur)
     return len(items)
 
 

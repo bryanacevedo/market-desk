@@ -417,11 +417,11 @@ def moves(vid: int, u: dict = Depends(current_user)) -> dict:
 
 
 @app.get("/api/accounts")
-def accounts(q: str = "", tier: str = "", segment: str = "", owner: str = "", page: int = 1, region: str = "",
+def accounts(q: str = "", tier: str = "", segment: str = "", owner: str = "", page: int = 1, region: str = "", changed: str = "",
              u: dict = Depends(current_user)) -> dict:
     with db.tx() as cur:
         return views.accounts(cur, u, q=q[:80], tier=tier, segment=segment, owner=owner, page=max(1, min(page, 1000)),
-                              region=region[:40])
+                              region=region[:40], changed=changed[:10])
 
 
 @app.get("/api/companies/{cid}")
@@ -516,6 +516,18 @@ def move_candidates(q: str = "", owner: int | None = None, only: int | None = No
     need(u, "revops", "manager")
     with db.tx() as cur:
         return {"accounts": moves_.candidates(cur, q=q[:80], owner=owner, only=only, limit=moves_.MAX_ACCOUNTS if owner else 30)}
+
+
+@app.get("/api/move-proposals/capacity")
+def move_capacity(to: int, ids: str, u: dict = Depends(current_user)) -> dict:
+    """The hours the person would hold after taking these accounts (a hand move or a proposal), against their hours."""
+    need(u, "revops", "manager")
+    try:
+        companies = [int(x) for x in ids.split(",") if x.strip()][:moves_.MAX_ACCOUNTS]
+    except ValueError as exc:
+        raise HTTPException(400, "ids is a list of account numbers.") from exc
+    with db.tx() as cur:
+        return {"capacity": moves_.capacity_after(cur, to, companies)}
 
 
 @app.get("/api/move-proposals/territory-preview")
@@ -637,6 +649,23 @@ def source(key: str, u: dict = Depends(current_user)) -> dict:
 
 
 
+@app.post("/api/sources/{key}/run")
+def run_source(key: str, u: dict = Depends(writer)) -> dict:
+    """RevOps brings a source's next run forward. Only a source this desk reads has one (the CRM); the others refuse in words."""
+    need(u, "revops")
+    try:
+        with db.tx() as cur:
+            if db.val(cur, "select 1 from sources where key = %s", key) is None:
+                raise HTTPException(404, "No such source.")
+            if key != "crm" or not crm.run_pull_now(cur):
+                raise ValueError("This source has no run to start from here.")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise _fail(exc) from exc
+    return {"ok": True}
+
+
 @app.get("/api/settings")
 def settings_page(u: dict = Depends(current_user)) -> dict:
     need(u, "revops", "manager")
@@ -683,6 +712,34 @@ def proposals_draft(body: Ids, u: dict = Depends(writer)) -> dict:
 
 class Reason(BaseModel):
     reason: str = Field(min_length=3, max_length=500)
+
+
+class AskApproval(BaseModel):
+    kind: Literal["icp", "plan"]
+    id: int
+    reason: str = Field(min_length=3, max_length=500)
+
+
+@app.post("/api/approval-asks")
+def ask_approval(body: AskApproval, u: dict = Depends(writer)) -> dict:
+    """The author of a draft profile version or draft plan asks the managers to approve it, with a reason (decision 76)."""
+    need(u, "revops", "manager")
+    try:
+        with db.tx() as cur:
+            if body.kind == "icp":
+                row = db.one(cur, "select number from icp_versions where id = %s and status = 'draft'", body.id)
+                subject, path = f"profile version {row['number']}" if row else "", "/profile"
+            else:
+                row = db.one(cur, "select name from territory_plans where id = %s and status = 'draft'", body.id)
+                subject, path = row["name"] if row else "", "/territories"
+            if row is None:
+                raise ValueError("Only a draft waits for approval.")
+            nid = notices.asked(cur, u, subject=subject, reason=body.reason, path=path)
+            from .. import audit
+            audit.log(cur, u["name"], "approval_asked", body.kind, body.id, {"reason": body.reason.strip()}, actor_id=u["id"])
+    except Exception as exc:
+        raise _fail(exc) from exc
+    return {"ok": True, "notice": nid}
 
 
 @app.post("/api/notices/{nid}/seen")
@@ -787,11 +844,15 @@ def approve_move(pid: int, u: dict = Depends(writer)) -> dict:
     try:
         with db.tx() as cur:
             plan = moves_.approve(cur, pid, u)
-            # Only when a plan is scheduled is the new draft held back, so only then does the toast say so.
-            note = moves_.force_note(cur, "draft", db.val(cur, "select name from territory_plans where id = %s", plan)) if territories.scheduled_plan(cur) else None
+            if plan is None:   # a plan is scheduled: the moves wait for their date, or have already applied (decision 73)
+                note, state = moves_.force_note(cur, None, None, pid), moves_.move_state(cur, pid)
+            else:
+                # Only when a plan is scheduled is the new draft held back, so only then does the toast say so.
+                note = moves_.force_note(cur, "draft", db.val(cur, "select name from territory_plans where id = %s", plan)) if territories.scheduled_plan(cur) else None
+                state = None
     except Exception as exc:
         raise _fail(exc) from exc
-    return {"ok": True, "plan": plan, "note": note}
+    return {"ok": True, "plan": plan, "note": note, "moves": state}
 
 
 @app.post("/api/move-proposals/{pid}/reject")
@@ -953,12 +1014,15 @@ def run_evidence(request: Request, u: dict = Depends(writer)) -> dict:
         with db.tx() as cur:     # one transaction: a run that fails leaves the earlier run, sizing and proposals as they were
             rid = evidence.run(cur)
             sizing.run(cur)
-            proposals.generate(cur)
+            made = proposals.generate(cur)
+            prev = db.val(cur, "select max(id) from analysis_runs where id < %s", rid)
+            changed = prev and db.val(cur, """select count(*) from findings f left join findings p on p.run = %s and p.trait = f.trait
+                                              and p.value = f.value where f.run = %s and (p.id is null or p.verdict <> f.verdict)""", prev, rid)
             from .. import audit  # how long it took, so the page can say what to expect the next time
             audit.log(cur, u["name"], "evidence_run", "analysis_run", rid, {"seconds": round(time.monotonic() - started, 1)}, actor_id=u["id"])
     except Exception as exc:
         raise _fail(exc) from exc
-    return {"run": rid}
+    return {"run": rid, "suggestions": len(made), "changed": changed}
 
 
 # ---------------------------------------------------------------- results back from the other desks
@@ -1077,6 +1141,8 @@ def start_worker() -> None:
     with db.tx() as cur:   # a plan scheduled before this start still applies on its date
         if territories.scheduled_plan(cur):
             jobs.enqueue(cur, "apply_scheduled_plan", {}, dedupe_key="apply_scheduled_plan")
+        if moves_.pending_count(cur):   # so do approved moves still waiting for theirs
+            jobs.enqueue(cur, "apply_scheduled_moves", {}, dedupe_key="apply_scheduled_moves")
     if not CONFIG.worker_inline:
         return
 
