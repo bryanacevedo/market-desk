@@ -117,7 +117,7 @@ export function Changes() {
           <div className="ledger">
             {data.decided.map((p: any) => (
               <button key={p.id} className="row" style={{ gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1.4fr) 130px" }} onClick={() => openSheet("proposal", p.id)}>
-                <span className="cell-main"><span className="t">{KIND[p.kind]}</span><span className="s">{p.change.field_label}: {p.change.value_label}</span></span>
+                <span className="cell-main"><span className="t">{KIND[p.kind]}</span><span className="s">{p.change.field_label}: {p.change.value_label}{p.decided_by ? `, decided by ${p.decided_by}` : ""}</span></span>
                 <span className="said-quote clip">{p.status === "dismissed" ? p.reason : `In draft v${p.draft_number}`}</span>
                 <Status kind={p.status === "dismissed" ? "off" : "ok"}>{p.status === "dismissed" ? "Dismissed" : "Made a draft"}</Status>
               </button>

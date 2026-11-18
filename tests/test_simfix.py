@@ -355,3 +355,31 @@ def test_source_names_go_through_say_and_the_legend_does_not_widen_a_phone():
     # a source named after another desk shows its plain name when that desk is not connected; a hidden tip never takes room
     assert "{say(s.label)}" in _src("pages/Desk.tsx") and "crumb={say(s.label)}" in _src("sheets.tsx")
     assert ".range-key > span {" in _src("market.css") and ".range-key span {" not in _src("market.css")
+
+
+# ---- integrated week 2 small fixes (2026-11-18)
+
+def test_a_draft_plan_line_shows_its_start_date():
+    src = _src("pages/Territories.tsx")
+    assert "Starts ${day(plan.effective_on)} once a manager activates it" in src
+    # the date sits beside both the Activate button and the waiting line, not only one of them
+    draft = src[src.index('plan.status === "draft" ? ('):src.index("Starts ${day(plan.effective_on)} once")]
+    assert "activateButton" in draft and "Waiting for a manager to activate" in draft
+
+
+def test_each_book_file_says_who_made_it_and_the_list_order_is_stable():
+    assert '`, by ${b.created_by}`' in _src("pages/Handoffs.tsx")
+    sql = (ROOT / "src" / "market" / "api" / "views.py").read_text()
+    assert "left join users u on u.id = b.created_by order by b.created_at desc, b.id desc" in sql
+
+
+def test_handoffs_returns_the_maker_of_every_book(cur):
+    books = views.handoffs(cur, True)["books"]
+    assert all("created_by" in b for b in books)
+    keys = [(b["created_at"], b["id"]) for b in books]
+    assert keys == sorted(keys, reverse=True)
+
+
+def test_a_decided_change_says_who_decided():
+    assert '`, decided by ${p.decided_by}`' in _src("pages/Changes.tsx")
+    assert '"decided_by": p.get("decided_by_name")' in (ROOT / "src" / "market" / "api" / "views.py").read_text()

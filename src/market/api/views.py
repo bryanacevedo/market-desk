@@ -691,7 +691,7 @@ def proposal(cur, pid: int) -> dict | None:
 def handoffs(cur, allowed: bool) -> dict:
     books = db.all(cur, """select b.id, b.version, b.destination, b.created_at, b.rows, b.dropped_rules, b.diff, v.number as icp_number,
                            p.name as plan_name, u.name as created_by from target_books b join icp_versions v on v.id = b.icp_version
-                           join territory_plans p on p.id = b.plan left join users u on u.id = b.created_by order by b.created_at desc""")
+                           join territory_plans p on p.id = b.plan left join users u on u.id = b.created_by order by b.created_at desc, b.id desc""")
     for b in books:
         b["files"] = [r["path"] for r in db.all(cur, "select path from target_book_files where book = %s order by path", b["id"])]
         b["results"] = db.one(cur, """select count(*) as accounts, coalesce(sum(r.meetings), 0) as meetings,

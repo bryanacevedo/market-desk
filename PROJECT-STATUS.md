@@ -1,10 +1,12 @@
 # Market Desk: project status
 
-**Updated:** 2026-11-17. **Spec:** `docs/SPEC.md` (section 15 holds the gate 0 corrections and wins where they differ); decisions `docs/DECISIONS.md` 1 to 71.
+**Updated:** 2026-11-18. **Spec:** `docs/SPEC.md` (section 15 holds the gate 0 corrections and wins where they differ); decisions `docs/DECISIONS.md` 1 to 71.
 
 ## Where it stands
 
 Docs are part of done: README, PROJECT-STATUS and docs change in the same commit as the behaviour, counts or setup they describe. `make docs-check` (`scripts/docs_check.py`, also run by `tests/test_docs_check.py`) fails when the README carries a test count, a migration range differs from `migrations/`, an environment variable the code reads is missing from the README, the decision count here differs from `docs/DECISIONS.md`, or this Updated date is more than a day behind the last code commit. A pre-push hook is proposed in `docs/PRE-PUSH-HOOK.md`, not installed.
+
+**Integrated week 2 small fixes (2026-11-18, branch wk2fix/market-desk):** three display-only fixes from the integrated simulation week. A draft plan's line on Territories now says when it starts ("Starts 3 Dec once a manager activates it", with the year when it is not the current one). Each file on Handoffs names who made it, and the list is ordered by made time then id so files made in the same second keep their order. A decided change on Changes names who decided it. No decision record: nothing about behaviour changed. Tests: `tests/test_simfix.py`. Not seen in a browser.
 
 **Review fixes for the simulation fixes (2026-11-17, same branch):** the banner now has 3 true branches (the Render demo keeps changes until it restarts after 15 idle minutes and shows them to anyone visiting; it said they were not saved); "Make both files now" moved from the Publish sheet, where it could never show (only a manager publishes, only RevOps makes books), to Handoffs, shown while the files are behind (decision 67 and the test that pinned the dead branch corrected); version notes, setting notes and every HTTP error text go through `say()`; a hand owner change is sourced "a hand change" and dated; the Waiting line no longer says "earlier" after a rollback; the banner sits after the skip link and inside the page column; the draft owner shows even when the active plan holds no owner and comes from the newest draft; `/api/start` needs RevOps or manager; the sample clock is set during render; the halo on Changes waits for `/api/start`. Not done: the 2 grey text colours are 5F6877 and 5A6372 (L9, a design note: the contrast gate is what matters); "Said before the click" stays a title (L4, noted in decision 68).
 
