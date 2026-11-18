@@ -96,7 +96,7 @@ make demo
 
 `make demo` starts a private Postgres in `.data/`, builds the demo from the vendored world (a few seconds on a laptop) and serves it at http://localhost:8800. `make test` runs the suite on real Postgres 18 (it starts the private one first). `make docs-check` checks that this README, `PROJECT-STATUS.md` and the decisions still agree with the code. `make snapshot` builds the public demo as static files in `.snapshot/` from a demo database, the crawl changing nothing (`docs/RUNBOOK.md` says how it is built, deployed and rolled back). `make audit` checks the demo database against every product rule. `make evals` replays the AI evals from their recordings, free; `make evals-live` calls Claude, capped at $15. `python -m market mcp` is a read-only MCP server (find accounts, why an account has its tier, a segment's figures, who owns what).
 
-Schema migrations are plain SQL in `migrations/` (0001 to 0008), applied when the server starts.
+Schema migrations are plain SQL in `migrations/` (0001 to 0009), applied when the server starts.
 
 ## Configuration
 
@@ -126,7 +126,7 @@ Every variable the code reads. All are optional for a local `make demo`.
 | `DESK_LINKS` | Links to other desks, such as `crm_desk=https://...` | none |
 | `DESK_READ_KEY` | Key for the read endpoints Tally uses (`/api/agreement/*`, `/api/icp`); unset, they answer 404 | none |
 | `SIM_DB_GUARD`, `SIM_ALLOWED_HOSTS`, `SIM_DB_PREFIX` | Refuse any database that is not a local or named simulation one | off |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | Local tracing, only to this machine; needs the `otel` extra | off |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Local tracing, only to this machine; needs the `otel` extra. A queued job keeps the request's `traceparent` (`jobs.trace_parent`), so its CRM calls join the request's trace | off |
 | `PGHOST`, `PGHOSTADDR`, `PGDATABASE`, `PGSERVICE`, `PGSERVICEFILE`, `PGOPTIONS` | Not used; with the guard on, setting any of them stops the desk, because they would override the URL | unset |
 | `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | Checked like the endpoint above | unset |
 | `TEST_DATABASE_URL`, `TEST_DB_PREFIX` | Tests only: the Postgres the suite creates its databases in, and their name prefix | port 54339, `mkb_test_` |

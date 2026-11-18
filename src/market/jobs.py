@@ -13,7 +13,7 @@ import traceback
 from datetime import timedelta
 from typing import Any, Callable
 
-from . import db
+from . import db, telemetry
 from .db import J
 
 log = logging.getLogger("market.jobs")
@@ -31,12 +31,16 @@ def handler(kind: str) -> Callable[[Handler], Handler]:
 
 def enqueue(cur, kind: str, payload: dict | None = None, *, delay: timedelta | None = None,
             run_at=None, dedupe_key: str | None = None, max_attempts: int = 5) -> int | None:
-    """Queue a job. With a dedupe_key, a second enqueue while the first is queued or running is a no-op."""
+    """Queue a job. With a dedupe_key, a second enqueue while the first is queued or running is a no-op.
+
+    The job keeps the W3C traceparent of the span that queued it (NULL with tracing off), so its run joins that trace.
+    A dedupe no-op inserts nothing, so the first job keeps its own value."""
     row = db.one(cur, """
-        insert into jobs (kind, payload, run_at, dedupe_key, max_attempts)
-        values (%s, %s, coalesce(%s, app_now() + coalesce(%s, interval '0')), %s, %s)
+        insert into jobs (kind, payload, run_at, dedupe_key, max_attempts, trace_parent)
+        values (%s, %s, coalesce(%s, app_now() + coalesce(%s, interval '0')), %s, %s, %s)
         on conflict (dedupe_key) where dedupe_key is not null and status in ('queued', 'running') do nothing
-        returning id""", kind, J(payload or {}), run_at, delay, dedupe_key, max_attempts)
+        returning id""", kind, J(payload or {}), run_at, delay, dedupe_key, max_attempts,
+                telemetry.current_traceparent())
     return row["id"] if row else None
 
 
@@ -74,7 +78,8 @@ def run_ready(limit: int = 200) -> int:
                     raise RuntimeError(f"no handler for job kind {job['kind']}")
                 with conn.transaction():
                     with conn.cursor() as cur:
-                        fn(cur, job["payload"])
+                        with telemetry.job_span(job["kind"], job.get("trace_parent")):
+                            fn(cur, job["payload"])
                         db.run(cur, "update jobs set status = 'done', finished_at = app_now() where id = %s", job["id"])
             except Exception as exc:  # the job's own writes rolled back; record the failure
                 error = f"{type(exc).__name__}: {exc}"
