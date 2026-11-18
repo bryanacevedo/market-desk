@@ -120,7 +120,11 @@ def test_the_first_screen_has_one_value_line_and_one_first_step():
     market, start = _src("pages/Market.tsx"), _src("pages/Start.tsx")
     assert "<FirstStep" in market and "VALUE_LINE" in start
     assert "See the clearest gap in the deals" in start
-    assert 'CONTACT_URL = ""' in start and "http" not in start.split("export const CONTACT_URL")[1].splitlines()[0]
+    # Pinned to the exact address and subject Bryan chose (2026-11-17); a mailto link opens the mail app in the same tab, so it carries no target and no rel.
+    assert 'CONTACT_URL = "mailto:bryan@leandrive.io?subject=Market%20Desk%20demo";' in start
+    link = start[start.index('<a className="link" href={CONTACT_URL}'):].split("</a>")[0]
+    assert "Write to Bryan about your own data" in link and "target=" not in link and "rel=" not in link
+    assert "contact Leandrive" not in start
     assert "If you are judging the work" in start and "If you would use it" in start and "Next step." in start
 
 

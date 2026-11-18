@@ -214,8 +214,6 @@ Tier A and B accounts in the plan's regions that nobody has hours for, and the S
 Tier A and B accounts the plan gives to someone.
 Tier A and B companies in our regions whose buyer a contact source can find. This is the SAM count.
 Tiers: A strong fit, B good, C weak, X excluded
-To run this on your own deals and customers,
-To run this on your own deals and customers, contact Leandrive.
 Too few accounts to read a difference yet.
 Trait values whose win rate is clearly higher or clearly lower than the rest.
 Value of the deals opened.
@@ -258,3 +256,5 @@ shows which kinds of company win more often than the rest.
 shows who has the hours, and flags a tier A account nobody has hours for.
 splits accounts between people by the hours they have.
 turns what the evidence shows into a draft profile you can publish.
+Sample day: ##.
+Write to Bryan about your own data

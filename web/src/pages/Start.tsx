@@ -3,8 +3,8 @@ import { ArrowRight } from "@phosphor-icons/react";
 import { Section, navigate, say, useData } from "../lib";
 import { TIPS } from "../tips";
 
-/** Where the buyer path ends. Placeholder: the contact link is added when the demo is linked; until then the line has no link. */
-export const CONTACT_URL = "";
+/** Where the buyer path ends: Bryan's decision (2026-11-17), a mailto with a subject so the message says which demo it came from. */
+export const CONTACT_URL = "mailto:bryan@leandrive.io?subject=Market%20Desk%20demo";
 
 export const VALUE_LINE = "Market Desk shows which companies are worth selling to, how big that market is, and who should work which accounts.";
 
@@ -66,9 +66,7 @@ export function Start() {
             {step("/territories", "Territories", "splits accounts between people by the hours they have.")}
             {step("/handoffs", "Handoffs", "makes the account files your outreach tool reads.")}
           </ol>
-          <p className="next-step"><b>Next step.</b> {CONTACT_URL
-            ? <>To run this on your own deals and customers, <a className="link" href={CONTACT_URL}>talk to Leandrive</a>.</>
-            : "To run this on your own deals and customers, contact Leandrive."}</p>
+          <p className="next-step"><b>Next step.</b> <a className="link" href={CONTACT_URL}>Write to Bryan about your own data</a>.</p>
         </Section>
       </div>
       <Section title="Words used here">
