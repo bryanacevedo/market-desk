@@ -101,7 +101,7 @@ export function Profile() {
         </Section></div>
       ))}
       {!data.drafts.length ? <Empty title="No draft" icon={Scales} example="Draft v4: usage pricing added, a penalty for 2,000 to 4,999 employees.">A draft is a changed copy of the profile that a second person publishes. Make one from Changes.</Empty> : null}
-      <Section title="Published" icon={ListChecks}><RuleRows rules={p.rules} /></Section>
+      <Section title={`Published v${p.number}`} icon={ListChecks}><RuleRows rules={p.rules} /></Section>
       <Section title="Versions" icon={ClockCounterClockwise}>
         <div className="ledger">
           {data.versions.map((v: any) => (

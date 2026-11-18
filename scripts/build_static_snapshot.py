@@ -381,7 +381,7 @@ def main(argv=None) -> int:
 
 # Read paths the screens use only inside a form that a change fills in, or that need a typed value: answered by the shim
 # with a plain "not in the snapshot" message (see the runbook).
-NOT_SAVED = {"/api/move-proposals/territory-preview", "/api/move-proposals/candidates"}
+NOT_SAVED = {"/api/move-proposals/territory-preview", "/api/move-proposals/candidates", "/api/move-proposals/capacity"}
 
 
 def uncovered(k: Crawl, templates: list[str] | None = None) -> list[str]:

@@ -1,5 +1,5 @@
 import { api } from "../api";
-import { Empty, Failed, Fig, Loading, Section, Seg, day, money, n0, navigate, useBusy, useData, usePath, withParam, T, Tip, writeHint } from "../lib";
+import { Empty, Failed, Fig, Loading, Section, Seg, dayTime, money, n0, navigate, toast, useBusy, useData, usePath, withParam, T, Tip, writeHint } from "../lib";
 import { TIPS } from "../tips";
 import { RangeLine, VERDICT_WORD, Verdict, RateAxis } from "../parts";
 import { openSheet } from "../sheets";
@@ -8,6 +8,11 @@ const monthsBetween = (a: string, b: string) => Math.round((new Date(b).getTime(
 
 /** What to expect from a run: the time the last run took when it is known, otherwise only that it is not instant. */
 const RUN_NOTE = (seconds: number | null | undefined) => (seconds ? `The last run took ${seconds < 10 ? seconds.toFixed(1) : Math.round(seconds)} s.` : "A run reads every closed deal, so it takes a moment.");
+
+/** What a run changed, in words: a repeat run that found nothing says so. */
+const plural = (n: number, one: string, many: string) => `${n0(n)} ${n === 1 ? one : many}`;
+const ranWords = (r: { suggestions: number; changed: number | null }) =>
+  `The evidence run finished. ${r.suggestions ? plural(r.suggestions, "new suggestion", "new suggestions") : "No new suggestions"}${r.changed === null ? "" : r.changed ? `, ${plural(r.changed, "verdict", "verdicts")} changed` : ", no verdict changed"}.`;
 
 const VERDICTS: [string, string][] = [["all", "All"], ["clear", "Clear"], ["explained_by_size", "Explained by size"], ["not_clear", "Not clear"], ["too_few", "Too few to tell"]];
 
@@ -28,9 +33,9 @@ export function Evidence() {
     <div className="page">
       <div className="head">
         <h1>Evidence</h1>
-        {data.run.ran_at ? <span className="small mute"><T>Last run</T> {day(data.run.ran_at)}</span> : null}
+        {data.run.ran_at ? <span className="small mute"><T>Last run</T> {dayTime(data.run.ran_at)}</span> : null}
         {me?.user?.role === "revops" ? <button className="btn line sm" disabled={busy} title={writeHint() ?? RUN_NOTE(data.run.seconds)}
-          onClick={() => run(() => api("/api/evidence/run", { method: "POST" }), "The evidence run finished.")}>{busy ? "Running" : "Run again"}</button> : null}
+          onClick={() => run(async () => { const r = await api<any>("/api/evidence/run", { method: "POST" }); toast(ranWords(r)); })}>{busy ? "Running" : "Run again"}</button> : null}
         {busy ? <span className="small mute" role="status">Running. {RUN_NOTE(data.run.seconds)} This page updates when it finishes.</span>
           : me?.user?.role === "revops" ? <span className="small mute">{RUN_NOTE(data.run.seconds)}</span> : null}
       </div>

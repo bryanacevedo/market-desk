@@ -6,8 +6,8 @@ import {
 import { api } from "./api";
 import { Logo } from "./marks";
 import { Bar, Empty, Failed, Fig, Loading, Section, Status, day, dayTime, deskName, money, n0, navigate, pct, say, useBusy, useData, writeHint, T, Tip } from "./lib";
-import { ActivateSheet, CancelScheduleSheet, PublishSheet, RollbackSheet, TransferSheet } from "./sheets_moves";
-import { Hours, Nest, RangeLine, Tier, TierMix, Verdict, moneyScale, RateAxis } from "./parts";
+import { ActivateSheet, AskSheet, CancelScheduleSheet, PublishSheet, RollbackSheet, TransferSheet } from "./sheets_moves";
+import { CapacityAfter, Hours, Nest, RangeLine, Tier, TierMix, Verdict, moneyScale, RateAxis } from "./parts";
 
 // ---------------------------------------------------------------- the sheet frame (Account Desk's, with this desk's kinds)
 
@@ -33,7 +33,7 @@ const KIND: Record<string, { label: string; icon: typeof X }> = {
   test: { label: "Test", icon: Flask }, proposal: { label: "Change", icon: Lightbulb },
   book: { label: "Book", icon: BookOpen }, source: { label: "Source", icon: Database },
   activate: { label: "Activate plan", icon: CheckCircle }, publish: { label: "Publish profile", icon: ListChecks },
-  rollback: { label: "Roll back", icon: ArrowCounterClockwise }, cancelschedule: { label: "Cancel schedule", icon: ArrowCounterClockwise }, transfer: { label: "Move proposal", icon: Swap },
+  rollback: { label: "Roll back", icon: ArrowCounterClockwise }, ask: { label: "Ask for approval", icon: CheckCircle }, cancelschedule: { label: "Cancel schedule", icon: ArrowCounterClockwise }, transfer: { label: "Move proposal", icon: Swap },
 };
 
 // The sheet's title names the thing, so the header carries only the kind; `crumb` is kept for the call sites' clarity.
@@ -83,7 +83,7 @@ export function SheetHost() {
   const P: Record<string, (p: { id: string }) => JSX.Element> = {
     segment: SegmentSheet, finding: FindingSheet, company: CompanySheet, person: PersonSheet, version: VersionSheet,
     move: MoveSheet, test: TestSheet, proposal: ProposalSheet, book: BookSheet, source: SourceSheet,
-    activate: ActivateSheet, cancelschedule: CancelScheduleSheet, publish: PublishSheet, rollback: RollbackSheet, transfer: TransferSheet,
+    activate: ActivateSheet, cancelschedule: CancelScheduleSheet, publish: PublishSheet, rollback: RollbackSheet, transfer: TransferSheet, ask: AskSheet,
   };
   const C = P[kind];
   return C ? <C key={sheet} id={id} /> : null;
@@ -288,6 +288,7 @@ function OwnerForm({ company: c }: { company: any }) {
           <label className="form-field"><span className="small mute">Reason</span>
             <textarea className="input" rows={2} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} />
           </label>
+          <CapacityAfter to={to ? Number(to) : null} ids={[c.id]} />
           <div className="small mute">This moves the account now, outside any plan, and writes the reason to the audit log.</div>
           {h.drops_scheduled_move ? <div className="small mute">The scheduled plan stops moving this account's owner.</div> : null}
           {h.scheduled_still_to ? <div className="small mute">On its start date the scheduled plan still gives this account to {h.scheduled_still_to}.</div> : null}
@@ -336,15 +337,16 @@ function CompanySheet({ id }: { id: string }) {
               <dl className="kv small"><dt><T>Segment</T></dt><dd>{f.segment_label}</dd></dl>
             </Section>
           ) : null}
-          {c.owner || c.draft_owner ? (
+          {c.owner || c.draft_owner || (c.crm_differs || []).length ? (
             <Section title="Owner">
               <dl className="kv"><dt><T>In the active plan</T></dt><dd>{!c.owner ? "Not in the plan in effect" : c.owner.id ? <><button className="link" onClick={() => openSheet("person", c.owner.id)}>{c.owner.name}</button><span className="mute">{c.owner.seat ? `, ${c.owner.seat}` : ""}{c.owner.reason === "manual" ? "" : `, from ${say(c.owner.source)}`}</span></> : "Unassigned"}</dd>
                 {c.owner ? <><dt><T>Why</T></dt><dd>{({ rule: "Territory rule", test: "Segment test", existing_owner: "Customer", open_deal: "Open deal", balance_move: "Moved to balance", manual: "Moved by hand" } as any)[c.owner.reason] || c.owner.reason}</dd></> : null}
                 {c.owner?.note ? <><dt><T>Note</T></dt><dd>{c.owner.note}</dd></> : null}
                 {c.owner?.moved_from ? <><dt><T>From</T></dt><dd>{c.owner.moved_from}</dd></> : null}
-                {(c.coming || []).map((m: any) => m.by_hand
-                  ? <span key={m.role + "h"} style={{ display: "contents" }}><dt><T>{`${m.role === "SDR" ? "SDR" : "Owner"} plan change dropped`}</T></dt><dd>{`Changed by hand${m.kept ? ` to ${m.kept}` : ""}`}</dd></span>
-                  : <span key={m.role} style={{ display: "contents" }}><dt><T>{`${m.role === "SDR" ? "SDR" : "Owner"} from ${day(m.from)}`}</T></dt><dd>{m.name}</dd></span>)}
+                {(c.coming || []).map((m: any, i: number) => m.by_hand
+                  ? <span key={m.role + "h" + i} style={{ display: "contents" }}><dt><T>{`${m.role === "SDR" ? "SDR" : "Owner"} plan change dropped`}</T></dt><dd>{`Changed by hand${m.kept ? ` to ${m.kept}` : ""}`}</dd></span>
+                  : <span key={m.role + i} style={{ display: "contents" }}><dt><T>{`${m.role === "SDR" ? "SDR" : "Owner"} from ${day(m.from)}`}</T></dt><dd>{m.name}</dd></span>)}
+                {(c.crm_differs || []).map((x: any) => <span key={"crm" + x.seat} style={{ display: "contents" }}><dt><T>{`${deskName("crm_desk")}, ${x.seat}`}</T></dt><dd>{x.crm}<span className="mute">{x.set_by ? `, set by ${x.set_by}` : ""}{x.here ? `, here ${x.here}` : ", none here"}</span></dd></span>)}
                 {c.draft_owner ? <><dt className="mute"><T>In a draft plan</T></dt><dd className="mute">{`${c.draft_owner.name || "Unassigned"}${c.draft_owner.seat ? `, ${c.draft_owner.seat}` : ""}, draft: not in force until a manager activates ${c.draft_owner.plan}`}</dd></> : null}</dl>
               <OwnerForm company={c} />
             </Section>
@@ -439,12 +441,16 @@ function PersonSheet({ id }: { id: string }) {
 // ---------------------------------------------------------------- Profile version
 
 function VersionSheet({ id }: { id: string }) {
+  const me = useData<any>("/api/me").data;
   return (
     <Wrap kind="version" path={`/api/profile/versions/${id}`}>{(v) => (
       <Frame kind="version" crumb={`Version ${v.number}`}
         foot={v.status === "draft" ? <>
           {v.can_publish ? <button className="btn" title={writeHint()} onClick={() => openSheet("publish", v.id)}>Publish</button>
-            : <span className="small mute">A manager other than {v.author} publishes it. It shows in their Waiting on you.</span>}
+            : <>
+              <span className="small mute">A manager other than {v.author} publishes it. It shows in their Waiting on you.</span>
+              {me?.user && ["revops", "manager"].includes(me.user.role) ? <button className="btn line" title={writeHint()} onClick={() => openSheet("ask", `icp-${v.id}`)}>Ask for approval</button> : null}
+            </>}
         </> : undefined}>
         <Title sub={`${v.author}, ${day(v.created_at)}${v.publisher ? `. Published by ${v.publisher}, ${day(v.published_at)}` : ""}`}>Version {v.number}</Title>
         <Status kind={v.status === "published" ? "ok" : v.status === "draft" ? "wait" : "off"}>{v.status === "published" ? "Published" : v.status === "draft" ? "Draft" : "Retired"}</Status>
@@ -619,11 +625,14 @@ function BookSheet({ id }: { id: string }) {
 // ---------------------------------------------------------------- Source
 
 function SourceSheet({ id }: { id: string }) {
+  const [busy, run] = useBusy();
   return (
     <Wrap kind="source" path={`/api/sources/${id}`}>{(s) => (
-      <Frame kind="source" crumb={say(s.label)}>
+      <Frame kind="source" crumb={say(s.label)} foot={s.can_run ? <button className="btn" disabled={busy} title={writeHint()}
+        onClick={() => run(() => api(`/api/sources/${s.key}/run`, { method: "POST" }), "The next read is brought forward.")}>Run now</button> : undefined}>
         <Title sub={s.adapter === "sim" ? "Sample data" : "Live"}>{say(s.label)}</Title>
         <dl className="kv">
+          {s.owner ? <><dt><T>Looked after by</T></dt><dd>{s.owner}</dd></> : null}
           <dt><T>Runs every</T></dt><dd>{s.cadence_hours >= 48 ? `${Math.round(s.cadence_hours / 24)} days` : `${s.cadence_hours} hours`}</dd>
           <dt><T>Cost</T></dt><dd>{s.paid ? (s.price_cents_per_unit !== undefined ? <>{`$${(s.price_cents_per_unit / 100).toFixed(2)} a ${s.unit}`} <span className="mute">Our assumption</span></> : "Paid") : "Free"}</dd>
           <dt><T>Licence</T></dt><dd>{s.licence_note}</dd>

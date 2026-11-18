@@ -63,8 +63,8 @@ Closed deals with a different known value for the same trait.
 Closed new-business deals in the evidence window.
 Companies in each segment whose tier would change.
 Companies in our data as a share of the official count for the same countries, industries and sizes.
-Companies in our data, excluding competitors.
-Companies that match the filters. One-person businesses are never listed, so this is a few under the count on Market.
+Companies in our data, excluding competitors and one-person businesses.
+Companies that match the filters. One-person businesses are never counted, here or on Market.
 Companies that score as a strong (A) or good (B) fit under the published ICP.
 Companies whose tier would change if this draft were published.
 Companies whose tier would change under this version.
@@ -166,7 +166,7 @@ Share the draft rates A. Compare with A now.
 Someone's book needs more hours than they hold.
 Someone's expected value is more than 15% from the territory average.
 Start here: the clearest gap in the deals
-Starts the day a manager activates it
+Starts the day it is activated
 TAM is the whole market, SAM the part you can reach, SOM what the plan can win in 12 months
 Territories: who works which accounts, and whether they have the hours.
 Tests: working some accounts and holding others back to see whether a segment books more meetings.
@@ -177,7 +177,7 @@ The account's tier under each ICP version, newest last.
 The active plan's accounts go back to CRM Desk with the earlier version's tier. Owners are not sent.
 The average expected value of everyone in the person's territory. Balanced means each person is within 15% of it. AEs mostly hold customers and open deals, so their figures are small.
 The buyers' own words from call notes, with a short summary.
-The day owners change, once a manager approves the move and activates the plan it makes.
+The day owners change, once a manager approves the move and activates the plan it makes, if one is made.
 The difference could be chance.
 The difference goes away within each company size band.
 The draft rates churned customers A as often as current ones, which a good ICP should not do.
@@ -260,3 +260,6 @@ splits accounts between people by the hours they have.
 turns what the evidence shows into a draft profile you can publish.
 Sample day: ##.
 Write to Bryan about your own data
+Owner moved since the last plan, #
+Sent to #, #
+Tier moved since v#, #

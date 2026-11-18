@@ -1,6 +1,6 @@
 import { ArrowsLeftRight, DownloadSimple } from "@phosphor-icons/react";
 import { api } from "../api";
-import { Empty, Failed, Fig, Loading, Section, day, deskName, money, n0, say, Status, changed, useBusy, useData, writeHint, T } from "../lib";
+import { Empty, Failed, Fig, Loading, Section, day, deliveryLine, deskName, money, n0, say, Status, changed, useBusy, useData, writeHint, T } from "../lib";
 import { openSheet } from "../sheets";
 
 export const DEST: Record<string, string> = { account_desk: "Account Desk", events_desk: "Events Desk" };
@@ -86,6 +86,17 @@ export function Handoffs() {
             {data.crm.queued ? <Fig value={n0(data.crm.queued)} label="Waiting to send" /> : null}
             {data.crm.errors.length ? <Fig value={n0(data.crm.errors.length)} label="Not taken" /> : null}
           </div>
+          {data.crm.deliveries?.length ? (
+            <div className="ledger" style={{ marginTop: 8 }}>
+              <div className="row head" style={{ gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1.2fr)" }}><T>Sent</T><T>Where it stands</T></div>
+              {data.crm.deliveries.map((d: any) => (
+                <div key={d.ref} className="row" style={{ gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1.2fr)" }}>
+                  <span className="t">{d.what}</span>
+                  <span className="mute" data-label="Where it stands">{deliveryLine({ sent: d.sent, waiting: d.waiting, failed: d.failed, sent_at: d.sent_at, any: true })}{d.failed && d.error ? `: ${d.error}` : ""}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
           {data.crm.failed.length ? (
             <div className="notice" style={{ marginTop: 8 }}>{data.crm.failed.length === 1 ? "One send was" : `${data.crm.failed.length} sends were`} {say("refused by CRM Desk")}: {data.crm.failed[0].last_error}</div>
           ) : null}

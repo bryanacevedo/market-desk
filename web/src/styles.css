@@ -731,6 +731,7 @@ textarea.input { height: auto; padding: 10px 12px; line-height: 21px; resize: ve
 .hours .track { height: 8px; border-radius: 4px; background: var(--well); position: relative; overflow: hidden; }
 .hours .track i { position: absolute; inset: 0 auto 0 0; background: var(--ink); border-radius: 4px; }
 .hours.over .track i { background: var(--wait); }
+.cap-after { display: grid; gap: 4px; margin-top: 8px; }
 .hours .val { font-size: 12.5px; color: var(--ink-2); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .hours.over .val { color: var(--ink); font-weight: 600; }
 

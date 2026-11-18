@@ -446,3 +446,81 @@ def test_the_migration_keeps_the_job_quiet_while_it_waits_for_a_lock():
     sql = (Path(__file__).resolve().parents[1] / "migrations" / "0010_wk2_moves_traces_owners.sql").read_text()
     assert "set local lock_timeout = '5s'" in sql and sql.index("set local lock_timeout") < sql.index("\nalter table crm_outbox add")
     assert jobs  # the module the worker runs these on
+
+
+# ---- the screens (source checks, as the repo does: there is no browser test)
+
+from pathlib import Path  # noqa: E402
+
+WEB = Path(__file__).resolve().parents[1] / "web" / "src"
+
+
+def _src(name: str) -> str:
+    return (WEB / name).read_text()
+
+
+def test_the_territories_page_says_the_start_once_and_can_ask_a_manager():
+    src = _src("pages/Territories.tsx")
+    assert '"Starts the day it is activated"' in src and "once a manager activates it" not in src
+    assert 'openSheet("ask", `plan-${plan.id}`)' in src and "Ask for approval" in src
+    assert "deliveryLine(plan.delivery)" in src and "deliveryLine(m.delivery)" in src            # when it reached CRM Desk (J39)
+    assert "data.owner_changes" in src and '"Changes owner"' in src and "In this plan" in src     # J1: the accounts a plan moves
+
+
+def test_the_move_forms_show_the_hours_after_and_the_date_has_no_default():
+    src = _src("sheets_moves.tsx")
+    assert "<CapacityAfter" in src and "<CapacityNote c={match.capacity}" in src                  # list mode and by-territory mode
+    assert "const date = on;" in src and "opts.today" in src and "!!date" in src                   # m3: the person chooses the date
+    assert "if (r.plan)" in src and "The accounts moved." in src                                  # B4: no draft plan to open when a plan is scheduled
+    assert "p.moves.waiting" in src and "deliveryLine(p.delivery)" in src and "export function AskSheet" in src
+    assert "/api/approval-asks" in src
+    owner = _src("sheets.tsx")
+    assert "<CapacityAfter to={to ? Number(to) : null} ids={[c.id]} />" in owner                  # the hand move says it too
+    parts = _src("parts.tsx")
+    assert "never blocks" in parts and "Over 100% of their hours" in parts
+
+
+def test_the_account_sheet_and_source_sheet_say_the_new_things():
+    src = _src("sheets.tsx")
+    assert "c.crm_differs" in src and 'set by ${x.set_by}' in src and 'deskName("crm_desk")' in src         # J28
+    assert "Looked after by" in src and "Run now" in src and "s.can_run" in src                          # J5
+    assert 'openSheet("ask", `icp-${v.id}`)' in src
+
+
+def test_accounts_can_be_listed_by_what_changed_and_handoffs_lists_each_send():
+    acc = _src("pages/Accounts.tsx")
+    assert '"changed"' in acc and "Tier moved since v" in acc and "Owner moved since the last plan" in acc
+    hand = _src("pages/Handoffs.tsx")
+    assert "data.crm.deliveries" in hand and "deliveryLine(" in hand
+
+
+def test_the_evidence_run_says_what_it_did_and_the_time_it_ran():
+    src = _src("pages/Evidence.tsx")
+    assert "No new suggestions" in src and "no verdict changed" in src and "dayTime(data.run.ran_at)" in src
+
+
+def test_the_published_rules_are_titled_with_their_version_and_a_new_visit_starts_as_the_default_person():
+    assert "`Published v${p.number}`" in _src("pages/Profile.tsx")
+    api, app = _src("api.ts"), _src("App.tsx")
+    assert "sessionStorage" in api and "localStorage" not in api and "storedActingAs" in app and "localStorage" not in app.replace("localStorage.getItem", "")
+
+
+def test_the_totals_tips_no_longer_explain_a_gap_that_is_gone():
+    tips = _src("tips.ts")
+    assert "a few under the count on Market" not in tips and "excluding competitors and one-person businesses" in tips
+
+
+def test_the_evidence_run_answers_with_what_it_made_and_what_changed(demo, monkeypatch):
+    """m1: a run says how many suggestions it added and how many verdicts changed; a second run with the same deals says none."""
+    from fastapi.testclient import TestClient
+
+    from market.api import app as app_mod
+    monkeypatch.setattr(app_mod, "rate_limit", lambda *a, **k: None)
+    with db.tx() as cur:
+        rv = _revops(cur)
+    with TestClient(app_mod.app) as client:
+        r = client.post("/api/evidence/run", headers={"X-Acting-As": str(rv["id"]), "Content-Type": "application/json"})
+        assert r.status_code == 200, r.text
+        again = client.post("/api/evidence/run", headers={"X-Acting-As": str(rv["id"]), "Content-Type": "application/json"}).json()
+    assert set(r.json()) == {"run", "suggestions", "changed"}
+    assert again["suggestions"] == 0 and again["changed"] == 0

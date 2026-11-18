@@ -3,7 +3,7 @@ import {
   ArrowsLeftRight, CaretRight, ChartPieSlice, Compass, Database, DotsThree, Flask, GearSix, Lightbulb, ListChecks, MapTrifold,
   Scales, Target,
 } from "@phosphor-icons/react";
-import { setActingAs } from "./api";
+import { setActingAs, storedActingAs } from "./api";
 import { Failed, Loading, Tip, Toaster, changed, navigate, setNames, setNow, setRefuses, useData, usePath } from "./lib";
 import { TIPS } from "./tips";
 import { SheetHost } from "./sheets";
@@ -75,9 +75,8 @@ export function App() {
     for (const url of Object.values((me as any)?.links ?? {})) fetch(`${url}/api/health`, { mode: "no-cors" }).catch(() => undefined);
   }, [(me as any)?.links]);
   useEffect(() => {
-    // A first visit opens as RevOps, who sees the whole desk; the choice is kept after that.
-    let chosen: string | null = null;
-    try { chosen = localStorage.getItem("acting-as"); } catch { /* private mode */ }
+    // A first visit opens as RevOps, who sees the whole desk; the choice is kept for this browser tab, so a new visit starts here again.
+    const chosen = storedActingAs();
     if (me && !chosen) {
       const revops = me.users.find((u) => u.role === "revops");
       if (revops && me.user.id !== revops.id) { setActingAs(revops.id); changed(); }
@@ -93,8 +92,7 @@ export function App() {
   useEffect(() => { if (route) document.title = `${route.label}, Market Desk`; }, [route?.label]);
   useEffect(() => {
     // A page this role does not have lands on the role's first page, once the role is settled.
-    let chosen: string | null = null;
-    try { chosen = localStorage.getItem("acting-as"); } catch { /* private mode */ }
+    const chosen = storedActingAs();
     if (!chosen) return;
     if (me && route && path !== route.path && path !== "/more") navigate(route.path + window.location.search, true);
   }, [me, path, route]);

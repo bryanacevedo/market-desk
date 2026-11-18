@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { X } from "@phosphor-icons/react";
 import { api } from "./api";
-import { Empty, Fig, Loading, Section, Seg, Status, day, n0, navigate, toast, useBusy, useData, writeHint, deskName, T } from "./lib";
-import { Tier } from "./parts";
+import { Empty, Fig, Loading, Section, Seg, Status, day, deliveryLine, n0, navigate, toast, useBusy, useData, writeHint, deskName, T } from "./lib";
+import { CapacityAfter, CapacityNote, Tier } from "./parts";
 import { Frame, Title, Wrap, closeSheet, openSheet } from "./sheets";
 
 /** Confirm sheets. Each one says, in counts, what pressing the button changes, and says plainly what cannot be pulled back. */
@@ -198,9 +198,9 @@ function NewTransfer({ first }: { first: number | null }) {
   const add = (rows: any[]) => setPicked((x) => [...x, ...rows.filter((r) => !x.some((y) => y.id === r.id))].slice(0, 200));
   const toId = Number(to);
   const takers = opts.territories.filter((t: any) => t.people.includes(toId));
-  const date = on || opts.today;
+  const date = on;
   const clash = picked.filter((a) => a.owner_id === toId).length;
-  const base = !!to && reason.trim().length >= 3 && date >= opts.today;
+  const base = !!to && reason.trim().length >= 3 && !!date && date >= opts.today;
   const ok = mode === "list" ? base && picked.length > 0 && !clash : base && !!match && match.eligible > 0;
   const submit = () => run(async () => {
     if (mode === "rule") {
@@ -230,7 +230,7 @@ function NewTransfer({ first }: { first: number | null }) {
         </select>
       </label> : null}
       <label className="form-field"><span className="small mute"><T>Effective</T></span>
-        <input className="input" type="date" min={opts.today} value={date} onChange={(e) => setOn(e.target.value)} />
+        <input className="input" type="date" min={opts.today} value={date} required onChange={(e) => setOn(e.target.value)} />
       </label>
       <label className="form-field"><span className="small mute">Reason</span>
         <textarea className="input" rows={3} maxLength={500} value={reason} onChange={(e) => setReason(e.target.value)} />
@@ -252,6 +252,7 @@ function NewTransfer({ first }: { first: number | null }) {
               {match.in_open_proposal ? <Fig sm value={n0(match.in_open_proposal)} label="In another open proposal" /> : null}
             </div>
             {match.proposals > 1 ? <div className="small">This becomes {match.proposals} proposals of {n0(match.cap)} accounts at most, decided one at a time.</div> : null}
+            <CapacityNote c={match.capacity} />
             {match.eligible === 0 ? <Status kind="stop">Nothing in this territory is left to move to this person</Status> : null}
           </> : src ? <Empty title="Counting" /> : null}
         </Section>
@@ -285,6 +286,7 @@ function NewTransfer({ first }: { first: number | null }) {
           : carried === "failed" ? <Empty title="The account could not be added from here">Find it by name below.</Empty>
           : <Empty title="No accounts chosen" example="Find an account by name or domain, or add everything one person owns.">Moves are proposed for the accounts listed here.</Empty>}
         {clash ? <Status kind="stop">{`${n0(clash)} already belong to this person`}</Status> : null}
+        <CapacityAfter to={toId || null} ids={picked.filter((a) => a.owner_id !== toId).map((a) => a.id)} />
       </Section>}
     </Frame>
   );
@@ -304,11 +306,16 @@ function TransferView({ id }: { id: string }) {
       </> : <>
         <button className="btn line" disabled={busy} onClick={() => setRejecting(true)}>Reject</button>
         <button className="btn" disabled={busy}
-          onClick={() => run(async () => { const r = await api<any>(`/api/move-proposals/${p.id}/approve`, { method: "POST" }); toast(r.note || "Approved. A draft plan is ready to activate."); navigate(`/territories?plan=${r.plan}`); })}>Approve</button>
+          onClick={() => run(async () => {
+            const r = await api<any>(`/api/move-proposals/${p.id}/approve`, { method: "POST" });
+            if (r.plan) { toast(r.note || "Approved. A draft plan is ready to activate."); navigate(`/territories?plan=${r.plan}`); }
+            else toast(r.note || "Approved. The accounts moved.");
+          })}>Approve</button>
       </>) : p.status === "open" ? <span className="small mute">Waiting for a manager to decide</span>
         : p.plan ? <button className="btn" onClick={() => navigate(`/territories?plan=${p.plan}`)}>Open the plan</button> : undefined}>
         <Title sub={`${p.proposed_by}, ${day(p.proposed_at)}`}>{n0(p.count)} account{p.count === 1 ? "" : "s"} to {p.to_owner}</Title>
-        <Status kind={p.status === "open" ? "wait" : p.status === "approved" ? "ok" : "off"}>{p.status === "open" ? "Open" : p.status === "approved" ? "Approved" : "Rejected"}</Status>
+        <Status kind={p.status === "open" ? "wait" : p.status === "approved" ? (p.force_note ? "hold" : "ok") : "off"} title={p.force_note || undefined}>{p.status === "open" ? "Open" : p.status === "approved" ? (p.force_note ? "Approved, not in force" : "Approved") : "Rejected"}</Status>
+        {p.force_note ? <div className="small">{p.force_note}</div> : null}
         <dl className="kv">
           <dt><T>Effective</T></dt><dd>{day(p.effective_on)}</dd>
           {p.to_territory ? <><dt><T>Territory</T></dt><dd>{p.to_territory}</dd></> : null}
@@ -317,6 +324,8 @@ function TransferView({ id }: { id: string }) {
           {p.decided_by ? <><dt><T>{p.status === "approved" ? "Approved by" : "Rejected by"}</T></dt><dd>{p.decided_by}, {day(p.decided_at)}</dd></> : null}
           {p.decision_note ? <><dt><T>Why</T></dt><dd>{p.decision_note}</dd></> : null}
           {p.plan_name ? <><dt><T>Plan</T></dt><dd>{p.plan_name}</dd></> : null}
+          {p.moves ? <><dt><T>Accounts</T></dt><dd>{[p.moves.moved ? `${n0(p.moves.moved)} moved` : "", p.moves.waiting ? `${n0(p.moves.waiting)} waiting for ${day(p.moves.on)}` : "", p.moves.kept ? `${n0(p.moves.kept)} kept as set by hand` : ""].filter(Boolean).join(", ")}</dd></> : null}
+          {deliveryLine(p.delivery) ? <><dt><T>{deskName("crm_desk")}</T></dt><dd>{deliveryLine(p.delivery)}</dd></> : null}
         </dl>
         <Section title="Accounts" count={p.count}>
           <div className="ledger scrolly">
@@ -343,5 +352,23 @@ export function History({ rows, figure }: { rows: any[]; figure?: string }) {
         </div>
       ))}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------- Ask for approval
+
+/** The author of a draft asks the managers to approve it, with a reason; it lands in their Waiting on you. */
+export function AskSheet({ id }: { id: string }) {
+  const [busy, run] = useBusy();
+  const [why, setWhy] = useState("");
+  const [kind, num] = id.split("-");
+  return (
+    <Frame kind="ask" foot={<Foot busy={busy} label="Ask" ok={why.trim().length >= 3}
+      onGo={() => run(async () => { await api("/api/approval-asks", { method: "POST", body: { kind, id: Number(num), reason: why.trim() } }); closeSheet(); }, "Asked. It is in the managers' Waiting on you.")} />}>
+      <Title>Ask a manager to approve</Title>
+      <label className="form-field"><span className="small mute">Why now</span>
+        <textarea className="input" rows={3} maxLength={500} autoFocus value={why} onChange={(e) => setWhy(e.target.value)} />
+      </label>
+    </Frame>
   );
 }

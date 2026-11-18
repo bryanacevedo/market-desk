@@ -336,7 +336,7 @@ def test_a_hand_change_owner_is_sourced_to_a_hand_change_and_dated(cur):
 
 def test_the_draft_owner_is_on_the_sheet_even_when_the_active_plan_holds_no_owner():
     src = _src("sheets.tsx")
-    assert "c.owner || c.draft_owner ?" in src
+    assert "c.owner || c.draft_owner ||" in src
 
 
 def test_the_banner_is_inside_main_and_the_skip_link_is_first():
@@ -361,10 +361,10 @@ def test_source_names_go_through_say_and_the_legend_does_not_widen_a_phone():
 
 def test_a_draft_plan_line_shows_its_start_date():
     src = _src("pages/Territories.tsx")
-    assert "Starts ${day(plan.effective_on)} once a manager activates it" in src
+    assert "`Starts ${day(plan.effective_on)}`" in src
     # a start date today or earlier starts the day it is activated, by the desk clock the page already uses
-    assert 'String(plan.effective_on).slice(0, 10) > todayIso()' in src and "{startsLine}" in src and '"Starts the day a manager activates it"' in src
-    assert "canActivate ? `Starts ${day(plan.effective_on)} once a manager activates it` : `Starts ${day(plan.effective_on)}`" in src  # not 'a manager activates' twice
+    assert 'String(plan.effective_on).slice(0, 10) > todayIso()' in src and "{startsLine}" in src and '"Starts the day it is activated"' in src
+    assert "once a manager activates it" not in src and "a manager activates it" not in src.split("Waiting for a manager to activate")[1].split("</span>")[1]  # said once (m7)
     assert "export function todayIso()" in _src("lib.tsx") and "new Date(NOW)" in _src("lib.tsx")
     # the date sits beside both the Activate button and the waiting line, not only one of them
     draft = src[src.index('plan.status === "draft" ? ('):src.index("{startsLine}</span>")]

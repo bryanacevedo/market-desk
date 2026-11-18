@@ -112,6 +112,15 @@ export function say(text: string): string {
 /** The desk's name for one other desk: "Account Desk" when connected, "your outreach tool" when not. */
 export const deskName = (k: "crm_desk" | "account_desk" | "events_desk") => NAMES[k];
 
+/** Where something sent to CRM Desk stands: when it arrived, that it waits, or that CRM Desk did not take it. Nothing when no CRM is set. */
+export function deliveryLine(d: { sent: number; waiting: number; failed: number; sent_at?: string | null; any?: boolean } | null | undefined): string | null {
+  if (!d || !d.any) return null;
+  const desk = deskName("crm_desk");
+  if (d.failed) return `${desk} did not take it`;
+  if (d.waiting) return `Waiting to send to ${desk}`;
+  return d.sent_at ? `Sent to ${desk}, ${dayTime(d.sent_at)}` : `Sent to ${desk}`;
+}
+
 // In the static public demo every change is refused. A write control says so before the click (a title), and the banner says so.
 let REFUSES = false;
 export const REFUSED_WORDS = "The public demo does not do this. Run it yourself to try it.";

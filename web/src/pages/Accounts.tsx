@@ -16,7 +16,7 @@ export function Accounts() {
   const [, params] = usePath();
   const [q, setQ] = useState(params.get("q") || "");
   const qs = new URLSearchParams();
-  for (const k of ["q", "tier", "segment", "owner", "page", "region"]) if (params.get(k)) qs.set(k, params.get(k)!);
+  for (const k of ["q", "tier", "segment", "owner", "page", "region", "changed"]) if (params.get(k)) qs.set(k, params.get(k)!);
   const { data, error, reload } = useData<any>(`/api/accounts?${qs.toString()}`);
   const me = useData<any>("/api/me").data;
   useEffect(() => {
@@ -43,6 +43,13 @@ export function Accounts() {
               <option value="">Every owner</option><option value="unassigned">Unassigned</option>{data?.owners.map((o: any) => <option key={o.id} value={o.id}>{o.name}</option>)}
             </select>
           ) : null}
+          {lead && (data?.since?.version || data?.since?.plan) ? (
+            <select className="select" aria-label="Changed" value={params.get("changed") || ""} onChange={(e) => set("changed", e.target.value)} style={{ width: 230 }}>
+              <option value="">Any change</option>
+              {data.since.version ? <option value="tier">{`Tier moved since v${data.since.version}, ${n0(data.since.tier)}`}</option> : null}
+              {data.since.plan ? <option value="owner">{`Owner moved since the last plan, ${n0(data.since.owner)}`}</option> : null}
+            </select>
+          ) : null}
           {params.get("region") ? <button className="btn line sm" onClick={() => set("region", "")}>{params.get("region")} ×</button> : null}
         </div>
       </div>
@@ -57,9 +64,9 @@ export function Accounts() {
                 <Logo domain={r.primary_domain} name={r.name} />
                 <span className="cell-main"><span className="t">{r.name}</span><span className="s">{r.industry || "Industry unknown"}{r.employees ? `, ${n0(r.employees)} employees` : ""}</span></span>
                 <span className="clip mute">{r.segment_label}</span>
-                <span className="num"><Tier tier={r.tier} judged={r.judged} />{r.judged && r.score !== null ? <small className="mute"> {r.score}</small> : null}</span>
+                <span className="num"><Tier tier={r.tier} judged={r.judged} />{r.judged && r.score !== null ? <small className="mute"> {r.score}</small> : null}{params.get("changed") === "tier" && r.was_tier ? <small className="mute"> was {r.was_tier}</small> : null}</span>
                 <span className="num mute">{pct(r.scored_out_of)}</span>
-                <span className="cell-main">{r.over_capacity ? <Status kind="hold">Unassigned: no capacity</Status> : <span className="t" style={{ fontWeight: 450 }}>{r.owner || <span className="faint">Unassigned</span>}</span>}{r.owner ? <span className="s">{r.owner_seat ? `${r.owner_seat}, ` : ""}{TIPS[reasonWord(r.reason_code)] ? <Tip tip={TIPS[reasonWord(r.reason_code)]}>{reasonWord(r.reason_code)}</Tip> : reasonWord(r.reason_code)}{r.reason_code === "manual" ? "" : `, from ${say(r.owner_source || "")}`}</span> : null}{(r.coming || []).map((m: any) => <span className="s" key={m.role + (m.by_hand ? "h" : "")}>{m.by_hand ? "Changed by hand" : `Moves to ${m.name} from ${day(m.from)}`}</span>)}</span>
+                <span className="cell-main">{r.over_capacity ? <Status kind="hold">Unassigned: no capacity</Status> : <span className="t" style={{ fontWeight: 450 }}>{r.owner || <span className="faint">Unassigned</span>}</span>}{r.owner ? <span className="s">{r.owner_seat ? `${r.owner_seat}, ` : ""}{TIPS[reasonWord(r.reason_code)] ? <Tip tip={TIPS[reasonWord(r.reason_code)]}>{reasonWord(r.reason_code)}</Tip> : reasonWord(r.reason_code)}{r.reason_code === "manual" ? "" : `, from ${say(r.owner_source || "")}`}</span> : null}{params.get("changed") === "owner" ? <span className="s">{`Was ${r.was_owner || "unassigned"}`}</span> : null}{(r.coming || []).map((m: any, i: number) => <span className="s" key={m.role + (m.by_hand ? "h" : "") + i}>{m.by_hand ? "Changed by hand" : `Moves to ${m.name} from ${day(m.from)}`}</span>)}</span>
                 <span className="num mute">{r.last_dest ? (r.last_meetings ? <Status kind="ok">Meeting</Status> : "No meeting") : ""}</span>
               </button>
             ))}

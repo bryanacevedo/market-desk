@@ -1,4 +1,4 @@
--- Integrated week 2 fixes (decisions 73 to 78). Safe to run twice. To take it back: drop table scheduled_moves, crm_owner_reads;
+-- Integrated week 2 fixes (decisions 73 to 80). Safe to run twice. To take it back: drop table scheduled_moves, crm_owner_reads;
 -- alter table crm_outbox drop column trace_parent, drop column ref.
 set local lock_timeout = '5s';  -- a busy table fails the start; the next start retries
 

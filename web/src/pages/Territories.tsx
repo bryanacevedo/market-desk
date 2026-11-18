@@ -1,5 +1,5 @@
 import { ClockCounterClockwise, MapTrifold, Swap, UsersThree } from "@phosphor-icons/react";
-import { Empty, Failed, Fig, Loading, Section, Seg, Status, day, deskName, todayIso, money, n0, navigate, useData, usePath, withParam, writeHint, T, Tip } from "../lib";
+import { Empty, Failed, Fig, Loading, Section, Seg, Status, day, deliveryLine, deskName, todayIso, money, n0, navigate, useData, usePath, withParam, writeHint, T, Tip } from "../lib";
 import { TIPS } from "../tips";
 import { CapacityRange, PlanShift } from "../parts";
 import { openSheet } from "../sheets";
@@ -19,7 +19,10 @@ export function Territories() {
   if (!plan) return <div className="page"><div className="head"><h1>Territories</h1></div><Empty title="No plan yet" example="Active since 2 Jun: 6 people and 1,300 accounts, each with an owner.">A plan gives accounts to people by region and segment.</Empty></div>;
   const canActivate = plan.status === "draft" && me?.user.role === "manager" && me?.user.id !== plan.author_id;
   const later = String(plan.effective_on).slice(0, 10) > todayIso();
-  const startsLine = later ? (canActivate ? `Starts ${day(plan.effective_on)} once a manager activates it` : `Starts ${day(plan.effective_on)}`) : "Starts the day a manager activates it";
+  // The line beside the button says who acts once (m7): the waiting line names the manager, this one gives the date.
+  const startsLine = later ? `Starts ${day(plan.effective_on)}` : "Starts the day it is activated";
+  const asker = plan.status === "draft" && !canActivate && me?.user && ["revops", "manager"].includes(me.user.role);
+  const sent = deliveryLine(plan.delivery);
   const activateButton = <div className="actions">
             <button className="btn" disabled={!canActivate}
               title={canActivate ? writeHint() : "A manager other than the author activates it"}
@@ -37,9 +40,11 @@ export function Territories() {
         {plan.status === "draft" ? (
           <span className="actions">
             {canActivate ? activateButton : <span className="small mute">Waiting for a manager to activate; it is in their Waiting on you</span>}
+            {asker ? <button className="btn line sm" title={writeHint()} onClick={() => openSheet("ask", `plan-${plan.id}`)}>Ask for approval</button> : null}
             <span className="small mute">{startsLine}</span>
           </span>
         ) : <span className="actions"><span className="mute small">{plan.status === "active" ? `Active since ${day(plan.restored_at || plan.activated_at)}, by ${plan.activated_by}` : plan.status === "scheduled" ? `Starts ${day(plan.effective_on)}, scheduled by ${plan.activated_by}` : plan.status === "retired" ? "Retired" : ""}</span>
+          {sent ? <span className="mute small">{sent}</span> : null}
           {plan.status === "scheduled" && me?.user.role === "manager" ? <button className="btn line sm" title={writeHint()} onClick={() => openSheet("cancelschedule", plan.id)}>Cancel schedule</button> : null}
           {plan.status === "active" && plan.replaced && me?.user.role === "manager" ? <button className="btn line sm" title={writeHint() ?? TIPS["Roll back"]} onClick={() => openSheet("rollback", "plan")}>Roll back</button> : null}</span>}
       </div>
@@ -89,6 +94,21 @@ function PlanView({ data, active, proposals, money: showMoney }: { data: any; ac
           </div>
         </Section></div>
       ) : null}
+      {data.owner_changes && data.owner_changes.total ? (
+        <Section title="Changes owner" count={data.owner_changes.total}>
+          <div className="ledger scrolly">
+            <div className="row head" style={{ gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr)" }}><T>Account</T><T>{`In ${data.owner_changes.against}`}</T><T>In this plan</T></div>
+            {data.owner_changes.rows.map((r: any) => (
+              <button key={r.id} className="row" style={{ gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr)" }} onClick={() => openSheet("company", r.id)}>
+                <span className="cell-main"><span className="t">{r.name}</span><span className="s">{r.primary_domain}</span></span>
+                <span className="clip mute" data-label={`In ${data.owner_changes.against}`}>{r.from_owner || "Unassigned"}</span>
+                <span className="clip" data-label="In this plan">{r.to_owner || "Unassigned"}</span>
+              </button>
+            ))}
+          </div>
+          {data.owner_changes.total > data.owner_changes.rows.length ? <div className="small mute">{`The first ${n0(data.owner_changes.rows.length)} of ${n0(data.owner_changes.total)}, by name`}</div> : null}
+        </Section>
+      ) : null}
       <Section title="People" icon={UsersThree} right={<span className="small mute">{`Handoffs makes these books into files for ${deskName("account_desk")}`}</span>}>
         <div className="ledger wrap-cells scroll-x">
           <div className="row head" style={{ gridTemplateColumns: cols }}><T>Person</T><T>Territory</T>{draft ? <T>A and B, hollow: now</T> : <><T num>A</T><span className="num"><Tip tip="Tier B accounts in the person's book.">B</Tip></span></>}<T>Hours needed, of held</T>{showMoney ? <><T num>Expected value</T><T num>Average</T></> : null}</div>
@@ -125,7 +145,7 @@ function PlanView({ data, active, proposals, money: showMoney }: { data: any; ac
             <div className="row head" style={{ gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1fr) 110px 150px" }}><T>Move</T><T>Reason</T><T>Effective</T><T>Status</T></div>
             {proposals.map((m: any) => (
               <button key={m.id} className="row" style={{ gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1fr) 110px 150px" }} onClick={() => openSheet("transfer", m.id)}>
-                <span className="cell-main"><span className="t">{n0(m.accounts)} account{m.accounts === 1 ? "" : "s"} to {m.to_owner}</span><span className="s">{m.proposed_by}{m.decided_by ? `, decided by ${m.decided_by}` : ""}</span>{m.force_note ? <span className="s">{m.force_note}</span> : null}</span>
+                <span className="cell-main"><span className="t">{n0(m.accounts)} account{m.accounts === 1 ? "" : "s"} to {m.to_owner}</span><span className="s">{m.proposed_by}{m.decided_by ? `, decided by ${m.decided_by}` : ""}</span>{m.force_note ? <span className="s">{m.force_note}</span> : null}{deliveryLine(m.delivery) ? <span className="s">{deliveryLine(m.delivery)}</span> : null}</span>
                 <span className="said-quote clip">{m.reason}</span>
                 <span className="mute" data-label="Effective">{day(m.effective_on)}</span>
                 <Status kind={m.status === "open" ? "wait" : m.status === "approved" ? (m.force_note ? "hold" : "ok") : "off"} title={m.force_note || undefined}>{m.status === "open" ? "Open" : m.status === "approved" ? (m.force_note ? "Approved, not in force" : "Approved") : "Rejected"}</Status>

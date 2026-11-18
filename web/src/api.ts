@@ -1,17 +1,22 @@
 // One fetch helper. In the demo the acting-as choice travels as a header; behind a real proxy it is ignored.
 // A link may name who to act as (?as=3), so a shared demo link opens as that person.
+// The choice lasts for this browser tab (m4): a new visit opens as the default person, never as whoever the last visitor picked.
+const KEY = "acting-as";
+export function storedActingAs(): string | null {
+  try { return sessionStorage.getItem(KEY); } catch { return null; }
+}
 let actingAs: string | null = (() => {
   const fromUrl = new URLSearchParams(window.location.search).get("as");
   if (fromUrl && /^\d+$/.test(fromUrl)) {
-    try { localStorage.setItem("acting-as", fromUrl); } catch { /* private mode */ }
+    try { sessionStorage.setItem(KEY, fromUrl); } catch { /* private mode */ }
     return fromUrl;
   }
-  try { return localStorage.getItem("acting-as"); } catch { return null; }
+  return storedActingAs();
 })();
 
 export function setActingAs(id: number) {
   actingAs = String(id);
-  try { localStorage.setItem("acting-as", actingAs); } catch { /* private mode */ }
+  try { sessionStorage.setItem(KEY, actingAs); } catch { /* private mode */ }
 }
 
 export class ApiError extends Error {

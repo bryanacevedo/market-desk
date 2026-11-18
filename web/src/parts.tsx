@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { api } from "./api";
 import { Status, Tip, money, pct, type Glyph } from "./lib";
 import { TIPS } from "./tips";
 
@@ -63,6 +64,32 @@ export function Hours({ used, of }: { used: number; of: number }) {
       <span className="val">{Math.round(used)} of {Math.round(of)} hours{over ? <strong> (over)</strong> : null}</span>
     </span>
   );
+}
+
+/** What a move does to the new owner's hours a month: their hours after it against the hours they have. It informs; it never blocks. */
+export function CapacityNote({ c }: { c: { person: string; hours_now: number; hours_after: number; hours_available: number; over: boolean } | null | undefined }) {
+  if (!c) return null;
+  return (
+    <div className="cap-after">
+      <div className="small mute">{`${c.person}, hours a month after the move`}</div>
+      <Hours used={c.hours_after} of={c.hours_available} />
+      <div className="small mute">{`${Math.round(c.hours_now)} hours now`}</div>
+      {c.over ? <Status kind="hold">Over 100% of their hours</Status> : null}
+    </div>
+  );
+}
+
+/** The same, read from the server for these accounts and this person. */
+export function CapacityAfter({ to, ids }: { to: number | null; ids: number[] }) {
+  const [c, setC] = useState<any>(null);
+  const key = `${to}:${ids.join(",")}`;
+  useEffect(() => {
+    if (!to || !ids.length) { setC(null); return; }
+    let live = true;
+    api<any>(`/api/move-proposals/capacity?to=${to}&ids=${ids.join(",")}`).then((r) => { if (live) setC(r.capacity); }).catch(() => { if (live) setC(null); });
+    return () => { live = false; };
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  return <CapacityNote c={c} />;
 }
 
 export function Field({ k, children }: { k: string; children: ReactNode }) {

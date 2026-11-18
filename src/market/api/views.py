@@ -149,7 +149,7 @@ def evidence(cur, allowed: bool) -> dict:
     if prev:
         changes = db.all(cur, """select f.id, f.trait, f.value_label, f.verdict, p.verdict as was from findings f
                                  left join findings p on p.run = %s and p.trait = f.trait and p.value = f.value
-                                 where f.run = %s and (p.id is null or p.verdict <> f.verdict)""", prev, run["id"])
+                                 where f.run = %s and (p.id is null or p.verdict <> f.verdict) order by f.id""", prev, run["id"])
     took = db.val(cur, """select (detail->>'seconds')::numeric from audit_log where action = 'evidence_run' and object_id = %s::text
                           order by id desc limit 1""", run["id"])
     return strip({"run": {"id": run["id"], "ran_at": run["ran_at"], "deals": run["deals_considered"], "seconds": took and float(took),
