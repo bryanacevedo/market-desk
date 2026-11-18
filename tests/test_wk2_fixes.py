@@ -9,7 +9,7 @@ from datetime import timedelta
 
 import pytest
 
-from market import crm, db, handoff, jobs, moves, names, notices, telemetry, territories
+from market import crm, db, handoff, jobs, moves, notices, telemetry, territories
 from market.api import views
 
 
@@ -227,7 +227,7 @@ def test_the_account_says_when_crm_desk_holds_a_different_owner(cur, who):
     db.run(cur, """insert into crm_owner_reads (company, ae_email, ae_set_by, sdr_email, sdr_set_by) values (%s,%s,%s,null,null)""",
            ids[0], theirs["email"].upper(), "Account Desk")
     d = views.company(cur, ids[0], who["Elena"])["crm_differs"]
-    assert len(d) == 1 and d[0]["seat"] == "AE" and d[0]["crm"] == theirs["name"] and d[0]["set_by"] == names.say("Account Desk")
+    assert len(d) == 1 and d[0]["seat"] == "AE" and d[0]["crm"] == theirs["name"] and d[0]["set_by"] == "Account Desk"
     assert d[0]["here"] == db.val(cur, "select name from users where id = %s", owner)
     db.run(cur, "update crm_owner_reads set ae_email = %s where company = %s", mine, ids[0])
     assert views.company(cur, ids[0], who["Elena"])["crm_differs"] == []
@@ -482,14 +482,14 @@ def test_the_move_forms_show_the_hours_after_and_the_date_has_no_default():
 
 def test_the_account_sheet_and_source_sheet_say_the_new_things():
     src = _src("sheets.tsx")
-    assert "c.crm_differs" in src and 'set by ${x.set_by}' in src and 'deskName("crm_desk")' in src         # J28
+    assert "c.crm_differs" in src and "say(`, set by ${x.set_by}`)" in src and "say(`CRM Desk, ${x.seat}`)" in src         # J28
     assert "Looked after by" in src and "Run now" in src and "s.can_run" in src                          # J5
     assert 'openSheet("ask", `icp-${v.id}`)' in src
 
 
 def test_accounts_can_be_listed_by_what_changed_and_handoffs_lists_each_send():
     acc = _src("pages/Accounts.tsx")
-    assert '"changed"' in acc and "Tier moved since v" in acc and "Owner moved since the last plan" in acc
+    assert '"changed"' in acc and "Tier moved since v" in acc and "Owner moved since last plan" in acc
     hand = _src("pages/Handoffs.tsx")
     assert "data.crm.deliveries" in hand and "deliveryLine(" in hand
 

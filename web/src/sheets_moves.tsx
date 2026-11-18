@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { X } from "@phosphor-icons/react";
 import { api } from "./api";
-import { Empty, Fig, Loading, Section, Seg, Status, day, deliveryLine, n0, navigate, toast, useBusy, useData, writeHint, deskName, T } from "./lib";
+import { Empty, Fig, Loading, Section, Seg, Status, day, deliveryLine, n0, navigate, say, toast, useBusy, useData, writeHint, deskName, T } from "./lib";
 import { CapacityAfter, CapacityNote, Tier } from "./parts";
 import { Frame, Title, Wrap, closeSheet, openSheet } from "./sheets";
 
@@ -315,7 +315,7 @@ function TransferView({ id }: { id: string }) {
         : p.plan ? <button className="btn" onClick={() => navigate(`/territories?plan=${p.plan}`)}>Open the plan</button> : undefined}>
         <Title sub={`${p.proposed_by}, ${day(p.proposed_at)}`}>{n0(p.count)} account{p.count === 1 ? "" : "s"} to {p.to_owner}</Title>
         <Status kind={p.status === "open" ? "wait" : p.status === "approved" ? (p.force_note ? "hold" : "ok") : "off"} title={p.force_note || undefined}>{p.status === "open" ? "Open" : p.status === "approved" ? (p.force_note ? "Approved, not in force" : "Approved") : "Rejected"}</Status>
-        {p.force_note ? <div className="small">{p.force_note}</div> : null}
+        {p.force_note ? <div className="small">{p.force_note.replace(/^Approved, not in force: /, "").replace(/^./, (c: string) => c.toUpperCase())}</div> : null}
         <dl className="kv">
           <dt><T>Effective</T></dt><dd>{day(p.effective_on)}</dd>
           {p.to_territory ? <><dt><T>Territory</T></dt><dd>{p.to_territory}</dd></> : null}
@@ -324,8 +324,8 @@ function TransferView({ id }: { id: string }) {
           {p.decided_by ? <><dt><T>{p.status === "approved" ? "Approved by" : "Rejected by"}</T></dt><dd>{p.decided_by}, {day(p.decided_at)}</dd></> : null}
           {p.decision_note ? <><dt><T>Why</T></dt><dd>{p.decision_note}</dd></> : null}
           {p.plan_name ? <><dt><T>Plan</T></dt><dd>{p.plan_name}</dd></> : null}
-          {p.moves ? <><dt><T>Accounts</T></dt><dd>{[p.moves.moved ? `${n0(p.moves.moved)} moved` : "", p.moves.waiting ? `${n0(p.moves.waiting)} waiting for ${day(p.moves.on)}` : "", p.moves.kept ? `${n0(p.moves.kept)} kept as set by hand` : ""].filter(Boolean).join(", ")}</dd></> : null}
-          {deliveryLine(p.delivery) ? <><dt><T>{deskName("crm_desk")}</T></dt><dd>{deliveryLine(p.delivery)}</dd></> : null}
+          {p.moves ? <><dt><T>Moves</T></dt><dd>{[p.moves.moved ? `${n0(p.moves.moved)} moved` : "", p.moves.waiting ? `${n0(p.moves.waiting)} waiting for ${day(p.moves.on)}` : "", p.moves.kept ? `${n0(p.moves.kept)} kept as set by hand` : ""].filter(Boolean).join(", ")}</dd></> : null}
+          {deliveryLine(p.delivery) ? <><dt><T>{say("CRM Desk")}</T></dt><dd>{deliveryLine(p.delivery)}</dd></> : null}
         </dl>
         <Section title="Accounts" count={p.count}>
           <div className="ledger scrolly">

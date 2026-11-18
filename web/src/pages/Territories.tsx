@@ -94,21 +94,6 @@ function PlanView({ data, active, proposals, money: showMoney }: { data: any; ac
           </div>
         </Section></div>
       ) : null}
-      {data.owner_changes && data.owner_changes.total ? (
-        <Section title="Changes owner" count={data.owner_changes.total}>
-          <div className="ledger scrolly">
-            <div className="row head" style={{ gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr)" }}><T>Account</T><T>{`In ${data.owner_changes.against}`}</T><T>In this plan</T></div>
-            {data.owner_changes.rows.map((r: any) => (
-              <button key={r.id} className="row" style={{ gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr)" }} onClick={() => openSheet("company", r.id)}>
-                <span className="cell-main"><span className="t">{r.name}</span><span className="s">{r.primary_domain}</span></span>
-                <span className="clip mute" data-label={`In ${data.owner_changes.against}`}>{r.from_owner || "Unassigned"}</span>
-                <span className="clip" data-label="In this plan">{r.to_owner || "Unassigned"}</span>
-              </button>
-            ))}
-          </div>
-          {data.owner_changes.total > data.owner_changes.rows.length ? <div className="small mute">{`The first ${n0(data.owner_changes.rows.length)} of ${n0(data.owner_changes.total)}, by name`}</div> : null}
-        </Section>
-      ) : null}
       <Section title="People" icon={UsersThree} right={<span className="small mute">{`Handoffs makes these books into files for ${deskName("account_desk")}`}</span>}>
         <div className="ledger wrap-cells scroll-x">
           <div className="row head" style={{ gridTemplateColumns: cols }}><T>Person</T><T>Territory</T>{draft ? <T>A and B, hollow: now</T> : <><T num>A</T><span className="num"><Tip tip="Tier B accounts in the person's book.">B</Tip></span></>}<T>Hours needed, of held</T>{showMoney ? <><T num>Expected value</T><T num>Average</T></> : null}</div>
@@ -165,6 +150,21 @@ function PlanView({ data, active, proposals, money: showMoney }: { data: any; ac
               </button>
             ))}
           </div>
+        </Section>
+      ) : null}
+      {data.owner_changes && data.owner_changes.total ? (
+        <Section title="Changes owner" count={data.owner_changes.total}>
+          <div className="ledger scrolly">
+            <div className="row head" style={{ gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr)" }}><T>Account</T><T>{`In ${data.owner_changes.against}`}</T><T>In this plan</T></div>
+            {data.owner_changes.rows.map((r: any) => (
+              <button key={r.id} className="row" style={{ gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1fr) minmax(0,1fr)" }} onClick={() => openSheet("company", r.id)}>
+                <span className="cell-main"><span className="t">{r.name}</span><span className="s">{r.primary_domain}</span></span>
+                <span className="clip mute" data-label={`In ${data.owner_changes.against}`}>{r.from_owner || "Unassigned"}</span>
+                <span className="clip" data-label="In this plan">{r.to_owner || "Unassigned"}</span>
+              </button>
+            ))}
+          </div>
+          {data.owner_changes.total > data.owner_changes.rows.length ? <div className="small mute">{`The first ${n0(data.owner_changes.rows.length)} of ${n0(data.owner_changes.total)}, by name`}</div> : null}
         </Section>
       ) : null}
       {data.history.length ? <Section title="History" icon={ClockCounterClockwise} count={data.history.length}><History rows={data.history} figure="Owners" /></Section> : null}

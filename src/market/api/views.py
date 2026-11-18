@@ -391,7 +391,7 @@ def _crm_differs(cur, cid: int, a: dict | None) -> list[dict]:
         if email and email.lower() != (mine[seat] or "").lower():
             out.append({"seat": seat, "crm": db.val(cur, "select name from users where lower(email) = %s", email.lower()) or email,
                         "here": db.val(cur, "select name from users where lower(email) = %s", mine[seat].lower()) if mine[seat] else None,
-                        "set_by": names.say(by) if by else None, "read_at": r["read_at"]})
+                        "set_by": by, "read_at": r["read_at"]})
     return out
 
 
@@ -411,7 +411,7 @@ def accounts(cur, u: dict, *, q: str, tier: str, segment: str, owner: str, page:
     if changed == "tier" and prev_v:
         where.append("pf.judged and f.judged and pf.tier is distinct from f.tier")
     elif changed == "owner" and prev_p:
-        where.append("a.owner is distinct from pa.owner")
+        where.append("a.owner is not null and pa.owner is not null and a.owner <> pa.owner")
     elif changed:
         where.append("false")
     if owner == "unassigned":
@@ -471,7 +471,8 @@ def accounts(cur, u: dict, *, q: str, tier: str, segment: str, owner: str, page:
     if prev_p:
         since["owner"] = db.val(cur, """select count(*) from companies c left join assignments a on a.company = c.id and a.plan = %s
                                         left join assignments pa on pa.company = c.id and pa.plan = %s
-                                        where c.lifecycle <> 'competitor' and not c.sole_trader and a.owner is distinct from pa.owner""", plan, prev_p)
+                                        where c.lifecycle <> 'competitor' and not c.sole_trader and a.owner is not null and pa.owner is not null
+                                          and a.owner <> pa.owner""", plan, prev_p)
     return {"rows": rows, "total": total, "page": page, "pages": max(1, -(-total // PAGE)), "owners": owners, "since": since,
             "segments": [{"key": s["key"], "label": s["label"]} for s in C.SEGMENTS] + [C.OUTSIDE]}
 
@@ -635,8 +636,9 @@ def territories(cur, plan_id: int | None, allowed: bool) -> dict:
 
 
 def plan_owner_changes(cur, plan: dict, limit: int = 100) -> dict | None:
-    """The accounts this plan gives to someone other than the plan it is compared with: the plan in effect for a draft or a scheduled
-    plan, the plan it replaced for the one in effect (J1). None when there is nothing to compare with."""
+    """The accounts this plan moves from one person to another (J1), against the plan in effect for a draft or a scheduled plan and
+    against the plan it replaced for the one in effect. Accounts that gain or lose an owner are counted in What changes, not listed
+    here. None when there is nothing to compare with."""
     if plan["status"] in ("draft", "scheduled"):
         base = db.one(cur, "select id, name from territory_plans where status = 'active'")
     elif plan["status"] == "active" and plan["replaced"]:
@@ -648,7 +650,7 @@ def plan_owner_changes(cur, plan: dict, limit: int = 100) -> dict | None:
     sql = """from assignments a join companies c on c.id = a.company and not c.sole_trader
              left join assignments b on b.plan = %s and b.company = a.company
              left join users u on u.id = a.owner left join users o on o.id = b.owner
-             where a.plan = %s and a.owner is distinct from b.owner"""
+             where a.plan = %s and a.owner is not null and b.owner is not null and a.owner <> b.owner"""
     total = db.val(cur, "select count(*) " + sql, base["id"], plan["id"])
     rows = db.all(cur, "select c.id, c.name, c.primary_domain, u.name as to_owner, o.name as from_owner " + sql + " order by c.name limit %s",
                   base["id"], plan["id"], limit)

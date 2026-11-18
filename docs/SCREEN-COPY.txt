@@ -260,6 +260,7 @@ splits accounts between people by the hours they have.
 turns what the evidence shows into a draft profile you can publish.
 Sample day: ##.
 Write to Bryan about your own data
-Owner moved since the last plan, #
+Owner moved since last plan, #
 Sent to #, #
 Tier moved since v#, #
+CRM Desk did not take it

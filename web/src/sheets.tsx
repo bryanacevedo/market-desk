@@ -346,7 +346,7 @@ function CompanySheet({ id }: { id: string }) {
                 {(c.coming || []).map((m: any, i: number) => m.by_hand
                   ? <span key={m.role + "h" + i} style={{ display: "contents" }}><dt><T>{`${m.role === "SDR" ? "SDR" : "Owner"} plan change dropped`}</T></dt><dd>{`Changed by hand${m.kept ? ` to ${m.kept}` : ""}`}</dd></span>
                   : <span key={m.role + i} style={{ display: "contents" }}><dt><T>{`${m.role === "SDR" ? "SDR" : "Owner"} from ${day(m.from)}`}</T></dt><dd>{m.name}</dd></span>)}
-                {(c.crm_differs || []).map((x: any) => <span key={"crm" + x.seat} style={{ display: "contents" }}><dt><T>{`${deskName("crm_desk")}, ${x.seat}`}</T></dt><dd>{x.crm}<span className="mute">{x.set_by ? `, set by ${x.set_by}` : ""}{x.here ? `, here ${x.here}` : ", none here"}</span></dd></span>)}
+                {(c.crm_differs || []).map((x: any) => <span key={"crm" + x.seat} style={{ display: "contents" }}><dt><T>{say(`CRM Desk, ${x.seat}`)}</T></dt><dd>{x.crm}<span className="mute">{x.set_by ? say(`, set by ${x.set_by}`) : ""}{x.here ? `, here ${x.here}` : ", none here"}</span></dd></span>)}
                 {c.draft_owner ? <><dt className="mute"><T>In a draft plan</T></dt><dd className="mute">{`${c.draft_owner.name || "Unassigned"}${c.draft_owner.seat ? `, ${c.draft_owner.seat}` : ""}, draft: not in force until a manager activates ${c.draft_owner.plan}`}</dd></> : null}</dl>
               <OwnerForm company={c} />
             </Section>

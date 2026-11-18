@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { api } from "./api";
-import { Status, Tip, money, pct, type Glyph } from "./lib";
+import { Fig, Status, Tip, money, pct, type Glyph } from "./lib";
 import { TIPS } from "./tips";
 
 // Parts this desk adds to Account Desk's shared set, in the same language: a rate with its range, a verdict, a tier,
@@ -69,11 +69,15 @@ export function Hours({ used, of }: { used: number; of: number }) {
 /** What a move does to the new owner's hours a month: their hours after it against the hours they have. It informs; it never blocks. */
 export function CapacityNote({ c }: { c: { person: string; hours_now: number; hours_after: number; hours_available: number; over: boolean } | null | undefined }) {
   if (!c) return null;
+  const h = (n: number) => (Number.isInteger(n) ? n.toLocaleString("en-US") : n.toFixed(1));
   return (
     <div className="cap-after">
-      <div className="small mute">{`${c.person}, hours a month after the move`}</div>
-      <Hours used={c.hours_after} of={c.hours_available} />
-      <div className="small mute">{`${Math.round(c.hours_now)} hours now`}</div>
+      <div className="small mute">{`${c.person}, hours a month`}</div>
+      <div className="figs">
+        <Fig sm value={h(c.hours_now)} label="Now" />
+        <Fig sm value={h(c.hours_after)} label="After the move" />
+        <Fig sm value={h(c.hours_available)} label="Held" />
+      </div>
       {c.over ? <Status kind="hold">Over 100% of their hours</Status> : null}
     </div>
   );

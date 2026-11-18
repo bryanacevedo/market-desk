@@ -44,10 +44,10 @@ export function Accounts() {
             </select>
           ) : null}
           {lead && (data?.since?.version || data?.since?.plan) ? (
-            <select className="select" aria-label="Changed" value={params.get("changed") || ""} onChange={(e) => set("changed", e.target.value)} style={{ width: 230 }}>
+            <select className="select" aria-label="Changed" value={params.get("changed") || ""} onChange={(e) => set("changed", e.target.value)} style={{ width: 270, maxWidth: "100%" }}>
               <option value="">Any change</option>
               {data.since.version ? <option value="tier">{`Tier moved since v${data.since.version}, ${n0(data.since.tier)}`}</option> : null}
-              {data.since.plan ? <option value="owner">{`Owner moved since the last plan, ${n0(data.since.owner)}`}</option> : null}
+              {data.since.plan ? <option value="owner">{`Owner moved since last plan, ${n0(data.since.owner)}`}</option> : null}
             </select>
           ) : null}
           {params.get("region") ? <button className="btn line sm" onClick={() => set("region", "")}>{params.get("region")} ×</button> : null}

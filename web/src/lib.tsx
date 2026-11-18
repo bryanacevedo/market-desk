@@ -116,7 +116,7 @@ export const deskName = (k: "crm_desk" | "account_desk" | "events_desk") => NAME
 export function deliveryLine(d: { sent: number; waiting: number; failed: number; sent_at?: string | null; any?: boolean } | null | undefined): string | null {
   if (!d || !d.any) return null;
   const desk = deskName("crm_desk");
-  if (d.failed) return `${desk} did not take it`;
+  if (d.failed) return say("CRM Desk did not take it");
   if (d.waiting) return `Waiting to send to ${desk}`;
   return d.sent_at ? `Sent to ${desk}, ${dayTime(d.sent_at)}` : `Sent to ${desk}`;
 }
