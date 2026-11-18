@@ -13,3 +13,4 @@ evals/results-replay.json
 world-export/
 .snapshot/
 .wrangler/
+node_modules
