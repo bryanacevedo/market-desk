@@ -122,13 +122,13 @@ function PlanView({ data, active, proposals, money: showMoney }: { data: any; ac
         <Section title="Move proposals" icon={Swap} count={proposals.filter((p: any) => p.status === "open").length} countLabel="open"
           right={<button className="btn line sm" title={writeHint()} onClick={() => openSheet("transfer", "new")}>Propose a move</button>}>
           {proposals.length ? <div className="ledger">
-            <div className="row head" style={{ gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1fr) 110px 100px" }}><T>Move</T><T>Reason</T><T>Effective</T><T>Status</T></div>
+            <div className="row head" style={{ gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1fr) 110px 150px" }}><T>Move</T><T>Reason</T><T>Effective</T><T>Status</T></div>
             {proposals.map((m: any) => (
-              <button key={m.id} className="row" style={{ gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1fr) 110px 100px" }} onClick={() => openSheet("transfer", m.id)}>
-                <span className="cell-main"><span className="t">{n0(m.accounts)} account{m.accounts === 1 ? "" : "s"} to {m.to_owner}</span><span className="s">{m.proposed_by}{m.decided_by ? `, decided by ${m.decided_by}` : ""}</span></span>
+              <button key={m.id} className="row" style={{ gridTemplateColumns: "minmax(0,1.3fr) minmax(0,1fr) 110px 150px" }} onClick={() => openSheet("transfer", m.id)}>
+                <span className="cell-main"><span className="t">{n0(m.accounts)} account{m.accounts === 1 ? "" : "s"} to {m.to_owner}</span><span className="s">{m.proposed_by}{m.decided_by ? `, decided by ${m.decided_by}` : ""}</span>{m.force_note ? <span className="s">{m.force_note}</span> : null}</span>
                 <span className="said-quote clip">{m.reason}</span>
                 <span className="mute" data-label="Effective">{day(m.effective_on)}</span>
-                <Status kind={m.status === "open" ? "wait" : m.status === "approved" ? "ok" : "off"}>{m.status === "open" ? "Open" : m.status === "approved" ? "Approved" : "Rejected"}</Status>
+                <Status kind={m.status === "open" ? "wait" : m.status === "approved" ? (m.force_note ? "hold" : "ok") : "off"} title={m.force_note || undefined}>{m.status === "open" ? "Open" : m.status === "approved" ? (m.force_note ? "Approved, not in force" : "Approved") : "Rejected"}</Status>
               </button>
             ))}
           </div> : <Empty title="No proposals" example="3 accounts to a named person from a date, with a reason.">A proposal moves chosen accounts to another person from a date; a second person approves it.</Empty>}

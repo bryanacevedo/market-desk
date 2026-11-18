@@ -151,13 +151,30 @@ def reject(cur, pid: int, by: dict, note: str) -> None:
     audit.log(cur, by["name"], "move_rejected", "move_proposal", pid, {"note": note}, actor_id=by["id"])
 
 
+def force_note(cur, plan_status: str | None, plan_name: str | None) -> str | None:
+    """What an approved proposal's plan is doing, in words, from the server's real state; None when it is in force (or nothing to say).
+    Approving only drafts the plan. A draft cannot be activated while another plan is scheduled, so the note says which of the two holds."""
+    if plan_status == "scheduled":
+        return f"Approved, not in force: {plan_name} starts on its start date."
+    if plan_status != "draft":
+        return None
+    s = territories.scheduled_plan(cur)
+    if s:
+        return f"Approved, not in force: cancel the plan starting {s['effective_on']:%-d %b %Y} first, or activate after it starts."
+    return f"Approved, not in force: a manager activates {plan_name}."
+
+
 def listing(cur) -> list[dict]:
-    return db.all(cur, """select p.id, p.status, p.reason, p.effective_on, p.proposed_at, p.decided_at, p.plan,
+    rows = db.all(cur, """select p.id, p.status, p.reason, p.effective_on, p.proposed_at, p.decided_at, p.plan,
                           u.name as to_owner, a.name as proposed_by, d.name as decided_by,
-                          (select count(*) from move_proposal_accounts x where x.proposal = p.id) as accounts
+                          (select count(*) from move_proposal_accounts x where x.proposal = p.id) as accounts,
+                          pl.name as plan_name, pl.status as plan_status
                           from move_proposals p join users u on u.id = p.to_owner join users a on a.id = p.proposed_by
-                          left join users d on d.id = p.decided_by
+                          left join users d on d.id = p.decided_by left join territory_plans pl on pl.id = p.plan
                           order by case p.status when 'open' then 0 else 1 end, p.id desc""")
+    for r in rows:
+        r["force_note"] = force_note(cur, r["plan_status"], r["plan_name"]) if r["status"] == "approved" else None
+    return rows
 
 
 def detail(cur, pid: int, by: dict) -> dict | None:
@@ -177,7 +194,8 @@ def detail(cur, pid: int, by: dict) -> dict | None:
     return {"id": p["id"], "status": p["status"], "reason": p["reason"], "effective_on": p["effective_on"], "to_owner": p["to_owner_name"],
             "to_territory": t, "by_territory": p["by_territory"], "proposed_by": p["proposer"], "proposed_at": p["proposed_at"], "decided_by": p["decider"],
             "decided_at": p["decided_at"], "decision_note": p["decision_note"], "plan": p["plan"], "plan_name": p["plan_name"],
-            "plan_status": p["plan_status"], "accounts": rows[:200], "count": len(rows),
+            "plan_status": p["plan_status"], "force_note": force_note(cur, p["plan_status"], p["plan_name"]) if p["status"] == "approved" else None,
+            "accounts": rows[:200], "count": len(rows),
             "can_decide": can_decide({**p, "proposer_role": p["proposer_role"]}, by)}
 
 

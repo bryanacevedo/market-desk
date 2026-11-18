@@ -304,7 +304,7 @@ function TransferView({ id }: { id: string }) {
       </> : <>
         <button className="btn line" disabled={busy} onClick={() => setRejecting(true)}>Reject</button>
         <button className="btn" disabled={busy}
-          onClick={() => run(async () => { const r = await api<any>(`/api/move-proposals/${p.id}/approve`, { method: "POST" }); navigate(`/territories?plan=${r.plan}`); }, "Approved. A draft plan is ready to activate.")}>Approve</button>
+          onClick={() => run(async () => { const r = await api<any>(`/api/move-proposals/${p.id}/approve`, { method: "POST" }); toast(r.note || "Approved. A draft plan is ready to activate."); navigate(`/territories?plan=${r.plan}`); })}>Approve</button>
       </>) : p.status === "open" ? <span className="small mute">Waiting for a manager to decide</span>
         : p.plan ? <button className="btn" onClick={() => navigate(`/territories?plan=${p.plan}`)}>Open the plan</button> : undefined}>
         <Title sub={`${p.proposed_by}, ${day(p.proposed_at)}`}>{n0(p.count)} account{p.count === 1 ? "" : "s"} to {p.to_owner}</Title>

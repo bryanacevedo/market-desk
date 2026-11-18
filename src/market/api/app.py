@@ -787,9 +787,11 @@ def approve_move(pid: int, u: dict = Depends(writer)) -> dict:
     try:
         with db.tx() as cur:
             plan = moves_.approve(cur, pid, u)
+            # Only when a plan is scheduled is the new draft held back, so only then does the toast say so.
+            note = moves_.force_note(cur, "draft", db.val(cur, "select name from territory_plans where id = %s", plan)) if territories.scheduled_plan(cur) else None
     except Exception as exc:
         raise _fail(exc) from exc
-    return {"ok": True, "plan": plan}
+    return {"ok": True, "plan": plan, "note": note}
 
 
 @app.post("/api/move-proposals/{pid}/reject")

@@ -387,3 +387,12 @@ def test_handoffs_returns_the_maker_of_every_book(cur):
 def test_a_decided_change_says_who_decided():
     assert '`, decided by ${p.decided_by}`' in _src("pages/Changes.tsx")
     assert '"decided_by": p.get("decided_by_name")' in (ROOT / "src" / "market" / "api" / "views.py").read_text()
+
+
+# ---- wk2: an approved move says whether it is in force
+
+def test_the_proposals_list_and_the_toast_use_the_servers_note():
+    t, s = _src("pages/Territories.tsx"), _src("sheets_moves.tsx")
+    assert "m.force_note" in t and '"Approved, not in force"' in t
+    assert "r.note" in s and "A draft plan is ready to activate." in s
+    assert '"note": note' in (ROOT / "src" / "market" / "api" / "app.py").read_text()

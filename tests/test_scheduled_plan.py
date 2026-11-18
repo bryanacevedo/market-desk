@@ -270,3 +270,22 @@ def test_the_api_takes_a_hand_change(cur, who):
 
     from market.api import app as appmod
     assert any(r.path == "/api/companies/{cid}/owner" for r in appmod.app.routes)
+
+
+# ---- an approved proposal says whether its plan is in force (wk2 fix; the flow itself is unchanged)
+
+def test_an_approved_proposal_says_it_is_not_in_force(cur, who):
+    plan, ids, owner, other, day = _scheduled_move(cur, who)          # drafted from an approved proposal, nothing scheduled yet
+    pid = db.val(cur, "select id from move_proposals where plan = %s", plan)
+    name = db.val(cur, "select name from territory_plans where id = %s", plan)
+    row = next(r for r in moves.listing(cur) if r["id"] == pid)
+    assert row["status"] == "approved" and row["force_note"] == f"Approved, not in force: a manager activates {name}."
+    assert moves.detail(cur, pid, who["Elena"])["force_note"] == row["force_note"]
+    # Another plan is scheduled: the draft cannot be activated, and the note says what to do about it.
+    other_plan, *_ = _scheduled_move(cur, who)
+    territories.activate(cur, other_plan, who["Elena"])
+    when = db.val(cur, "select effective_on from territory_plans where id = %s", other_plan)
+    expect = f"Approved, not in force: cancel the plan starting {when:%-d %b %Y} first, or activate after it starts."
+    assert next(r for r in moves.listing(cur) if r["id"] == pid)["force_note"] == expect
+    # A proposal that is open or rejected says nothing extra.
+    assert all(r["force_note"] is None for r in moves.listing(cur) if r["status"] != "approved")
