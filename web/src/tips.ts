@@ -159,7 +159,7 @@ export const TIPS: Record<string, string> = {
   "Why it was lost, top reasons": "The most common loss reasons; the rest of the losses had other reasons.",
   "CRM Desk": "Our CRM. Each account's tier, segment, fit score and owner go there from here, so sellers see them where they work.",
   "Since the last run": "Findings whose verdict is new or different from the run before this one.",
-  "Effective": "The day owners change, once a manager approves the move and activates the plan it makes, if one is made.",
+  "Effective": "The day owners change once the move is approved.",
   "In the active plan": "Who owns the account under the plan in effect now.",
   "Why": "The reason the account has this owner, or the reason given for a decision.",
   "Last run": "When the source last finished a run, or when the evidence was last computed.",

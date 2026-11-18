@@ -177,7 +177,7 @@ The account's tier under each ICP version, newest last.
 The active plan's accounts go back to CRM Desk with the earlier version's tier. Owners are not sent.
 The average expected value of everyone in the person's territory. Balanced means each person is within 15% of it. AEs mostly hold customers and open deals, so their figures are small.
 The buyers' own words from call notes, with a short summary.
-The day owners change, once a manager approves the move and activates the plan it makes, if one is made.
+The day owners change once the move is approved.
 The difference could be chance.
 The difference goes away within each company size band.
 The draft rates churned customers A as often as current ones, which a good ICP should not do.
@@ -264,3 +264,6 @@ Owner moved since last plan, #
 Sent to #, #
 Tier moved since v#, #
 CRM Desk did not take it
+This desk does not read the CRM
+A sample source has no run to start
+This source runs on its schedule

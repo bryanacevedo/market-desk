@@ -524,3 +524,74 @@ def test_the_evidence_run_answers_with_what_it_made_and_what_changed(demo, monke
         again = client.post("/api/evidence/run", headers={"X-Acting-As": str(rv["id"]), "Content-Type": "application/json"}).json()
     assert set(r.json()) == {"run", "suggestions", "changed"}
     assert again["suggestions"] == 0 and again["changed"] == 0
+
+
+# ---- review of the fixes: the hourly job, the draft-plan hand move, the ask endpoint, the carried move, the source note
+
+def test_the_hourly_held_moves_job_requeues_without_a_trace(cur, tracing):
+    provider, _ = tracing
+    sched, sched_ids, _ = _schedule_a_plan(cur, {u["name"].split()[0]: u for u in db.all(cur, "select * from users")}, 30)
+    who = {u["name"].split()[0]: u for u in db.all(cur, "select * from users")}
+    pid, *_ = _propose_while_scheduled(cur, who, sched_ids, 10)
+    moves.approve(cur, pid, who["Elena"])
+    db.run(cur, "delete from jobs where kind = 'apply_scheduled_moves'")
+    jobs.enqueue(cur, "apply_scheduled_moves", {}, dedupe_key="apply_scheduled_moves")
+    db.run(cur, "update jobs set status = 'running' where kind = 'apply_scheduled_moves' and status = 'queued'")
+    with provider.get_tracer("test").start_as_current_span("job apply_scheduled_moves"):
+        moves._apply_scheduled_moves(cur, {})
+    row = db.one(cur, "select trace_parent, run_at > app_now() as later from jobs where kind = 'apply_scheduled_moves' and status = 'queued'")
+    assert row and row["trace_parent"] is None and row["later"]
+
+
+def test_a_hand_move_in_a_draft_plan_answers_with_the_hours_and_never_blocks(demo):
+    from fastapi.testclient import TestClient
+
+    from market.api.app import app
+    with db.tx() as cur:
+        rv = _revops(cur)
+        ids, owner, other = _accounts(cur, n=1)
+        draft = territories.draft_from_active(cur, rv, "Wk2 hand move probe", _today(cur) + timedelta(days=40))
+    try:
+        with TestClient(app) as client:
+            r = client.post(f"/api/plans/{draft}/move", json={"company": ids[0], "to": other, "note": "Cover the region"},
+                            headers={"X-Acting-As": str(rv["id"])})
+        assert r.status_code == 200, r.text
+        cap = r.json()["capacity"]
+        assert set(cap) == {"person", "hours_now", "hours_after", "hours_available", "over"} and cap["hours_now"] == cap["hours_after"]
+    finally:
+        with db.tx() as cur:
+            db.run(cur, "delete from territory_plans where id = %s", draft)
+
+
+def test_the_ask_endpoint_accepts_a_draft_and_refuses_a_non_lead(demo):
+    from fastapi.testclient import TestClient
+
+    from market.api.app import app
+    with db.tx() as cur:
+        rv = _revops(cur)
+        draft = db.val(cur, "select id from icp_versions where status = 'draft' order by number limit 1")
+        seller = db.val(cur, "select id from users where role in ('ae', 'sdr') and active limit 1")
+    with TestClient(app) as client:
+        if draft:
+            ok = client.post("/api/approval-asks", json={"kind": "icp", "id": draft, "reason": "Needed for Q1"}, headers={"X-Acting-As": str(rv["id"])})
+            assert ok.status_code == 200 and ok.json()["ok"]
+        assert client.post("/api/approval-asks", json={"kind": "icp", "id": 1, "reason": "Needed"}, headers={"X-Acting-As": str(seller)}).status_code == 403
+    with db.tx() as cur:
+        db.run(cur, "delete from notices where kind = 'approval_asked'")
+
+
+def test_a_hand_change_after_a_carried_move_keeps_the_choice_when_the_scheduled_plan_starts(cur, who):
+    sched, sched_ids, _ = _schedule_a_plan(cur, who, 30)
+    pid, ids, owner, other, _day = _propose_while_scheduled(cur, who, sched_ids, 10)
+    moves.approve(cur, pid, who["Elena"])
+    third = db.val(cur, "select id from users where role = 'ae' and active and id not in (%s, %s) order by id limit 1", owner, other)
+    territories.change_owner_by_hand(cur, ids[0], third, "Keeps the relationship", _revops(cur))
+    db.run(cur, "update territory_plans set effective_on = app_now()::date where id = %s", sched)
+    assert territories.apply_scheduled(cur) == 1
+    assert _owner(cur, sched, ids[0]) == third and _owner(cur, sched, ids[1]) == other
+
+
+def test_a_source_with_no_run_says_so_in_plain_words(cur):
+    assert views.source(cur, "technographics", True)["run_note"] == "A sample source has no run to start"
+    assert views.source(cur, "crm", True)["run_note"] == "This desk does not read the CRM"
+    assert "run_note" in _src("sheets.tsx")

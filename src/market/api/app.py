@@ -876,9 +876,10 @@ def move(pid: int, body: Move, u: dict = Depends(writer)) -> dict:
     try:
         with db.tx() as cur:
             territories.manual_move(cur, pid, body.company, body.to, body.note, u)
+            cap = moves_.capacity_in_plan(cur, pid, body.to)   # the new owner's hours in that plan; over 100% informs, never blocks
     except Exception as exc:
         raise _fail(exc) from exc
-    return {"ok": True}
+    return {"ok": True, "capacity": cap}
 
 
 class HandOwner(BaseModel):

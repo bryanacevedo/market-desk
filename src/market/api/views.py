@@ -471,8 +471,9 @@ def accounts(cur, u: dict, *, q: str, tier: str, segment: str, owner: str, page:
     if prev_p:
         since["owner"] = db.val(cur, """select count(*) from companies c left join assignments a on a.company = c.id and a.plan = %s
                                         left join assignments pa on pa.company = c.id and pa.plan = %s
+                                        join account_fit f on f.company = c.id and f.icp_version = %s
                                         where c.lifecycle <> 'competitor' and not c.sole_trader and a.owner is not null and pa.owner is not null
-                                          and a.owner <> pa.owner""", plan, prev_p)
+                                          and a.owner <> pa.owner""", plan, prev_p, pub["id"])
     return {"rows": rows, "total": total, "page": page, "pages": max(1, -(-total // PAGE)), "owners": owners, "since": since,
             "segments": [{"key": s["key"], "label": s["label"]} for s in C.SEGMENTS] + [C.OUTSIDE]}
 
@@ -894,7 +895,7 @@ def sources(cur, allowed: bool) -> dict:
     alerts = db.all(cur, "select * from alerts where resolved_at is null order by at desc")
     owner = _source_owner(cur)
     for r in rows:
-        r["owner"], r["can_run"] = owner, _can_run(r["key"])
+        r["owner"], r["can_run"], r["run_note"] = owner, _can_run(r["key"]), _run_note(r["key"], r["adapter"])
     return strip({"rows": rows, "alerts": alerts, "companies": total}, allowed)
 
 
@@ -902,6 +903,15 @@ def _source_owner(cur) -> str | None:
     """Who looks after the sources: RevOps is the only role that opens this page, so its people are the owner."""
     n = [r["name"] for r in db.all(cur, "select name from users where active and role = 'revops' order by name")]
     return ", ".join(n) or None
+
+
+def _run_note(key: str, adapter: str) -> str | None:
+    """Why there is no Run now, in plain words, when there is none."""
+    if _can_run(key):
+        return None
+    if key == "crm":
+        return "This desk does not read the CRM"
+    return "A sample source has no run to start" if adapter == "sim" else "This source runs on its schedule"
 
 
 def _can_run(key: str) -> bool:
@@ -921,7 +931,8 @@ def source(cur, key: str, allowed: bool) -> dict | None:
     uses = [rule_label(r) for _k, r in profiles.all_rules(pub["rules"]) if r.get("field") in fields]
     depends = {"fields": [{"field": C.FIELD_LABEL.get(f["field"], f["field"]), "n": f["n"]} for f in fills], "rules": uses,
                "tiers": bool(uses), "version": pub["number"]}
-    return strip({**s, "runs": runs, "depends": depends, "owner": _source_owner(cur), "can_run": _can_run(key)}, allowed)
+    return strip({**s, "runs": runs, "depends": depends, "owner": _source_owner(cur), "can_run": _can_run(key),
+                  "run_note": _run_note(key, s["adapter"])}, allowed)
 
 
 

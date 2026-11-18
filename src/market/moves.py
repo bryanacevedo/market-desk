@@ -215,16 +215,15 @@ def apply_due(cur) -> int:
 def _apply_scheduled_moves(cur, payload: dict) -> None:
     """Hourly while any approved move waits for its date; started again by the next approval."""
     apply_due(cur)
-    # No dedupe key: this job is still "running" now, and a key would make the next one a silent no-op.
-    if db.val(cur, "select 1 from scheduled_moves where status = 'pending' limit 1") and \
-            not db.val(cur, "select 1 from jobs where kind = 'apply_scheduled_moves' and status = 'queued'"):
-        jobs.enqueue(cur, "apply_scheduled_moves", {}, delay=timedelta(hours=1))
+    # requeue frees this running row's dedupe key and stores no trace, so the hourly runs never chain into one endless trace.
+    if db.val(cur, "select 1 from scheduled_moves where status = 'pending' limit 1"):
+        jobs.requeue(cur, "apply_scheduled_moves", timedelta(hours=1))
 
 
 def drop_for_hand_change(cur, company: int, role: str) -> int:
     """A person moved this account's owner by hand after a move was approved for it: the waiting move is dropped, so the hand
     change is not undone on the date. Only a move for the same seat (AE or SDR) is dropped."""
-    return db.run(cur, """update scheduled_moves m set status = 'dropped', applied_at = app_now(),
+    return db.run(cur, """update scheduled_moves m set status = 'dropped',
                           dropped_why = 'Changed by hand before its date'
                           where m.company = %s and m.status = 'pending'
                             and (select (u.role = 'sdr') from users u where u.id = m.to_owner) = (%s = 'sdr')""", company, role)
@@ -253,6 +252,16 @@ def capacity_after(cur, to_owner: int, companies: list[int]) -> dict | None:
     after = round(have + add, 1)
     return {"person": user["name"], "hours_now": round(have, 1), "hours_after": after, "hours_available": round(avail, 1),
             "over": after > avail + 0.05}
+
+
+def capacity_in_plan(cur, plan_id: int, user_id: int) -> dict | None:
+    """A person's hours in one plan as its snapshot holds them (a hand move in a draft plan has already been counted)."""
+    r = db.one(cur, """select u.name as person, s.hours_required, s.hours_available from capacity_snapshots s join users u on u.id = s.user_id
+                       where s.plan = %s and s.user_id = %s""", plan_id, user_id)
+    if not r:
+        return None
+    now, held = round(float(r["hours_required"]), 1), round(float(r["hours_available"]), 1)
+    return {"person": r["person"], "hours_now": now, "hours_after": now, "hours_available": held, "over": now > held + 0.05}
 
 
 def pending_count(cur) -> int:
