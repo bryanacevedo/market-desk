@@ -1,6 +1,6 @@
 # Market Desk: project status
 
-**Updated:** 2026-11-18. **Spec:** `docs/SPEC.md` (section 15 holds the gate 0 corrections and wins where they differ); decisions `docs/DECISIONS.md` 1 to 80.
+**Updated:** 2026-11-21. **Spec:** `docs/SPEC.md` (section 15 holds the gate 0 corrections and wins where they differ); decisions `docs/DECISIONS.md` 1 to 81.
 
 ## Where it stands
 
