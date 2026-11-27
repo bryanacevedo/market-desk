@@ -2,7 +2,7 @@
 
 ## Static snapshot of the public demo
 
-The public demo can be served as static files: the web app plus every response it needs, saved from a demo database. No server, no database, no sign-in. Decided by Bryan on 2026-11-15 (Backlog bl_116); how it works is `docs/DECISIONS.md` 62. It is staged on Cloudflare Pages, project `market-desk-demo`, with noindex, and linked from nowhere until Bryan says so. The Render demo is unchanged. 2026-11-18: the README links the snapshot as the live demo (0645005), and the two Cloudflare secrets are set on the repository, so the workflow deploys.
+The public demo can be served as static files: the web app plus every response it needs, saved from a demo database. No server, no database, no sign-in. Decided by Bryan on 2026-11-15 (Backlog bl_116); how it works is `docs/DECISIONS.md` 62. It is staged on Cloudflare Pages, project `market-desk-demo`, with noindex, and linked from nowhere until Bryan says so. The Render demo it sat beside was deleted on 2026-11-27. 2026-11-18: the README links the snapshot as the live demo (0645005), and the two Cloudflare secrets are set on the repository, so the workflow deploys.
 
 ### What the snapshot holds
 
