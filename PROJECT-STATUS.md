@@ -63,7 +63,7 @@ Checked by running, on the demo database built from the shared world (2026-11-12
 
 ## Deploys
 
-2026-11-27 (demo links): the public demo has its own address, https://market-desk-demo.leandrive.io (proxied CNAME in the leandrive.io zone, custom domain on the Pages project `market-desk-demo`). The old https://market-desk-demo.pages.dev keeps working with the same content. Both answer 200 with `x-robots-tag: noindex, nofollow`; nothing indexes either. The README and docs link the leandrive.io address. Rollback: delete the Pages custom domain, then the DNS record.
+2026-11-27 (demo links): the public demo lives only at https://market-desk-demo.leandrive.io (custom domain on the Pages project `market-desk-demo`, proxied CNAME in the leandrive.io zone). The old https://market-desk-demo.pages.dev answers 301 to the new address, path and query kept (Cloudflare Bulk Redirects, account level, rule `old_demo_addresses_to_leandrive_io`); the Pages project must stay, the custom domain lives on it. The new address answers 200 with `x-robots-tag: noindex, nofollow`; nothing indexes it. The README and docs link only the leandrive.io address. Rollback: turn off the bulk redirect rule, or delete the Pages custom domain, then the DNS record.
 
 The public demo is the static snapshot on Cloudflare Pages, https://market-desk-demo.leandrive.io, the one the README links. `.github/workflows/static-snapshot.yml` builds and deploys it on each push to `main` that touches `web/`, `src/`, `world/`, `migrations/` or the snapshot build; the Cloudflare secrets have been set since 2026-11-18. State on 2026-11-27: run 45962315544 deployed 6313327, and the page answers 200 with noindex (`docs/RUNBOOK.md`).
 
