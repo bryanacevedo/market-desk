@@ -65,6 +65,7 @@ jobs:
           name: market-desk-snapshot-${{ github.sha }}
           path: .snapshot
           retention-days: 30
+          include-hidden-files: true
       - name: Deploy to Cloudflare Pages
         if: env.HAS_CLOUDFLARE == 'true'
         env:

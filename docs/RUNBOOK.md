@@ -2,7 +2,7 @@
 
 ## Static snapshot of the public demo
 
-The public demo can be served as static files: the web app plus every response it needs, saved from a demo database. No server, no database, no sign-in. Decided by Bryan on 2026-11-15 (Backlog bl_116); how it works is `docs/DECISIONS.md` 62. It is staged on Cloudflare Pages, project `market-desk-demo`, with noindex, and linked from nowhere until Bryan says so. The Render demo is unchanged.
+The public demo can be served as static files: the web app plus every response it needs, saved from a demo database. No server, no database, no sign-in. Decided by Bryan on 2026-11-15 (Backlog bl_116); how it works is `docs/DECISIONS.md` 62. It is staged on Cloudflare Pages, project `market-desk-demo`, with noindex, and linked from nowhere until Bryan says so. The Render demo is unchanged. 2026-11-18: the README links the snapshot as the live demo (0645005), and the two Cloudflare secrets are set on the repository, so the workflow deploys.
 
 ### What the snapshot holds
 
@@ -34,7 +34,7 @@ The bundle: `index.html` with `<meta name="robots" content="noindex,nofollow">`,
 
 ### Deploy
 
-GitHub Actions, `.github/workflows/static-snapshot.yml`: on a push to `main` that touches `web/`, the snapshot script or the workflow, and by hand (Actions, static snapshot, Run workflow). It builds the demo on a throwaway Postgres, builds the snapshot, keeps it as an artifact for 30 days (`market-desk-snapshot-<commit>`), and deploys to Pages only when the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` are set. Without them the run passes and deploys nothing. To let it deploy, set the two secrets (each command asks for the value):
+GitHub Actions, `.github/workflows/static-snapshot.yml`: on a push to `main` that touches `web/`, `src/`, `world/`, `migrations/`, the snapshot script, `scripts/static_snapshot/` or the workflow, and by hand (Actions, static snapshot, Run workflow). It builds the demo on a throwaway Postgres, builds the snapshot, keeps it as an artifact for 30 days (`market-desk-snapshot-<commit>`), and deploys to Pages only when the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` are set. Without them the run passes and deploys nothing. Both secrets are set (2026-11-18), so every such push deploys; the latest, run 45962315544 on 2026-11-27, deployed 6313327. To set them again, set the two secrets (each command asks for the value):
 
 ```bash
 gh secret set CLOUDFLARE_API_TOKEN -R bryanacevedo/market-desk
