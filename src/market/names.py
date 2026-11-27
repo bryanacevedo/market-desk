@@ -13,8 +13,6 @@ PLAIN = {"crm_desk": "your CRM", "account_desk": "your outreach tool", "events_d
 
 def connected() -> set[str]:
     from . import crm
-    if getattr(CONFIG, "public_demo", False):   # the sample shows the whole four-desk system by name, so a visitor can see what it is
-        return set(REAL)
     return set(CONFIG.integrated_with) | ({"crm_desk"} if crm.enabled() else set())
 
 

@@ -164,14 +164,14 @@ export function Nest({ rows, floor, ceil }: { rows: [string, number | undefined,
 }
 
 /** The market as a field: one tile per segment, drawn exactly as wide as its reachable market (SAM, high end).
- *  Segments under a tenth of the field are gathered into one tile that says so; a segment with none is left out. Each tile
+ *  Segments too small to draw are gathered into one tile that says so; a segment with none is left out. Each tile
  *  writes its share at tier A, which also sets its shade. */
 export function MarketField({ tiles, onPick, smaller }: { tiles: { key: string; label: string; weight: number; aShare: number; value: string; muted?: boolean }[];
   onPick: (k: string) => void; smaller: string }) {
   const live = tiles.filter((t) => t.weight > 0);
   const total = live.reduce((s, t) => s + t.weight, 0) || 1;
-  const big = live.filter((t) => t.weight / total >= 0.1);
-  const small = live.filter((t) => t.weight / total < 0.1);
+  const big = live.filter((t) => t.weight / total >= 0.04);
+  const small = live.filter((t) => t.weight / total < 0.04);
   const shares = big.filter((t) => !t.muted).map((t) => t.aShare);
   const lo = Math.min(...shares, 1), hi = Math.max(...shares, 0);
   const tone = (a: number) => Math.round(12 + 46 * (hi > lo ? (a - lo) / (hi - lo) : 0.5));
@@ -179,7 +179,7 @@ export function MarketField({ tiles, onPick, smaller }: { tiles: { key: string; 
     <div className="field" role="list" aria-label="SAM by segment">
       {big.map((t, i) => (
         <button key={t.key} role="listitem" type="button" onClick={() => onPick(t.key)} title={`${t.label}, ${t.value}`}
-          className={`tile${t.muted ? " muted" : ""}${t.weight / total < 0.12 ? " narrow" : ""}`}
+          className={`tile${t.muted ? " muted" : ""}${t.weight / total < 0.16 ? " narrow" : ""}`}
           style={{ flex: `${t.weight / total} 1 0`, ["--tone" as any]: t.muted ? 0 : tone(t.aShare), ["--w" as any]: `${(100 * t.weight) / Math.max(...big.map((b) => b.weight))}%`, animationDelay: `${i * 40}ms` }}>
           <span className="tile-name">{t.weight / total < 0.16 ? t.label.split(", ").map((w, k) => <span key={k} className="tn-part">{w}</span>) : t.label}</span>
           <span className="tile-val">{t.value}</span>

@@ -60,7 +60,7 @@ export function Handoffs() {
                   </div>
                 ))}
               </div>
-            ) : <Empty title="No file made yet" example={d === "account_desk" ? "Version 1, 14 Nov, profile v3, 1,300 rows, with accounts.csv and icp.json to download." : "Version 1, 14 Nov, profile v3, with icp.md to download."}>{d === "account_desk" ? `Each file lists the accounts the plan gives to people, with their tier and owner, for ${deskName("account_desk")}.` : `Each file is the ICP as a document for ${deskName("events_desk")}.`}</Empty>}
+            ) : <Empty title="No file made yet" example={d === "account_desk" ? "Version 1, 14 Nov, profile v3, 1,300 rows, with accounts.csv and icp.json to download." : "Version 1, 14 Nov, profile v3, with icp.md to download."}>{d === "account_desk" ? "Each file lists the accounts the plan gives to people, with their tier and owner, for the outreach tool." : "Each file is the ICP as a document for the events tool."}</Empty>}
             {d === "account_desk" && books[0] && !back ? <div className="small mute" style={{ marginTop: 8 }}>{`No results back from ${deskName("account_desk")} yet`}</div> : null}
             {d === "account_desk" && back ? (
               <div className="figs" style={{ marginTop: 8 }}>

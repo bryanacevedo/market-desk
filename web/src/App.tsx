@@ -83,7 +83,7 @@ export function App() {
     }
   }, [me]);
   // The server says which desks are connected and whether this is the read-only snapshot; every screen reads it from here.
-  if (me) { setNames(me.names, !!(me.snapshot || me.public_demo || me.simulated)); setRefuses(!!me.snapshot); if (me.now) setNow(me.now); }
+  if (me) { setNames(me.names); setRefuses(!!me.snapshot); if (me.now) setNow(me.now); }
   const routes = ROUTES.filter((r) => me && r.roles.includes(me.user.role));
   const bar = routes.filter((r) => r.bar);
   const rest = routes.filter((r) => !r.bar);

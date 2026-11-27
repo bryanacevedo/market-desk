@@ -100,8 +100,7 @@ export function setNow(iso: string) { NOW = new Date(iso).getTime(); }
 const REAL_DESKS: Record<string, string> = { crm_desk: "CRM Desk", account_desk: "Account Desk", events_desk: "Events Desk" };
 const PLAIN_DESKS: Record<string, string> = { crm_desk: "your CRM", account_desk: "your outreach tool", events_desk: "your events tool" };
 let NAMES: Record<string, string> = { ...PLAIN_DESKS };
-/** In the sample the other desks are shown by name, so a visitor sees what they are; a real install names only the desks it is connected to. */
-export function setNames(n: Record<string, string> | undefined, sample = false) { NAMES = sample ? { ...REAL_DESKS } : { ...PLAIN_DESKS, ...(n || {}) }; }
+export function setNames(n: Record<string, string> | undefined) { NAMES = { ...PLAIN_DESKS, ...(n || {}) }; }
 export function say(text: string): string {
   let out = text;
   for (const k of Object.keys(REAL_DESKS)) {

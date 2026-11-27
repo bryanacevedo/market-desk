@@ -1,6 +1,6 @@
 import type { MouseEvent } from "react";
 import { ArrowRight } from "@phosphor-icons/react";
-import { Section, deskName, navigate, say, useData } from "../lib";
+import { Section, navigate, say, useData } from "../lib";
 import { TIPS } from "../tips";
 
 /** Where the buyer path ends: Bryan's decision (2026-11-17), a mailto with a subject so the message says which demo it came from. */
@@ -64,7 +64,7 @@ export function Start() {
             {step("/evidence", "Evidence", "shows which kinds of company win more often than the rest.")}
             {step("/changes", "Changes", "turns what the evidence shows into a draft profile you can publish.")}
             {step("/territories", "Territories", "splits accounts between people by the hours they have.")}
-            {step("/handoffs", "Handoffs", `makes the account files ${deskName("account_desk")} reads.`)}
+            {step("/handoffs", "Handoffs", "makes the account files your outreach tool reads.")}
           </ol>
           <p className="next-step"><b>Next step.</b> <a className="link" href={CONTACT_URL}>Write to Bryan about your own data</a>.</p>
         </Section>

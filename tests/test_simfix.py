@@ -34,13 +34,6 @@ def test_alone_the_other_desks_are_plain_words(monkeypatch):
     assert names.say("A manager pinned it in CRM Desk") == "A manager pinned it in your CRM"
 
 
-def test_the_public_demo_names_every_desk(monkeypatch):
-    monkeypatch.setattr(names, "CONFIG", SimpleNamespace(integrated_with=frozenset(), public_demo=True))
-    monkeypatch.delenv("CRM", raising=False)
-    assert names.desk_names() == {"crm_desk": "CRM Desk", "account_desk": "Account Desk", "events_desk": "Events Desk"}
-    assert names.say("Account Desk has no pricing model field") == "Account Desk has no pricing model field"
-
-
 def test_a_connected_desk_keeps_its_name(monkeypatch):
     monkeypatch.setattr(names, "CONFIG", SimpleNamespace(integrated_with=frozenset({"account_desk"})))
     monkeypatch.delenv("CRM", raising=False)
@@ -62,7 +55,7 @@ def test_me_names_the_desks_and_the_web_app_uses_them(demo):
         rv = db.val(cur, "select id from users where role = 'revops' and active order by id limit 1")
         me = c.get("/api/me", headers={"X-Acting-As": str(rv)}).json()
     assert set(me["names"]) == {"crm_desk", "account_desk", "events_desk"} and isinstance(me["integrated_with"], list)
-    assert "setNames(me.names, " in _src("App.tsx")
+    assert "setNames(me.names)" in _src("App.tsx")
 
 
 def test_the_dropped_rules_of_a_draft_do_not_name_a_desk_that_is_not_connected(cur, monkeypatch):
@@ -350,7 +343,7 @@ def test_the_banner_is_inside_main_and_the_skip_link_is_first():
     app = _src("App.tsx")
     assert app.index('className="skip"') < app.index("<DemoBanner me={me} />")
     assert app.index('<main className="main"') < app.index("<DemoBanner me={me} />")
-    assert "setNames(me.names, !!(me.snapshot || me.public_demo || me.simulated)); setRefuses(!!me.snapshot); if (me.now) setNow(me.now);" in app, "the clock is set during render, like the names"
+    assert "setNames(me.names); setRefuses(!!me.snapshot); if (me.now) setNow(me.now);" in app, "the clock is set during render, like the names"
 
 
 def test_start_is_for_the_two_roles_that_see_the_market():
