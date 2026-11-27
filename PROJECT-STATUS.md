@@ -44,7 +44,7 @@ Docs are part of done: README, PROJECT-STATUS and docs change in the same commit
 
 **Pilot blockers finished (2026-11-12, decision 45, migration 0004):** a move by territory rule (counts shown first, split into proposals of at most 200), and rollbacks that need a reason, notify the other managers and RevOps under "Waiting on you", and show the reason under History. Checked locally standalone and with `CRM=crmdesk`; live click-through kept outside this repository.
 
-Built end to end on a simulated world, overnight 2026-11-11 to 12. Public at https://github.com/bryanacevedo/market-desk; live at https://market-desk-demo.pages.dev, the static snapshot deployed by GitHub Actions on each push to `main` that changes the app (see Deploys). The Render demo, https://market-desk-3kou.onrender.com (pages checked live in gate 10), is deployed by hand and lags `main`. Two roles sign in, RevOps and the manager; SDRs and AEs are plan data only (decision 39).
+Built end to end on a simulated world, overnight 2026-11-11 to 12. Public at https://github.com/bryanacevedo/market-desk; live at https://market-desk-demo.leandrive.io, the static snapshot deployed by GitHub Actions on each push to `main` that changes the app (see Deploys). The Render demo, https://market-desk-3kou.onrender.com (pages checked live in gate 10), is deployed by hand and lags `main`. Two roles sign in, RevOps and the manager; SDRs and AEs are plan data only (decision 39).
 
 Design-lint held items cleared on 2026-11-12 with Bryan's approval: the three round comparison markers (`.range-other`, `.pair-held`, `.key-ring`) are now hollow ticks, the same family as the solid measured tick, so the position on the scale still carries the data and no dot remains. Copy says "hollow tick" where it said "ring" (legends, tips, the Territories column header). `docs/DESIGN-LINT-BASELINE.txt` is empty.
 
@@ -63,7 +63,9 @@ Checked by running, on the demo database built from the shared world (2026-11-12
 
 ## Deploys
 
-The public demo is the static snapshot on Cloudflare Pages, https://market-desk-demo.pages.dev, the one the README links. `.github/workflows/static-snapshot.yml` builds and deploys it on each push to `main` that touches `web/`, `src/`, `world/`, `migrations/` or the snapshot build; the Cloudflare secrets have been set since 2026-11-18. State on 2026-11-27: run 45962315544 deployed 6313327, and the page answers 200 with noindex (`docs/RUNBOOK.md`).
+2026-11-27 (demo links): the public demo has its own address, https://market-desk-demo.leandrive.io (proxied CNAME in the leandrive.io zone, custom domain on the Pages project `market-desk-demo`). The old https://market-desk-demo.pages.dev keeps working with the same content. Both answer 200 with `x-robots-tag: noindex, nofollow`; nothing indexes either. The README and docs link the leandrive.io address. Rollback: delete the Pages custom domain, then the DNS record.
+
+The public demo is the static snapshot on Cloudflare Pages, https://market-desk-demo.leandrive.io, the one the README links. `.github/workflows/static-snapshot.yml` builds and deploys it on each push to `main` that touches `web/`, `src/`, `world/`, `migrations/` or the snapshot build; the Cloudflare secrets have been set since 2026-11-18. State on 2026-11-27: run 45962315544 deployed 6313327, and the page answers 200 with noindex (`docs/RUNBOOK.md`).
 
 Render auto-deploy is off on this service (verified through the Render API on 2026-11-16). A push to `main` deploys nothing; a deploy happens only when Bryan says. `render.yaml` does not say so: the setting lives on the Render service, where auto-deploy was turned off because the monthly build minutes ran out; nothing in this repository changes it. State on 2026-11-16: the last deploy of this desk, on 2026-11-15, ended build_failed, so the live demo lags `main` and no live commit is claimed here.
 
