@@ -83,7 +83,7 @@ export function App() {
     }
   }, [me]);
   // The server says which desks are connected and whether this is the read-only snapshot; every screen reads it from here.
-  if (me) { setNames(me.names); setRefuses(!!me.snapshot); if (me.now) setNow(me.now); }
+  if (me) { setNames(me.names, !!(me.snapshot || me.public_demo || me.simulated)); setRefuses(!!me.snapshot); if (me.now) setNow(me.now); }
   const routes = ROUTES.filter((r) => me && r.roles.includes(me.user.role));
   const bar = routes.filter((r) => r.bar);
   const rest = routes.filter((r) => !r.bar);
@@ -140,7 +140,7 @@ export function App() {
             </select>
           ) : null}
         </div>
-        {me?.snapshot ? <div className="snapshot-note" role="note">Read-only snapshot, taken {me.snapshot.taken_on}. {me.seller} is invented.</div> : null}
+        {me?.snapshot ? <div className="snapshot-note" role="note">Read-only snapshot. {me.seller} is invented. Sample day: {new Date(me.now).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric", timeZone: "UTC" })}.</div> : null}
         {me ? <div className="page-enter" key={`${route.path}:${me.user.id}`}><Page /></div> : null}
       </main>
       <nav className="phone-nav" aria-label="Main">

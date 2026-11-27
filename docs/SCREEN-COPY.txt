@@ -267,3 +267,4 @@ CRM Desk did not take it
 This desk does not read the CRM
 A sample source has no run to start
 This source runs on its schedule
+ICP is the ideal customer profile: the rules that score how well a company fits what you sell

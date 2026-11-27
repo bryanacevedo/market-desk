@@ -70,6 +70,7 @@ export function Market() {
         <span><i className="key-decade" />Marks: each one is ten times the last</span>
         <span>TAM is the whole market, SAM the part you can reach, SOM what the plan can win in 12 months</span>
         <span>Tiers: A strong fit, B good, C weak, X excluded</span>
+        <span>ICP is the ideal customer profile: the rules that score how well a company fits what you sell</span>
       </section>
       <div className="ledger market" role="table" aria-label={seg ? "Segments" : "Regions"}>
         <div className="row head" role="row" style={{ gridTemplateColumns: cols }}>
