@@ -3,6 +3,9 @@ import { api } from "../api";
 import { Empty, Failed, Fig, Loading, Section, day, deliveryLine, deskName, money, n0, say, Status, changed, useBusy, useData, writeHint, T } from "../lib";
 import { openSheet } from "../sheets";
 
+/** The events file is one document, not account rows, so row changes do not apply to it. */
+const na = <span className="mute">n/a</span>;
+
 export const DEST: Record<string, string> = { account_desk: "Account Desk", events_desk: "Events Desk" };
 
 export function Handoffs() {
@@ -51,8 +54,8 @@ export function Handoffs() {
                 {books.map((b: any) => (
                   <div key={b.id} className="row" style={{ gridTemplateColumns: cols }}>
                     <button className="link-row cell-main" onClick={() => openSheet("book", b.id)}><span className="t">Version {b.version}</span><span className="s">{day(b.created_at)}, profile v{b.icp_number}{b.created_by ? `, by ${b.created_by}` : ""}</span></button>
-                    <span className="num">{d === "events_desk" ? <span className="mute">Document</span> : n0(b.rows)}</span><span className="num">{n0(b.diff.added)}</span><span className="num">{n0(b.diff.removed)}</span>
-                    <span className="num">{n0(b.diff.tier_moved)}</span><span className="num">{n0(b.diff.owner_moved)}</span>
+                    <span className="num">{d === "events_desk" ? <span className="mute">Document</span> : n0(b.rows)}</span><span className="num">{d === "events_desk" ? na : n0(b.diff.added)}</span><span className="num">{d === "events_desk" ? na : n0(b.diff.removed)}</span>
+                    <span className="num">{d === "events_desk" ? na : n0(b.diff.tier_moved)}</span><span className="num">{d === "events_desk" ? na : n0(b.diff.owner_moved)}</span>
                     <span className="actions">{b.files.map((f: string) => <a key={f} className="btn quiet sm" href={`/api/books/${b.id}/files/${f}`} download><DownloadSimple size={14} />{f}</a>)}</span>
                   </div>
                 ))}

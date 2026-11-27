@@ -595,13 +595,15 @@ function BookSheet({ id }: { id: string }) {
     <Wrap kind="book" path={`/api/books/${id}`}>{(b) => (
       <Frame kind="book" crumb={b.destination === "account_desk" ? deskName("account_desk") : deskName("events_desk")}>
         <Title sub={`${day(b.created_at)}, profile v${b.icp_number}, ${b.plan_name}`}>Version {b.version}</Title>
-        <div className="figs">
-          <Fig sm value={n0(b.rows)} label="Rows" />
-          <Fig sm value={n0(b.diff.added)} label="Added" />
-          <Fig sm value={n0(b.diff.removed)} label="Removed" />
-          <Fig sm value={n0(b.diff.tier_moved)} label="Tier moved" />
-          <Fig sm value={n0(b.diff.owner_moved)} label="Owner moved" />
-        </div>
+        {b.destination === "account_desk" ? (
+          <div className="figs">
+            <Fig sm value={n0(b.rows)} label="Rows" />
+            <Fig sm value={n0(b.diff.added)} label="Added" />
+            <Fig sm value={n0(b.diff.removed)} label="Removed" />
+            <Fig sm value={n0(b.diff.tier_moved)} label="Tier moved" />
+            <Fig sm value={n0(b.diff.owner_moved)} label="Owner moved" />
+          </div>
+        ) : null}
         <div className="actions">{b.files.map((f: any) => <a key={f.path} className="btn line sm" href={`/api/books/${b.id}/files/${f.path}`} download>{f.path}</a>)}</div>
         {b.dropped_rules.length ? (
           <Section title="Not sent to Account Desk"><div className="ledger">{b.dropped_rules.map((d: any) => <div key={d.key} className="row" style={{ gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)" }}><span>{d.rule}</span><span className="mute">{d.why}</span></div>)}</div></Section>
